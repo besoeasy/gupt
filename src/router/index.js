@@ -115,9 +115,9 @@ const router = createRouter({
     },
     {
       // Stats used to be its own page; relay health and cache now live in the
-      // Relays section of Settings.
+      // Relays and Data tabs of Settings.
       path: "/stats",
-      redirect: { path: "/settings", query: { focus: "relays" } },
+      redirect: { path: "/settings", query: { tab: "relays" } },
     },
     {
       path: "/profile/:pubkey",

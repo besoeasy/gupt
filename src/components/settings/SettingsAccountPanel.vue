@@ -25,21 +25,18 @@ async function copyIdentity() {
 </script>
 
 <template>
-  <div>
-    <SettingsRow
-      title="Your identity"
-      description="Your public key. Contacts verify it, not a server."
-    >
-      <code class="settings-account-panel__code">{{ identityLabel }}</code>
+  <div class="account-panel">
+    <SettingsRow title="Your identity" description="Your public key. Contacts verify it, not a server.">
+      <code class="account-panel__key">{{ identityLabel }}</code>
       <button
         type="button"
-        class="settings-account-panel__button"
+        class="account-panel__copy"
         :aria-label="copied ? 'Identity copied' : 'Copy identity'"
         :title="copied ? 'Copied' : 'Copy public key'"
         @click="copyIdentity"
       >
-        <Check v-if="copied" class="settings-account-panel__check" :stroke-width="2" />
-        <Copy v-else class="settings-account-panel__copy" :stroke-width="2" />
+        <Check v-if="copied" :stroke-width="2" aria-hidden="true" />
+        <Copy v-else :stroke-width="2" aria-hidden="true" />
       </button>
     </SettingsRow>
 
@@ -47,12 +44,7 @@ async function copyIdentity() {
       title="Backup node"
       description="Keep a verified copy of your events on a machine you own."
     >
-      <RouterLink
-        to="/integrations/backup"
-        class="settings-account-panel__router-link-set-up"
-      >
-        Set up
-      </RouterLink>
+      <RouterLink to="/integrations/backup" class="account-panel__link">Set up</RouterLink>
     </SettingsRow>
   </div>
 </template>
@@ -60,184 +52,80 @@ async function copyIdentity() {
 <style scoped>
 @layer base, gupt-components;
 
-/* Light theme adjustments */
-
-@layer gupt-components {
-
-@media (hover:hover) {
-.settings-account-panel__router-link-set-up:hover {
-  border-color: var(--ui-zinc-700);
-}
+.account-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
-@media (hover:hover) {
-.settings-account-panel__button:hover {
-  background-color: #ffffff0d;
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.settings-account-panel__button:hover {
-  background-color: color-mix(in oklab,var(--color-white) 5%,transparent);
-}
-}
-}
-
-@media (hover:hover) {
-.settings-account-panel__router-link-set-up:hover {
-  background-color: var(--ui-zinc-800);
-}
-}
-
-@media (hover:hover) {
-.settings-account-panel__router-link-set-up:hover {
-  color: var(--color-white);
-}
-}
-
-@media (hover:hover) {
-.settings-account-panel__button:hover {
-  color: var(--ui-zinc-200);
-}
-}
-
-@media (min-width:40rem) {
-.settings-account-panel__button {
-  height: calc(var(--spacing) * 8);
-}
-}
-
-@media (min-width:40rem) {
-.settings-account-panel__router-link-set-up {
-  min-height: calc(var(--spacing) * 8);
-}
-}
-
-@media (min-width:40rem) {
-.settings-account-panel__button {
-  width: calc(var(--spacing) * 8);
-}
-}
-
-@layer gupt-components {
-.settings-account-panel__button {
-  display: inline-flex;
-}
-.settings-account-panel__router-link-set-up {
-  display: inline-flex;
-}
-.settings-account-panel__check {
-  height: calc(var(--spacing) * 3.5);
-}
-.settings-account-panel__copy {
-  height: calc(var(--spacing) * 3.5);
-}
-.settings-account-panel__button {
-  height: calc(var(--spacing) * 11);
-}
-.settings-account-panel__router-link-set-up {
-  min-height: calc(var(--spacing) * 11);
-}
-.settings-account-panel__check {
-  width: calc(var(--spacing) * 3.5);
-}
-.settings-account-panel__copy {
-  width: calc(var(--spacing) * 3.5);
-}
-.settings-account-panel__button {
-  width: calc(var(--spacing) * 11);
-}
-.settings-account-panel__button {
-  cursor: pointer;
-}
-.settings-account-panel__button {
-  align-items: center;
-}
-.settings-account-panel__router-link-set-up {
-  align-items: center;
-}
-.settings-account-panel__button {
-  justify-content: center;
-}
-.settings-account-panel__button {
-  border-radius: var(--radius-lg);
-}
-.settings-account-panel__router-link-set-up {
-  border-radius: var(--radius-lg);
-}
-.settings-account-panel__router-link-set-up {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.settings-account-panel__router-link-set-up {
-  border-color: var(--ui-zinc-800);
-}
-.settings-account-panel__router-link-set-up {
-  background-color: var(--app-surface-tint);
-}
-.settings-account-panel__router-link-set-up {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.settings-account-panel__code {
+.account-panel__key {
   font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--app-text);
 }
-.settings-account-panel__code {
-  font-size: 11px;
-}
-.settings-account-panel__router-link-set-up {
-  font-size: 11px;
-}
-.settings-account-panel__router-link-set-up {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.settings-account-panel__check {
-  color: var(--color-emerald-400);
-}
-.settings-account-panel__router-link-set-up {
-  color: var(--ui-zinc-300);
-}
-.settings-account-panel__code {
-  color: var(--ui-zinc-400);
-}
-.settings-account-panel__button {
-  color: var(--ui-zinc-500);
-}
-.settings-account-panel__button {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.settings-account-panel__router-link-set-up {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.settings-account-panel__button:active {
-  scale: .98;
-}
-.settings-account-panel__router-link-set-up:active {
-  scale: .98;
-}
-[data-theme="light"] .settings-account-panel__check {
-  color: var(--app-success);
-}
-[data-theme="light"] .settings-account-panel__router-link-set-up {
+
+.account-panel__copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background-color: transparent;
   color: var(--app-text-soft);
+  cursor: pointer;
+  transition:
+    color var(--app-dur-fast) var(--app-ease-standard),
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard);
 }
-[data-theme="light"] .settings-account-panel__code {
-  color: var(--app-muted);
+
+.account-panel__copy svg {
+  width: 15px;
+  height: 15px;
 }
-[data-theme="light"] .settings-account-panel__button {
-  color: var(--app-muted);
+
+.account-panel__copy:active {
+  scale: 0.98;
 }
-[data-theme="light"] .settings-account-panel__button:hover {
-  background-color: var(--app-surface-hover) !important;
+
+.account-panel__copy:focus-visible,
+.account-panel__link:focus-visible {
+  outline: 2px solid var(--app-primary);
+  outline-offset: 2px;
 }
-[data-theme="light"] .settings-account-panel__button:hover {
-  color: var(--app-text) !important;
+
+.account-panel__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding-inline: calc(var(--spacing) * 3.5);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background-color: var(--app-surface);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--app-text);
+  text-decoration: none;
+  transition:
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    background-color var(--app-dur-fast) var(--app-ease-standard);
 }
-}
+
+@media (hover: hover) {
+  .account-panel__copy:hover {
+    border-color: var(--app-border-strong);
+    background-color: var(--app-surface-hover);
+    color: var(--app-text);
+  }
+
+  .account-panel__link:hover {
+    border-color: var(--app-border-strong);
+    background-color: var(--app-surface-hover);
+  }
 }
 </style>

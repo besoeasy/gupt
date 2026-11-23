@@ -1,11 +1,10 @@
 <script setup>
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
-import { useRoute } from "vue-router";
-import { Settings } from "@/icons";
+import { computed, nextTick, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { Settings as SettingsIcon } from "@/icons";
 
 import SettingsAccountPanel from "@/components/settings/SettingsAccountPanel.vue";
 import SettingsAppPanel from "@/components/settings/SettingsAppPanel.vue";
-import SettingsSection from "@/components/settings/SettingsSection.vue";
 import SettingsCachePanel from "@/components/settings/SettingsCachePanel.vue";
 import SettingsSyncPanel from "@/components/settings/SettingsSyncPanel.vue";
 import CustomRelaysPanel from "@/components/settings/CustomRelaysPanel.vue";
@@ -15,29 +14,30 @@ import { useRelaySummary } from "@/composables/useRelaySummary";
 import { shortId } from "@/lib/crypto";
 import { useIdentityStore } from "@/stores/identity";
 
-const SECTIONS = [
+const TABS = [
   { id: "relays", label: "Relays" },
   { id: "sync", label: "Sync" },
-  { id: "app-data", label: "App & data" },
+  { id: "data", label: "Data" },
   { id: "account", label: "Account" },
 ];
 
-const HIGHLIGHT_MS = 2200;
+/** Old section deep links land on the tab that absorbed them. */
+const LEGACY_FOCUS = {
+  relays: "relays",
+  analytics: "relays",
+  sync: "sync",
+  "app-data": "data",
+  account: "account",
+};
 
 const route = useRoute();
+const router = useRouter();
 const identity = useIdentityStore();
 const { relayCount, unhealthyCount, loaded } = useRelaySummary();
-const relaysSection = ref(null);
-const highlightId = ref("");
-let highlightTimer = null;
 
-const relaySummary = computed(() => {
-  const parts = [`${relayCount.value} configured`];
-  if (loaded.value && unhealthyCount.value > 0) {
-    parts.push(`${unhealthyCount.value} failing`);
-  }
-  return parts.join(" · ");
-});
+const tablist = ref(null);
+const pane = ref(null);
+const activeTab = ref("relays");
 
 const buildDate = new Date(__APP_BUILD_TIME__).toLocaleString(undefined, {
   year: "numeric",
@@ -51,92 +51,159 @@ const identityLabel = computed(() =>
   identity.pubkeyHex ? shortId(identity.pubkeyHex, 8, 4) : "—",
 );
 
-function scrollToSection(id) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+const failingRelays = computed(() => (loaded.value ? unhealthyCount.value : 0));
+
+const relayTabHint = computed(() => {
+  const parts = [`${relayCount.value} configured`];
+  if (failingRelays.value > 0) {
+    parts.push(failingRelays.value === 1 ? "1 failing" : `${failingRelays.value} failing`);
+  }
+  return parts.join(" · ");
+});
+
+function readTab() {
+  const direct = String(route.query.tab || "");
+  if (TABS.some((entry) => entry.id === direct)) return direct;
+  return LEGACY_FOCUS[String(route.query.focus || "")] || "relays";
 }
 
-async function focusSection(id) {
-  if (id === "relays") relaysSection.value?.expand();
+watch(
+  () => [route.query.tab, route.query.focus],
+  () => {
+    activeTab.value = readTab();
+  },
+  { immediate: true },
+);
+
+function tabButtons() {
+  return [...(tablist.value?.querySelectorAll('[role="tab"]') || [])];
+}
+
+async function selectTab(id, { focusButton = false } = {}) {
+  if (!TABS.some((entry) => entry.id === id)) return;
+  const changed = activeTab.value !== id;
+  activeTab.value = id;
+  if (String(route.query.tab || "") !== id) {
+    void router.replace({ path: "/settings", query: { tab: id } });
+  }
   await nextTick();
-  scrollToSection(id);
+  if (focusButton) {
+    tabButtons()
+      .find((button) => button.dataset.tab === id)
+      ?.focus();
+  }
+  if (changed) pane.value?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-async function applyFocus() {
-  const target = String(route.query.focus || "");
-  if (!SECTIONS.some((section) => section.id === target)) return;
-  await focusSection(target);
-  highlightId.value = target;
-  if (highlightTimer) clearTimeout(highlightTimer);
-  highlightTimer = setTimeout(() => {
-    highlightId.value = "";
-    highlightTimer = null;
-  }, HIGHLIGHT_MS);
+function onTabKeydown(event, index) {
+  const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+  if (!step) return;
+  event.preventDefault();
+  const next = (index + step + TABS.length) % TABS.length;
+  void selectTab(TABS[next].id, { focusButton: true });
 }
-
-/** Amber pulse on the section the user was sent to. */
-function highlightClass(id) {
-  return highlightId.value === id
-    ? "settings-view__variant-1"
-    : "";
-}
-
-onMounted(() => {
-  void applyFocus();
-});
-
-watch(() => route.query.focus, applyFocus);
-
-onUnmounted(() => {
-  if (highlightTimer) clearTimeout(highlightTimer);
-});
 </script>
 
 <template>
-  <div class="settings-view__block">
+  <div class="settings-view">
     <main class="settings-view__main">
       <header class="settings-view__header">
-        <div class="settings-view__block-2">
-          <div
-            class="settings-view__block-3"
-          >
-            <Settings class="settings-view__settings" :stroke-width="2" aria-hidden="true" />
-          </div>
-          <div class="settings-view__block-4">
-            <h1 class="settings-view__title-settings">Settings</h1>
-            <p class="settings-view__text">
-              Signed in as
-              <span class="settings-view__text-2">{{ identityLabel }}</span>
-              · built {{ buildDate }}
-            </p>
-          </div>
+        <div class="settings-view__tile">
+          <SettingsIcon :stroke-width="1.8" aria-hidden="true" />
+        </div>
+        <div class="settings-view__titles">
+          <h1 class="settings-view__title">Settings</h1>
+          <p class="settings-view__subtitle">
+            Signed in as <span class="settings-view__key">{{ identityLabel }}</span> · built
+            {{ buildDate }}
+          </p>
         </div>
       </header>
 
-      <div class="settings-view__block-5">
-        <SettingsSection
-          id="relays"
-          ref="relaysSection"
-          title="Relays"
-          collapsible
-          :summary="relaySummary"
-          :class="highlightClass('relays')"
+      <div ref="tablist" class="settings-tabs" role="tablist" aria-label="Settings sections">
+        <button
+          v-for="(tab, index) in TABS"
+          :id="`settings-tab-${tab.id}`"
+          :key="tab.id"
+          type="button"
+          role="tab"
+          class="settings-tabs__tab"
+          :class="{ 'settings-tabs__tab--active': activeTab === tab.id }"
+          :aria-selected="activeTab === tab.id"
+          :aria-controls="'settings-pane'"
+          :tabindex="activeTab === tab.id ? 0 : -1"
+          :data-tab="tab.id"
+          @click="selectTab(tab.id)"
+          @keydown="onTabKeydown($event, index)"
         >
-          <CustomRelaysPanel />
-          <RelaySuggestionsPanel />
-          <SettingsCachePanel />
-        </SettingsSection>
+          {{ tab.label }}
+          <span
+            v-if="tab.id === 'relays' && failingRelays > 0"
+            class="settings-tabs__dot"
+            :title="`${relayTabHint}`"
+            aria-hidden="true"
+          />
+          <span
+            v-if="tab.id === 'relays' && failingRelays > 0"
+            class="settings-tabs__sr"
+          >
+            {{ relayTabHint }}
+          </span>
+        </button>
+      </div>
 
-        <SettingsSection id="sync" title="Sync" :class="highlightClass('sync')">
-          <SettingsSyncPanel />
-        </SettingsSection>
+      <div
+        id="settings-pane"
+        ref="pane"
+        class="settings-pane"
+        role="tabpanel"
+        :aria-labelledby="`settings-tab-${activeTab}`"
+        tabindex="0"
+      >
+        <div :key="activeTab" class="settings-pane__body">
+          <template v-if="activeTab === 'relays'">
+            <header class="settings-pane__head">
+              <h2 class="settings-pane__title">Relays</h2>
+              <p class="settings-pane__desc">
+                Sends and reads go out to these nodes. Two working relays keep your messages
+                reachable.
+              </p>
+            </header>
+            <CustomRelaysPanel />
+            <RelaySuggestionsPanel />
+          </template>
 
-        <SettingsSection id="app-data" title="App & data" :class="highlightClass('app-data')">
-          <SettingsAppPanel />
-        </SettingsSection>
+          <template v-else-if="activeTab === 'sync'">
+            <header class="settings-pane__head">
+              <h2 class="settings-pane__title">Sync</h2>
+              <p class="settings-pane__desc">
+                How this device keeps its copy of your events close to the relays'.
+              </p>
+            </header>
+            <SettingsSyncPanel />
+          </template>
 
-        <SettingsSection id="account" title="Account" :class="highlightClass('account')">
-          <SettingsAccountPanel />
-        </SettingsSection>
+          <template v-else-if="activeTab === 'data'">
+            <header class="settings-pane__head">
+              <h2 class="settings-pane__title">Data</h2>
+              <p class="settings-pane__desc">
+                Appearance, notifications, and what this device keeps cached.
+              </p>
+            </header>
+            <SettingsAppPanel />
+            <SettingsCachePanel />
+          </template>
+
+          <template v-else>
+            <header class="settings-pane__head">
+              <h2 class="settings-pane__title">Account</h2>
+              <p class="settings-pane__desc">
+                Your identity lives on this device. There is no server account to recover.
+              </p>
+            </header>
+            <SettingsAccountPanel />
+          </template>
+        </div>
       </div>
     </main>
   </div>
@@ -145,211 +212,233 @@ onUnmounted(() => {
 <style scoped>
 @layer base, gupt-components;
 
-/* Light theme adjustments */
+.settings-view {
+  min-height: 100%;
+  animation: settings-view-in var(--app-dur-base) var(--app-ease-out) both;
+}
 
-@layer gupt-components {
-
-@media (min-width:40rem) {
 .settings-view__main {
-  padding-inline: calc(var(--spacing) * 6);
-}
-}
-
-@media (min-width:64rem) {
-.settings-view__main {
-  padding-inline: calc(var(--spacing) * 8);
-}
-}
-
-@layer gupt-components {
-.settings-view__main {
+  width: 100%;
+  max-width: 56rem;
   margin-inline: auto;
+  padding: calc(var(--spacing) * 6) calc(var(--spacing) * 4) calc(var(--spacing) * 12);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing) * 5);
 }
-.settings-view__text {
-  margin-top: calc(var(--spacing) * .5);
-}
+
 .settings-view__header {
   display: flex;
-}
-.settings-view__block-2 {
-  display: flex;
-}
-.settings-view__block-3 {
-  display: flex;
-}
-.settings-view__settings {
-  height: calc(var(--spacing) * 4);
-}
-.settings-view__block-3 {
-  height: calc(var(--spacing) * 10);
-}
-.settings-view__block {
-  height: 100%;
-}
-.settings-view__settings {
-  width: calc(var(--spacing) * 4);
-}
-.settings-view__block-3 {
-  width: calc(var(--spacing) * 10);
-}
-.settings-view__block {
-  width: 100%;
-}
-.settings-view__main {
-  width: 100%;
-}
-.settings-view__main {
-  max-width: var(--container-5xl);
-}
-.settings-view__block {
-  min-width: 0;
-}
-.settings-view__block-2 {
-  min-width: 0;
-}
-.settings-view__block-4 {
-  min-width: 0;
-}
-.settings-view__block-3 {
-  flex-shrink: 0;
-}
-.settings-view__block-3 {
   align-items: center;
-}
-.settings-view__header {
-  align-items: flex-start;
-}
-.settings-view__block-2 {
-  align-items: flex-start;
-}
-.settings-view__header {
-  justify-content: space-between;
-}
-.settings-view__block-3 {
-  justify-content: center;
-}
-.settings-view__header {
   gap: calc(var(--spacing) * 3);
 }
-.settings-view__block-2 {
-  gap: calc(var(--spacing) * 3);
+
+.settings-view__tile {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background-color: var(--app-surface);
+  color: var(--app-text-soft);
 }
-:where(.settings-view__block-5>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 5) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 5) * calc(1 - 0));
+
+.settings-view__tile svg {
+  width: 18px;
+  height: 18px;
 }
-.settings-view__title-settings {
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
+
+.settings-view__titles {
+  min-width: 0;
 }
-.settings-view__text {
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.settings-view__block {
-  overflow-y: auto;
-}
-.settings-view__block-3 {
-  border-radius: var(--radius-xl);
-}
-.settings-view__block-3 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.settings-view__block-3 {
-  border-color: var(--app-border-quiet);
-}
-.settings-view__block {
-  background-color: var(--ui-black);
-}
-.settings-view__block-3 {
-  background-color: var(--app-surface-inset);
-}
-.settings-view__main {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.settings-view__main {
-  padding-block: calc(var(--spacing) * 6);
-}
-.settings-view__header {
-  padding-bottom: calc(var(--spacing) * 5);
-}
-.settings-view__block {
-  padding-bottom: calc(var(--spacing) * 20);
-}
-.settings-view__text-2 {
-  font-family: var(--font-mono);
-}
-.settings-view__title-settings {
-  font-size: var(--text-lg);
-  line-height: var(--leading,var(--text-lg--line-height));
-}
-.settings-view__text {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.settings-view__text {
-  --leading: var(--leading-relaxed);
-  line-height: var(--leading-relaxed);
-}
-.settings-view__title-settings {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.settings-view__title-settings {
-  --tracking: var(--tracking-tight);
-  letter-spacing: var(--tracking-tight);
-}
-.settings-view__title-settings {
-  color: var(--color-white);
-}
-[data-theme="light"] .settings-view__title-settings {
+
+.settings-view__title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 650;
+  letter-spacing: -0.015em;
   color: var(--app-text);
 }
-.settings-view__block {
-  color: var(--ui-zinc-100);
-}
-.settings-view__text-2 {
-  color: var(--ui-zinc-400);
-}
-.settings-view__block-3 {
-  color: var(--ui-zinc-500);
-}
-.settings-view__text {
-  color: var(--ui-zinc-500);
-}
-.settings-view__variant-1 {
-  --shadow: 0 0 28px var(--shadow-color,#fbbf2424);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 0 28px var(--shadow-color,#fbbf2424);
-}
-.settings-view__variant-1 {
-  --ring-shadow: var(--ring-inset,) 0 0 0 calc(2px + var(--ring-offset-width,0px)) var(--ring-color,currentcolor);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-inset,) 0 0 0 calc(2px + var(--ring-offset-width,0px)) var(--ring-color,currentcolor), var(--shadow,0 0 #0000);
-}
-.settings-view__variant-1 {
-  --ring-color: #fcbb0066;
-}
-[data-theme="light"] .settings-view__text-2 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .settings-view__block-3 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .settings-view__text {
-  color: var(--app-muted);
-}
-}
+
+.settings-view__subtitle {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: var(--app-text-soft);
 }
 
-@layer gupt-components {
+.settings-view__key {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--app-text);
+}
 
-@supports (color:color-mix(in lab,red,red)) {
-.settings-view__variant-1 {
-  --ring-color: color-mix(in oklab, var(--color-amber-400) 40%, transparent);
+.settings-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background-color: var(--app-bg-soft);
 }
+
+.settings-tabs__tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding-inline: calc(var(--spacing) * 2);
+  border: 1px solid transparent;
+  border-radius: var(--app-radius-sm);
+  background-color: transparent;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--app-text-soft);
+  cursor: pointer;
+  transition:
+    color var(--app-dur-fast) var(--app-ease-standard),
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard);
 }
+
+.settings-tabs__tab--active {
+  border-color: var(--app-border);
+  background-color: var(--app-surface);
+  color: var(--app-text);
+  font-weight: 600;
+}
+
+.settings-tabs__tab:focus-visible {
+  outline: 2px solid var(--app-primary);
+  outline-offset: 2px;
+}
+
+.settings-tabs__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background-color: var(--app-warning);
+  flex-shrink: 0;
+}
+
+.settings-tabs__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.settings-pane {
+  padding: calc(var(--spacing) * 5);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background-color: var(--app-bg-soft);
+  min-width: 0;
+}
+
+.settings-pane:focus-visible {
+  outline: 2px solid var(--app-primary);
+  outline-offset: 2px;
+}
+
+.settings-pane__body {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing) * 4);
+  min-width: 0;
+  animation: settings-pane-in var(--app-dur-base) var(--app-ease-out) both;
+}
+
+.settings-pane__head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-pane__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--app-text);
+}
+
+.settings-pane__desc {
+  margin: 0;
+  max-width: 60ch;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--app-text-soft);
+}
+
+@media (hover: hover) {
+  .settings-tabs__tab:not(.settings-tabs__tab--active):hover {
+    color: var(--app-text);
+    background-color: var(--app-surface-tint-soft);
+  }
+}
+
+@media (min-width: 40rem) {
+  .settings-view__main {
+    padding-inline: calc(var(--spacing) * 6);
+  }
+
+  .settings-pane {
+    padding: calc(var(--spacing) * 6);
+  }
+}
+
+@media (max-width: 26rem) {
+  .settings-view__main {
+    padding-inline: calc(var(--spacing) * 3);
+  }
+
+  .settings-tabs__tab {
+    font-size: 10.5px;
+    letter-spacing: 0.02em;
+  }
+
+  .settings-pane {
+    padding: calc(var(--spacing) * 3.5);
+  }
+}
+
+@keyframes settings-pane-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes settings-view-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-view,
+  .settings-pane__body {
+    animation: none;
+  }
 }
 </style>

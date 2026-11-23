@@ -65,7 +65,7 @@ onMounted(() => {
     <AppAlertBanner v-if="error" :message="error" />
 
     <div class="cache-panel__head">
-      <p id="settings-cache" class="cache-panel__label">Cache on this device</p>
+      <p id="settings-cache" class="cache-panel__label">Cache detail</p>
       <p v-if="cache" class="cache-panel__meta">
         {{ cache.totalEntries.toLocaleString() }} entries ·
         {{ formatBytes(cache.totalEstimatedBytes) }}
@@ -128,18 +128,19 @@ onMounted(() => {
 .cache-panel__label {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--app-muted);
+  color: var(--app-text-soft);
 }
 
 .cache-panel__meta {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
-  color: var(--app-muted-2);
+  color: var(--app-text-soft);
 }
 
 .cache-panel__usage {
@@ -219,24 +220,23 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
-  color: var(--app-text-soft);
+  font-size: 12.5px;
+  color: var(--app-text);
 }
 
 .cache-panel__store-value {
   flex-shrink: 0;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
-  color: var(--app-muted);
+  color: var(--app-text-soft);
 }
 
 .cache-panel__hint {
   margin: 0;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  line-height: 1.6;
-  color: var(--app-muted);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--app-text-soft);
 }
 
 @media (hover: hover) {

@@ -228,7 +228,7 @@ const failing = computed(
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--app-text);
 }
@@ -238,7 +238,7 @@ const failing = computed(
   padding: 2px 6px;
   border-radius: 4px;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 10.5px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -266,17 +266,17 @@ const failing = computed(
 
 .relay-card__score-max {
   font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--app-muted);
+  font-size: 12px;
+  color: var(--app-text-soft);
 }
 
 .relay-card__score-label {
   margin-left: auto;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 10.5px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--app-muted);
+  color: var(--app-text-soft);
 }
 
 .relay-card__track {
@@ -311,18 +311,18 @@ const failing = computed(
 
 .relay-card__stat dt {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.06em;
+  font-size: 11px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--app-muted);
+  color: var(--app-text-soft);
 }
 
 .relay-card__stat dd {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
-  color: var(--app-text-soft);
+  color: var(--app-text);
 }
 
 .relay-card__mode {
@@ -332,7 +332,7 @@ const failing = computed(
   border-radius: 4px;
   background-color: var(--app-warning-soft);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 10.5px;
   color: var(--app-warning);
 }
 
@@ -342,7 +342,7 @@ const failing = computed(
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   color: var(--app-danger);
 }
 
@@ -359,8 +359,8 @@ const failing = computed(
   border-radius: var(--app-radius-sm);
   background-color: transparent;
   font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--app-muted);
+  font-size: 12px;
+  color: var(--app-text-soft);
   cursor: pointer;
   transition:
     color var(--app-dur-fast) var(--app-ease-standard),

@@ -6,14 +6,12 @@ defineProps({
 </script>
 
 <template>
-  <div class="settings-row__block">
-    <div class="settings-row__block-2">
-      <p class="settings-row__text">{{ title }}</p>
-      <p v-if="description" class="settings-row__text-2">
-        {{ description }}
-      </p>
+  <div class="settings-row">
+    <div class="settings-row__copy">
+      <p class="settings-row__title">{{ title }}</p>
+      <p v-if="description" class="settings-row__desc">{{ description }}</p>
     </div>
-    <div class="settings-row__block-3">
+    <div class="settings-row__control">
       <slot />
     </div>
   </div>
@@ -22,84 +20,49 @@ defineProps({
 <style scoped>
 @layer base, gupt-components;
 
-/* Light theme adjustments */
-
-@layer gupt-components {
-.settings-row__text-2 {
-  margin-top: calc(var(--spacing) * .5);
-}
-.settings-row__block {
+.settings-row {
   display: flex;
-}
-.settings-row__block-3 {
-  display: flex;
-}
-.settings-row__block {
-  min-height: calc(var(--spacing) * 11);
-}
-.settings-row__block-2 {
-  min-width: 0;
-}
-.settings-row__block-2 {
-  flex: 1;
-}
-.settings-row__block-3 {
-  flex-shrink: 0;
-}
-.settings-row__block {
   align-items: center;
-}
-.settings-row__block-3 {
-  align-items: center;
-}
-.settings-row__block-3 {
-  gap: calc(var(--spacing) * 2);
-}
-.settings-row__block {
+  justify-content: space-between;
   gap: calc(var(--spacing) * 3);
-}
-.settings-row__block {
-  border-top-style: var(--border-style,solid);
-  border-top-width: 1px;
-}
-.settings-row__block {
-  border-color: var(--app-border-faint);
-}
-.settings-row__block {
+  min-height: 56px;
   padding-block: calc(var(--spacing) * 3);
 }
-.settings-row__text {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
+
+.settings-row + .settings-row {
+  border-top: 1px solid var(--app-border-faint);
 }
-.settings-row__text-2 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
+
+.settings-row__copy {
+  min-width: 0;
+  flex: 1;
 }
-.settings-row__text-2 {
-  --leading: var(--leading-relaxed);
-  line-height: var(--leading-relaxed);
+
+.settings-row__title {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 550;
+  color: var(--app-text);
 }
-.settings-row__text {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
+
+.settings-row__desc {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--app-text-soft);
 }
-.settings-row__text {
-  --tracking: var(--tracking-tight);
-  letter-spacing: var(--tracking-tight);
+
+.settings-row__control {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing) * 2);
+  flex-shrink: 0;
 }
-.settings-row__text {
-  color: var(--ui-zinc-200);
-}
-.settings-row__text-2 {
-  color: var(--ui-zinc-500);
-}
-.settings-row__block:first-child {
-  border-top-style: var(--border-style,solid);
-  border-top-width: 0;
-}
-[data-theme="light"] .settings-row__text-2 {
-  color: var(--app-muted);
-}
+
+@media (max-width: 26rem) {
+  .settings-row {
+    gap: calc(var(--spacing) * 2);
+  }
 }
 </style>

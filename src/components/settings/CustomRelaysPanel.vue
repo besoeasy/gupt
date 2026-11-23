@@ -263,10 +263,10 @@ async function handleProbe() {
 .relays-panel__count {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
+  font-size: 11px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--app-muted);
+  color: var(--app-text-soft);
 }
 
 .relays-panel__count-sep {
@@ -297,9 +297,9 @@ async function handleProbe() {
   border-radius: var(--app-radius-sm);
   background-color: transparent;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.04em;
-  color: var(--app-muted);
+  color: var(--app-text-soft);
   cursor: pointer;
   transition:
     color var(--app-dur-fast) var(--app-ease-standard),
@@ -354,14 +354,14 @@ async function handleProbe() {
 
 .relays-panel__warning-title {
   margin: 0;
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 12.5px;
+  font-weight: 600;
   color: var(--app-warning-strong);
 }
 
 .relays-panel__warning-text {
   margin: 2px 0 0;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--app-text-soft);
 }
@@ -383,9 +383,8 @@ async function handleProbe() {
   margin: 0;
   padding-block: calc(var(--spacing) * 4);
   text-align: center;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--app-muted);
+  font-size: 12.5px;
+  color: var(--app-text-soft);
 }
 
 .relays-panel__add {
@@ -404,7 +403,7 @@ async function handleProbe() {
   border-radius: var(--app-radius-sm);
   background-color: transparent;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--app-text);
 }
 
@@ -420,14 +419,14 @@ async function handleProbe() {
 
 .relays-panel__add-button {
   flex-shrink: 0;
-  color: var(--app-text-soft);
-  background-color: var(--app-surface-tint);
+  color: var(--app-text);
+  background-color: var(--app-surface);
 }
 
 .relays-panel__error {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--app-danger);
 }
 
@@ -511,8 +510,4 @@ async function handleProbe() {
   border-color: var(--app-border-quiet);
 }
 
-[data-theme="light"] .relays-panel__add-button {
-  background-color: var(--app-surface-tint);
-  color: var(--app-text-soft);
-}
 </style>

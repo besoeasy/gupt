@@ -67,12 +67,12 @@ onMounted(load);
 </script>
 
 <template>
-  <div>
+  <div class="app-panel">
     <SettingsRow title="Theme" description="Applies everywhere, immediately.">
-      <div class="settings-app-panel__theme" role="group" aria-label="Theme">
+      <div class="app-panel__segment" role="group" aria-label="Theme">
         <button
           type="button"
-          class="settings-app-panel__theme-option"
+          class="app-panel__segment-option"
           :aria-pressed="theme.isDark"
           @click="selectTheme('dark')"
         >
@@ -80,7 +80,7 @@ onMounted(load);
         </button>
         <button
           type="button"
-          class="settings-app-panel__theme-option"
+          class="app-panel__segment-option"
           :aria-pressed="!theme.isDark"
           @click="selectTheme('light')"
         >
@@ -90,31 +90,31 @@ onMounted(load);
     </SettingsRow>
 
     <SettingsRow title="Message sound" description="Play a sound for incoming messages.">
-      <label class="settings-app-panel__sound">
+      <label class="app-panel__switch">
         <input
           v-model="settings.soundEnabled"
           type="checkbox"
-          class="settings-app-panel__sound-input"
+          class="app-panel__switch-input"
           aria-label="Message sound"
         />
-        <span class="settings-app-panel__sound-track" aria-hidden="true">
-          <span class="settings-app-panel__sound-thumb" />
+        <span class="app-panel__switch-track" aria-hidden="true">
+          <span class="app-panel__switch-thumb" />
         </span>
       </label>
     </SettingsRow>
 
     <SettingsRow
       title="Push notifications"
-      description="Delivered through ntfy when the app is closed."
+      description="Delivered through ntfy while the app is closed."
     >
-      <RouterLink to="/notifications" class="settings-app-panel__link"> Set up </RouterLink>
+      <RouterLink to="/notifications" class="app-panel__link">Set up</RouterLink>
     </SettingsRow>
 
     <SettingsRow title="Cached media" :description="cacheSub">
-      <span class="settings-app-panel__cache-size">{{ cacheLabel }}</span>
+      <span class="app-panel__cache">{{ cacheLabel }}</span>
       <button
         type="button"
-        class="settings-app-panel__clear"
+        class="app-panel__clear"
         :disabled="clearing || loading || !cacheEntries"
         @click="confirmOpen = true"
       >
@@ -122,13 +122,12 @@ onMounted(load);
       </button>
     </SettingsRow>
 
-    <p class="settings-app-panel__note">
-      Relays keep your events for {{ RETENTION_DAYS }} days; this device only mirrors them.
+    <p class="app-panel__note">
+      Relays keep your events for {{ RETENTION_DAYS }} days; this device only mirrors them, so
+      clearing media never deletes a message.
     </p>
 
-    <p v-if="message" class="settings-app-panel__status" role="status">
-      {{ message }}
-    </p>
+    <p v-if="message" class="app-panel__status" role="status">{{ message }}</p>
 
     <AppConfirmDialog
       :open="confirmOpen"
@@ -144,238 +143,195 @@ onMounted(load);
 <style scoped>
 @layer base, gupt-components;
 
-@layer gupt-components {
-  .settings-app-panel__theme {
-    display: inline-flex;
-    gap: calc(var(--spacing) * 0.5);
-    padding: calc(var(--spacing) * 0.5);
-    border: 1px solid var(--ui-zinc-800);
-    border-radius: var(--radius-lg);
-    background-color: var(--app-surface-tint);
-  }
+.app-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
 
-  .settings-app-panel__theme-option {
-    min-width: calc(var(--spacing) * 14);
-    min-height: calc(var(--spacing) * 11);
-    padding-inline: calc(var(--spacing) * 3);
-    border-radius: var(--radius-md);
-    font-size: 11px;
-    font-weight: var(--font-weight-medium);
-    cursor: pointer;
-    transition:
-      color 0.2s,
-      background-color 0.2s;
-  }
+.app-panel__segment {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background-color: var(--app-surface-tint);
+}
 
-  .settings-app-panel__theme-option[aria-pressed="true"] {
-    background-color: var(--ui-zinc-800);
-    color: var(--ui-zinc-100);
-  }
+.app-panel__segment-option {
+  min-height: 38px;
+  padding-inline: calc(var(--spacing) * 3);
+  border: 1px solid transparent;
+  border-radius: calc(var(--app-radius-md) - 4px);
+  background-color: transparent;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--app-text-soft);
+  cursor: pointer;
+  transition:
+    color var(--app-dur-fast) var(--app-ease-standard),
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard);
+}
 
-  .settings-app-panel__theme-option[aria-pressed="false"] {
-    color: var(--ui-zinc-500);
-  }
+.app-panel__segment-option[aria-pressed="true"] {
+  border-color: var(--app-border);
+  background-color: var(--app-surface);
+  color: var(--app-text);
+  font-weight: 600;
+}
 
-  @media (hover: hover) {
-    .settings-app-panel__theme-option[aria-pressed="false"]:hover {
-      color: var(--ui-zinc-300);
-    }
-  }
+.app-panel__segment-option:focus-visible,
+.app-panel__link:focus-visible,
+.app-panel__clear:focus-visible {
+  outline: 2px solid var(--app-primary);
+  outline-offset: 2px;
+}
 
-  [data-theme="light"] .settings-app-panel__theme-option[aria-pressed="false"] {
-    color: var(--app-muted);
-  }
+.app-panel__switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+}
 
-  [data-theme="light"] .settings-app-panel__theme-option[aria-pressed="false"]:hover {
+.app-panel__switch-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  border: 0;
+}
+
+.app-panel__switch-track {
+  display: inline-flex;
+  align-items: center;
+  width: 44px;
+  height: 26px;
+  padding: 3px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 999px;
+  background-color: var(--app-surface-inset);
+  transition:
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.app-panel__switch-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background-color: var(--app-muted);
+  transition:
+    transform var(--app-dur-base) var(--app-ease-spring),
+    background-color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.app-panel__switch-input:checked + .app-panel__switch-track {
+  border-color: color-mix(in oklab, var(--app-success) 45%, transparent);
+  background-color: var(--app-success);
+}
+
+.app-panel__switch-input:checked + .app-panel__switch-track .app-panel__switch-thumb {
+  transform: translateX(18px);
+  background-color: #ffffff;
+}
+
+.app-panel__switch-input:focus-visible + .app-panel__switch-track {
+  outline: 2px solid var(--app-primary);
+  outline-offset: 2px;
+}
+
+.app-panel__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding-inline: calc(var(--spacing) * 3.5);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background-color: var(--app-surface);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--app-text);
+  text-decoration: none;
+  transition:
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    background-color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.app-panel__cache {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--app-text);
+}
+
+.app-panel__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding-inline: calc(var(--spacing) * 3);
+  border: 1px solid color-mix(in oklab, var(--app-danger) 32%, transparent);
+  border-radius: var(--app-radius-sm);
+  background-color: transparent;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--app-danger);
+  cursor: pointer;
+  transition:
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.app-panel__clear:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.app-panel__note {
+  margin: 0;
+  padding-top: calc(var(--spacing) * 3);
+  border-top: 1px solid var(--app-border-faint);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--app-text-soft);
+}
+
+.app-panel__status {
+  margin: calc(var(--spacing) * 3) 0 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in oklab, var(--app-success) 30%, transparent);
+  border-radius: var(--app-radius-sm);
+  background-color: var(--app-success-soft);
+  font-size: 12px;
+  color: var(--app-text);
+}
+
+@media (hover: hover) {
+  .app-panel__segment-option[aria-pressed="false"]:hover {
     color: var(--app-text);
   }
 
-  .settings-app-panel__theme-option:active {
-    scale: 0.98;
+  .app-panel__link:hover {
+    border-color: var(--app-border-strong);
+    background-color: var(--app-surface-hover);
   }
 
-  @media (min-width: 40rem) {
-    .settings-app-panel__theme-option {
-      min-height: calc(var(--spacing) * 8);
-    }
+  .app-panel__clear:not(:disabled):hover {
+    background-color: var(--app-danger-soft);
   }
+}
 
-  .settings-app-panel__sound {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    min-height: calc(var(--spacing) * 11);
-    cursor: pointer;
-  }
-
-  .settings-app-panel__sound-input {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    padding: 0;
-    border: 0;
-    clip-path: inset(50%);
-    overflow: hidden;
-    white-space: nowrap;
-  }
-
-  .settings-app-panel__sound-track {
-    position: relative;
-    display: inline-flex;
-    flex-shrink: 0;
-    width: calc(var(--spacing) * 9);
-    height: calc(var(--spacing) * 5);
-    border: 2px solid transparent;
-    border-radius: 999px;
-    background-color: var(--ui-zinc-700);
-    transition: background-color 0.2s var(--ease-in-out);
-  }
-
-  .settings-app-panel__sound-thumb {
-    display: inline-block;
-    width: calc(var(--spacing) * 4);
-    height: calc(var(--spacing) * 4);
-    border-radius: 999px;
-    background-color: var(--color-white);
-    box-shadow:
-      0 1px 3px 0 #0000001a,
-      0 1px 2px -1px #0000001a;
-    transition: translate 0.2s var(--ease-in-out);
-  }
-
-  .settings-app-panel__sound-input:checked ~ .settings-app-panel__sound-track {
-    background-color: var(--app-success);
-  }
-
-  .settings-app-panel__sound-input:checked
-    ~ .settings-app-panel__sound-track
-    .settings-app-panel__sound-thumb {
-    translate: calc(var(--spacing) * 4) 0;
-  }
-
-  .settings-app-panel__sound-input:focus-visible ~ .settings-app-panel__sound-track {
-    outline: 2px solid var(--app-primary);
-    outline-offset: 2px;
-  }
-
-  @media (min-width: 40rem) {
-    .settings-app-panel__sound {
-      min-height: calc(var(--spacing) * 8);
-    }
-  }
-
-  .settings-app-panel__link {
-    display: inline-flex;
-    align-items: center;
-    min-height: calc(var(--spacing) * 11);
-    padding-inline: calc(var(--spacing) * 3);
-    border: 1px solid var(--ui-zinc-800);
-    border-radius: var(--radius-lg);
-    background-color: var(--app-surface-tint);
-    font-size: 11px;
-    font-weight: var(--font-weight-medium);
-    color: var(--ui-zinc-300);
-    transition:
-      color 0.2s,
-      background-color 0.2s,
-      border-color 0.2s;
-  }
-
-  @media (hover: hover) {
-    .settings-app-panel__link:hover {
-      border-color: var(--ui-zinc-700);
-      background-color: var(--ui-zinc-800);
-      color: var(--color-white);
-    }
-  }
-
-  .settings-app-panel__link:active {
-    scale: 0.98;
-  }
-
-  [data-theme="light"] .settings-app-panel__link {
-    color: var(--app-text-soft);
-  }
-
-  @media (min-width: 40rem) {
-    .settings-app-panel__link {
-      min-height: calc(var(--spacing) * 8);
-    }
-  }
-
-  .settings-app-panel__cache-size {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    font-variant-numeric: tabular-nums;
-    color: var(--ui-zinc-300);
-  }
-
-  [data-theme="light"] .settings-app-panel__cache-size {
-    color: var(--app-text-soft);
-  }
-
-  .settings-app-panel__note {
-    padding: calc(var(--spacing) * 3) var(--spacing) 0;
-    font-size: 11px;
-    line-height: var(--leading-relaxed);
-    color: var(--ui-zinc-500);
-  }
-
-  [data-theme="light"] .settings-app-panel__note {
-    color: var(--app-muted);
-  }
-
-  .settings-app-panel__clear {
-    display: inline-flex;
-    align-items: center;
-    min-height: calc(var(--spacing) * 11);
-    padding-inline: calc(var(--spacing) * 2);
-    border-radius: var(--radius-lg);
-    font-size: 11px;
-    font-weight: var(--font-weight-medium);
-    color: var(--color-red-400);
-    cursor: pointer;
-    transition:
-      color 0.2s,
-      background-color 0.2s;
-  }
-
-  @media (hover: hover) {
-    .settings-app-panel__clear:hover {
-      background-color: var(--app-danger-soft);
-      color: var(--color-red-300);
-    }
-  }
-
-  .settings-app-panel__clear:active {
-    scale: 0.98;
-  }
-
-  .settings-app-panel__clear:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
-
-  [data-theme="light"] .settings-app-panel__clear {
-    color: var(--app-danger);
-  }
-
-  @media (min-width: 40rem) {
-    .settings-app-panel__clear {
-      min-height: calc(var(--spacing) * 8);
-    }
-  }
-
-  .settings-app-panel__status {
-    padding: calc(var(--spacing) * 3) var(--spacing) 0;
-    font-size: 11px;
-    line-height: var(--leading-relaxed);
-    color: var(--ui-zinc-500);
-  }
-
-  [data-theme="light"] .settings-app-panel__status {
-    color: var(--app-muted);
+@media (prefers-reduced-motion: reduce) {
+  .app-panel__switch-thumb,
+  .app-panel__switch-track {
+    transition: none;
   }
 }
 </style>
