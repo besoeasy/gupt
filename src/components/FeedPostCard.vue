@@ -187,12 +187,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <article
-    class="feed-post-card__article"
-    @click="openThread"
-  >
-    <header class="feed-post-card__header">
-      <div class="feed-post-card__block" @click="openProfile">
+  <article class="post-card" @click="openThread">
+    <header class="post-card__head">
+      <div class="post-card__avatar" @click="openProfile">
         <RoboAvatar
           :pubkey="post.pubkey"
           :src="avatarSrc"
@@ -202,91 +199,71 @@ onMounted(() => {
           :alt="displayName"
         />
       </div>
-      <div class="feed-post-card__block-2">
-        <div class="feed-post-card__block-3">
-          <button
-            type="button"
-            class="feed-post-card__button"
-            :title="displayName"
-            @click="openProfile"
-          >
+
+      <div class="post-card__identity">
+        <div class="post-card__name-row">
+          <button type="button" class="post-card__name" :title="displayName" @click="openProfile">
             {{ displayName }}
           </button>
-          <span
-            v-if="mine"
-            class="feed-post-card__text-you"
-          >
-            You
-          </span>
-          <span v-if="isEdited" class="feed-post-card__text">· edited</span>
+          <span v-if="mine" class="post-card__you">You</span>
+          <span v-if="isEdited" class="post-card__meta">· edited</span>
         </div>
-        <div class="feed-post-card__block-4">
+        <div class="post-card__meta-row">
           <button
             type="button"
-            class="feed-post-card__button-2"
+            class="post-card__pubkey"
             :title="post.pubkey"
             @click="copyPubkey"
           >
             {{ copied ? "copied!" : shortPubkey(post.pubkey) }}
           </button>
-          <span aria-hidden="true">·</span>
-          <time :title="fullDate(post.createdAt)" class="feed-post-card__time">{{
+          <span class="post-card__sep" aria-hidden="true">·</span>
+          <time class="post-card__time" :title="fullDate(post.createdAt)">{{
             timeAgo(post.createdAt)
           }}</time>
         </div>
       </div>
+
       <span
         v-if="expiryLabel"
-        class="feed-post-card__text-2"
+        class="post-card__expiry"
         :title="post.expiresAt ? fullDate(post.expiresAt) : ''"
       >
-        <Clock class="feed-post-card__clock" />
-        <span class="feed-post-card__text-3">{{ expiryLabel }}</span>
-        <span class="feed-post-card__text-4">{{ timeAgo(post.expiresAt) }}</span>
+        <Clock class="post-card__expiry-icon" :stroke-width="1.8" aria-hidden="true" />
+        <span>{{ expiryLabel }}</span>
       </span>
     </header>
 
-    <div v-if="post.text" class="feed-post-card__block-5">
-      <p class="feed-post-card__text-5">
+    <div v-if="post.text" class="post-card__body">
+      <p class="post-card__text">
         <template v-for="(seg, i) in textSegments" :key="i">
-          <a
-            v-if="seg.link"
-            class="feed-post-card__link"
-            @click="openExternal(seg.value, $event)"
-          >
+          <a v-if="seg.link" class="post-card__link" @click="openExternal(seg.value, $event)">
             {{ seg.value }}
           </a>
           <template v-else>{{ seg.value }}</template>
         </template>
       </p>
-      <button
-        v-if="isLongText"
-        type="button"
-        class="feed-post-card__button-3"
-        @click="toggleExpanded"
-      >
+      <button v-if="isLongText" type="button" class="post-card__more" @click="toggleExpanded">
         {{ expanded ? "Show less" : "Show more" }}
       </button>
     </div>
 
-    <div v-if="mediaList.length" class="feed-post-card__block-6" @click.stop>
+    <div v-if="mediaList.length" class="post-card__media" @click.stop>
       <div
         v-if="visualMedia.length"
-        class="feed-post-card__block-7"
-        :class="visualMedia.length === 1 ? 'feed-post-card__block--variant-1' : 'feed-post-card__block--variant-2'"
+        class="post-card__visuals"
+        :class="visualMedia.length === 1 ? 'post-card__visuals--single' : 'post-card__visuals--grid'"
       >
         <div
           v-for="{ file, idx } in visualMedia"
           :key="`${post.eventId}:${idx}`"
-          class="feed-post-card__block-8"
-          :class="visualMedia.length === 1 ? 'feed-post-card__block--variant-1-2' : 'feed-post-card__block--variant-2-2'"
+          class="post-card__visual"
         >
           <img
             v-if="blobAt(idx) && isImage(file.mime)"
             :src="blobAt(idx)"
             :alt="file.name"
-            class="feed-post-card__image"
-            :class="visualMedia.length === 1 ? 'feed-post-card__image--variant-1' : ''"
+            class="post-card__image"
             loading="lazy"
           />
           <video
@@ -294,12 +271,9 @@ onMounted(() => {
             :src="blobAt(idx)"
             controls
             preload="metadata"
-            class="feed-post-card__video"
+            class="post-card__video"
           />
-          <div
-            v-else
-            class="feed-post-card__block-9"
-          >
+          <div v-else class="post-card__visual-wait">
             <template v-if="isLoading(idx) || failedAt(idx)">
               <MediaDecryptStatus
                 :progress="progressAt(idx)"
@@ -312,28 +286,32 @@ onMounted(() => {
               />
             </template>
             <template v-else>
-              <Images class="feed-post-card__images" />
-              <p class="feed-post-card__text-6">{{ file.name }}</p>
-              <p class="feed-post-card__text-7">{{ formatBytes(file.size) }}</p>
+              <Images class="post-card__wait-icon" :stroke-width="1.6" aria-hidden="true" />
+              <p class="post-card__wait-name">{{ file.name }}</p>
+              <p class="post-card__wait-size">{{ formatBytes(file.size) }}</p>
             </template>
           </div>
         </div>
       </div>
 
-      <div v-if="audioMedia.length" class="feed-post-card__block-10">
+      <div v-if="audioMedia.length" class="post-card__audio-list">
         <div
           v-for="{ file, idx } in audioMedia"
           :key="`${post.eventId}:${idx}`"
-          class="feed-post-card__block-11"
+          class="post-card__audio-row"
         >
-          <div class="feed-post-card__block-12">
-            <FileHeadphone class="feed-post-card__file-headphone" />
-            <p class="feed-post-card__text-8">{{ file.name }}</p>
-            <span class="feed-post-card__text-9">
-              {{ formatBytes(file.size) }}
-            </span>
+          <div class="post-card__audio-head">
+            <FileHeadphone class="post-card__file-icon" :stroke-width="1.7" aria-hidden="true" />
+            <p class="post-card__file-name">{{ file.name }}</p>
+            <span class="post-card__file-size">{{ formatBytes(file.size) }}</span>
           </div>
-          <audio v-if="blobAt(idx)" :src="blobAt(idx)" controls preload="metadata" class="feed-post-card__audio" />
+          <audio
+            v-if="blobAt(idx)"
+            :src="blobAt(idx)"
+            controls
+            preload="metadata"
+            class="post-card__audio"
+          />
           <MediaDecryptStatus
             v-else-if="isLoading(idx) || failedAt(idx)"
             :progress="progressAt(idx)"
@@ -344,26 +322,22 @@ onMounted(() => {
             compact
             @retry="retry(idx)"
           />
-          <div v-else class="feed-post-card__block-13">
-            <span>Decrypting…</span>
-          </div>
+          <div v-else class="post-card__decrypting">Decrypting…</div>
         </div>
       </div>
 
-      <div v-if="fileMedia.length" class="feed-post-card__block-14">
+      <div v-if="fileMedia.length" class="post-card__files">
         <div
           v-for="{ file, idx } in fileMedia"
           :key="`${post.eventId}:${idx}`"
-          class="feed-post-card__block-15"
+          class="post-card__file"
         >
-          <div
-            class="feed-post-card__block-16"
-          >
-            <FileText class="feed-post-card__file-text" />
+          <div class="post-card__file-tile">
+            <FileText class="post-card__file-icon" :stroke-width="1.7" aria-hidden="true" />
           </div>
-          <div class="feed-post-card__block-17">
-            <p class="feed-post-card__text-10">{{ file.name }}</p>
-            <p class="feed-post-card__text-11">
+          <div class="post-card__file-body">
+            <p class="post-card__file-name">{{ file.name }}</p>
+            <p class="post-card__file-size">
               {{ formatBytes(file.size) }}
               <span v-if="failedAt(idx)"> · decrypt failed</span>
             </p>
@@ -378,22 +352,18 @@ onMounted(() => {
               @retry="retry(idx)"
             />
           </div>
-          <div class="feed-post-card__block-18">
+          <div class="post-card__file-actions">
             <button
               v-if="failedAt(idx)"
               type="button"
-              class="feed-post-card__button-4"
+              class="post-card__file-action"
               @click="retry(idx)"
             >
-              <RefreshCw class="feed-post-card__refresh-cw" />
+              <RefreshCw class="post-card__action-icon" :stroke-width="1.8" aria-hidden="true" />
               <span>Retry</span>
             </button>
-            <button
-              type="button"
-              class="feed-post-card__button-5"
-              @click="download(idx, $event)"
-            >
-              <Download class="feed-post-card__download" />
+            <button type="button" class="post-card__file-action" @click="download(idx, $event)">
+              <Download class="post-card__action-icon" :stroke-width="1.8" aria-hidden="true" />
               <span>Save</span>
             </button>
           </div>
@@ -401,7 +371,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="feed-post-card__block-19" @click.stop>
+    <div class="post-card__reactions" @click.stop>
       <FeedReactionBar
         :counts="reactionCounts"
         :my-reaction="myReaction"
@@ -410,42 +380,31 @@ onMounted(() => {
       />
     </div>
 
-    <footer
-      class="feed-post-card__footer"
-      @click.stop
-    >
-      <div class="feed-post-card__block-20">
-        <button
-          type="button"
-          class="feed-post-card__button-6"
-          @click="openThread"
-        >
-          <MessageCircle class="feed-post-card__message-circle" />
-          <span v-if="commentCount" class="feed-post-card__text-12"
-            >{{ commentCount }} {{ commentCount === 1 ? "comment" : "comments" }}</span
-          >
+    <footer class="post-card__foot" @click.stop>
+      <div class="post-card__foot-left">
+        <button type="button" class="post-card__action" @click="openThread">
+          <MessageCircle class="post-card__action-icon" :stroke-width="1.8" aria-hidden="true" />
+          <span v-if="commentCount">{{ commentCount }} {{ commentCount === 1 ? "comment" : "comments" }}</span>
           <span v-else>Comment</span>
         </button>
-        <span
-          v-if="mediaList.length"
-          class="feed-post-card__text-13"
-        >
-          <Images class="feed-post-card__images-2" />
-          <span class="feed-post-card__text-14">{{ mediaList.length }}</span>
+        <span v-if="mediaList.length" class="post-card__count">
+          <Images class="post-card__action-icon" :stroke-width="1.8" aria-hidden="true" />
+          <span>{{ mediaList.length }}</span>
         </span>
       </div>
-      <div v-if="mine" class="feed-post-card__block-21">
-        <span class="feed-post-card__text-your-post">Your post</span>
+
+      <div v-if="mine" class="post-card__foot-right">
+        <span class="post-card__you post-card__you--quiet">Your post</span>
         <button
           type="button"
-          class="feed-post-card__button-7"
+          class="post-card__action post-card__action--danger"
           @click="emit('delete', post)"
         >
-          <Trash2 class="feed-post-card__trash2" />
+          <Trash2 class="post-card__action-icon" :stroke-width="1.8" aria-hidden="true" />
           <span>Delete</span>
         </button>
       </div>
-      <span v-else class="feed-post-card__text-15"> Public · auto-expires </span>
+      <span v-else class="post-card__note">Public · auto-expires</span>
     </footer>
   </article>
 </template>
@@ -453,1132 +412,527 @@ onMounted(() => {
 <style scoped>
 @layer base, gupt-components;
 
-/* Light theme adjustments */
+/* Ledger post: a hairline sheet, mono metadata, no shadow at rest or hover. */
 
-@layer gupt-components {
-
-@media (hover:hover) {
-.feed-post-card__article:hover {
-  border-color: var(--ui-zinc-700);
-}
-}
-
-@media (hover:hover) {
-.feed-post-card__button-7:hover {
-  background-color: var(--app-danger-soft);
-}
-}
-
-@media (hover:hover) {
-.feed-post-card__button-4:hover {
-  background-color: var(--ui-zinc-800);
-}
-}
-
-@media (hover:hover) {
-.feed-post-card__button-5:hover {
-  background-color: var(--ui-zinc-800);
-}
-}
-
-@media (hover:hover) {
-.feed-post-card__article:hover {
-  background-color: var(--app-surface-tint-soft);
-}
-}
-
-@media (hover:hover) {
-.feed-post-card__button-6:hover {
-  background-color: var(--app-surface-tint-soft);
-}
-}
-
-@media (hover:hover) {
-.feed-post-card__button:hover {
-  color: var(--color-white);
-}
-}
-
-@media (hover:hover) {
-.feed-post-card__button-3:hover {
-  color: var(--color-white);
-}
-}
-
-@media (hover:hover) {
-.feed-post-card__button-4:hover {
-  color: var(--color-white);
-}
-}
-
-@media (hover:hover) {
-.feed-post-card__button-5:hover {
-  color: var(--color-white);
-}
-}
-
-@media (hover:hover) {
-.feed-post-card__button-2:hover {
-  color: var(--ui-zinc-200);
-}
-}
-
-@media (hover:hover) {
-.feed-post-card__button-6:hover {
-  color: var(--ui-zinc-200);
-}
-}
-
-@media (hover:hover) {
-.feed-post-card__button:hover {
-  text-decoration-line: underline;
-}
-}
-
-@media (hover:hover) {
-.feed-post-card__button-2:hover {
-  text-decoration-line: underline;
-}
-}
-
-@media (hover:hover) {
-.feed-post-card__button-3:hover {
-  text-decoration-line: underline;
-}
-}
-
-@media (hover:hover) {
-.feed-post-card__link:hover {
-  -webkit-text-decoration-color: var(--ui-zinc-300);
-  text-decoration-color: var(--ui-zinc-300);
-}
-}
-
-@media (min-width:40rem) {
-.feed-post-card__text-4 {
-  display: none;
-}
-}
-
-@media (min-width:40rem) {
-.feed-post-card__text-3 {
-  display: inline;
-}
-}
-
-@media (min-width:40rem) {
-.feed-post-card__text-your-post {
-  display: inline;
-}
-}
-
-@media (min-width:40rem) {
-.feed-post-card__header {
-  padding-inline: calc(var(--spacing) * 5);
-}
-}
-
-@media (min-width:40rem) {
-.feed-post-card__block-5 {
-  padding-inline: calc(var(--spacing) * 5);
-}
-}
-
-@media (min-width:40rem) {
-.feed-post-card__block-6 {
-  padding-inline: calc(var(--spacing) * 5);
-}
-}
-
-@media (min-width:40rem) {
-.feed-post-card__block-19 {
-  padding-inline: calc(var(--spacing) * 5);
-}
-}
-
-@media (min-width:40rem) {
-.feed-post-card__footer {
-  padding-inline: calc(var(--spacing) * 5);
-}
-}
-
-@media (min-width:40rem) {
-.feed-post-card__header {
-  padding-top: calc(var(--spacing) * 5);
-}
-}
-
-@media (min-width:40rem) {
-.feed-post-card__button {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-}
-
-@layer gupt-components {
-.feed-post-card__block-8 {
+.post-card {
   position: relative;
-}
-.feed-post-card__block-4 {
-  margin-top: calc(var(--spacing) * .5);
-}
-.feed-post-card__button-3 {
-  margin-top: var(--spacing);
-}
-.feed-post-card__footer {
-  margin-top: calc(var(--spacing) * 3);
-}
-.feed-post-card__text-your-post {
-  margin-right: var(--spacing);
-}
-.feed-post-card__block-12 {
-  margin-bottom: calc(var(--spacing) * 2);
-}
-.feed-post-card__header {
   display: flex;
-}
-.feed-post-card__block-3 {
-  display: flex;
-}
-.feed-post-card__block-4 {
-  display: flex;
-}
-.feed-post-card__block-9 {
-  display: flex;
-}
-.feed-post-card__block-12 {
-  display: flex;
-}
-.feed-post-card__block-13 {
-  display: flex;
-}
-.feed-post-card__block-15 {
-  display: flex;
-}
-.feed-post-card__block-16 {
-  display: flex;
-}
-.feed-post-card__block-18 {
-  display: flex;
-}
-.feed-post-card__footer {
-  display: flex;
-}
-.feed-post-card__block-20 {
-  display: flex;
-}
-.feed-post-card__block-21 {
-  display: flex;
-}
-.feed-post-card__block-7 {
-  display: grid;
-}
-.feed-post-card__text-3 {
-  display: none;
-}
-.feed-post-card__text-your-post {
-  display: none;
-}
-.feed-post-card__text-2 {
-  display: inline-flex;
-}
-.feed-post-card__button-4 {
-  display: inline-flex;
-}
-.feed-post-card__button-5 {
-  display: inline-flex;
-}
-.feed-post-card__button-6 {
-  display: inline-flex;
-}
-.feed-post-card__text-13 {
-  display: inline-flex;
-}
-.feed-post-card__button-7 {
-  display: inline-flex;
-}
-.feed-post-card__block--variant-2-2 {
-  aspect-ratio: 1;
-}
-.feed-post-card__clock {
-  height: calc(var(--spacing) * 3);
-}
-.feed-post-card__refresh-cw {
-  height: calc(var(--spacing) * 3.5);
-}
-.feed-post-card__download {
-  height: calc(var(--spacing) * 3.5);
-}
-.feed-post-card__images-2 {
-  height: calc(var(--spacing) * 3.5);
-}
-.feed-post-card__file-headphone {
-  height: calc(var(--spacing) * 4);
-}
-.feed-post-card__file-text {
-  height: calc(var(--spacing) * 4);
-}
-.feed-post-card__message-circle {
-  height: calc(var(--spacing) * 4);
-}
-.feed-post-card__trash2 {
-  height: calc(var(--spacing) * 4);
-}
-.feed-post-card__images {
-  height: calc(var(--spacing) * 6);
-}
-.feed-post-card__button-4 {
-  height: calc(var(--spacing) * 8);
-}
-.feed-post-card__button-5 {
-  height: calc(var(--spacing) * 8);
-}
-.feed-post-card__button-6 {
-  height: calc(var(--spacing) * 8);
-}
-.feed-post-card__button-7 {
-  height: calc(var(--spacing) * 8);
-}
-.feed-post-card__block-16 {
-  height: calc(var(--spacing) * 9);
-}
-.feed-post-card__image {
-  height: 100%;
-}
-.feed-post-card__video {
-  height: 100%;
-}
-.feed-post-card__block-9 {
-  height: 100%;
-}
-.feed-post-card__block--variant-2-2 {
-  max-height: calc(var(--spacing) * 64);
-}
-.feed-post-card__block--variant-1-2 {
-  max-height: calc(var(--spacing) * 96);
-}
-.feed-post-card__image--variant-1 {
-  max-height: calc(var(--spacing) * 96);
-}
-.feed-post-card__block-9 {
-  min-height: calc(var(--spacing) * 28);
-}
-.feed-post-card__clock {
-  width: calc(var(--spacing) * 3);
-}
-.feed-post-card__refresh-cw {
-  width: calc(var(--spacing) * 3.5);
-}
-.feed-post-card__download {
-  width: calc(var(--spacing) * 3.5);
-}
-.feed-post-card__images-2 {
-  width: calc(var(--spacing) * 3.5);
-}
-.feed-post-card__file-headphone {
-  width: calc(var(--spacing) * 4);
-}
-.feed-post-card__file-text {
-  width: calc(var(--spacing) * 4);
-}
-.feed-post-card__message-circle {
-  width: calc(var(--spacing) * 4);
-}
-.feed-post-card__trash2 {
-  width: calc(var(--spacing) * 4);
-}
-.feed-post-card__images {
-  width: calc(var(--spacing) * 6);
-}
-.feed-post-card__block-16 {
-  width: calc(var(--spacing) * 9);
-}
-.feed-post-card__image {
-  width: 100%;
-}
-.feed-post-card__video {
-  width: 100%;
-}
-.feed-post-card__audio {
-  width: 100%;
-}
-.feed-post-card__button {
-  max-width: 100%;
-}
-.feed-post-card__text-6 {
-  max-width: 100%;
-}
-.feed-post-card__block-2 {
-  min-width: 0;
-}
-.feed-post-card__text-8 {
-  min-width: 0;
-}
-.feed-post-card__block-17 {
-  min-width: 0;
-}
-.feed-post-card__block-2 {
-  flex: 1;
-}
-.feed-post-card__text-8 {
-  flex: 1;
-}
-.feed-post-card__block-17 {
-  flex: 1;
-}
-.feed-post-card__block {
-  flex-shrink: 0;
-}
-.feed-post-card__text-2 {
-  flex-shrink: 0;
-}
-.feed-post-card__file-headphone {
-  flex-shrink: 0;
-}
-.feed-post-card__text-9 {
-  flex-shrink: 0;
-}
-.feed-post-card__block-16 {
-  flex-shrink: 0;
-}
-.feed-post-card__block-18 {
-  flex-shrink: 0;
-}
-.feed-post-card__article {
-  cursor: pointer;
-}
-.feed-post-card__button {
-  cursor: pointer;
-}
-.feed-post-card__button-2 {
-  cursor: pointer;
-}
-.feed-post-card__button-3 {
-  cursor: pointer;
-}
-.feed-post-card__button-4 {
-  cursor: pointer;
-}
-.feed-post-card__button-5 {
-  cursor: pointer;
-}
-.feed-post-card__button-6 {
-  cursor: pointer;
-}
-.feed-post-card__button-7 {
-  cursor: pointer;
-}
-.feed-post-card__block--variant-1 {
-  grid-template-columns: repeat(1,minmax(0,1fr));
-}
-.feed-post-card__block--variant-2 {
-  grid-template-columns: repeat(2,minmax(0,1fr));
-}
-.feed-post-card__block-9 {
   flex-direction: column;
+  gap: var(--app-space-3);
+  padding: var(--app-space-5);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background-color: var(--app-surface);
+  cursor: pointer;
+  animation: ledger-rise 440ms var(--app-ease-emphasized) backwards;
+  transition:
+    border-color var(--app-dur-base) var(--app-ease-standard),
+    background-color var(--app-dur-base) var(--app-ease-standard),
+    transform var(--app-dur-base) var(--app-ease-swift);
 }
-.feed-post-card__block-3 {
-  flex-wrap: wrap;
-}
-.feed-post-card__block-4 {
-  flex-wrap: wrap;
-}
-.feed-post-card__block-3 {
-  align-items: center;
-}
-.feed-post-card__block-4 {
-  align-items: center;
-}
-.feed-post-card__text-2 {
-  align-items: center;
-}
-.feed-post-card__block-9 {
-  align-items: center;
-}
-.feed-post-card__block-12 {
-  align-items: center;
-}
-.feed-post-card__block-13 {
-  align-items: center;
-}
-.feed-post-card__block-15 {
-  align-items: center;
-}
-.feed-post-card__block-16 {
-  align-items: center;
-}
-.feed-post-card__block-18 {
-  align-items: center;
-}
-.feed-post-card__button-4 {
-  align-items: center;
-}
-.feed-post-card__button-5 {
-  align-items: center;
-}
-.feed-post-card__footer {
-  align-items: center;
-}
-.feed-post-card__block-20 {
-  align-items: center;
-}
-.feed-post-card__button-6 {
-  align-items: center;
-}
-.feed-post-card__text-13 {
-  align-items: center;
-}
-.feed-post-card__block-21 {
-  align-items: center;
-}
-.feed-post-card__button-7 {
-  align-items: center;
-}
-.feed-post-card__header {
+
+.post-card__head {
+  display: flex;
   align-items: flex-start;
+  gap: var(--app-space-3);
+  min-width: 0;
 }
-.feed-post-card__footer {
-  justify-content: space-between;
+
+.post-card__avatar {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--app-radius-sm);
+  overflow: hidden;
+  cursor: pointer;
 }
-.feed-post-card__block-9 {
-  justify-content: center;
+
+.post-card__identity {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
-.feed-post-card__block-16 {
-  justify-content: center;
+
+.post-card__name-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--app-space-2);
+  min-width: 0;
 }
-.feed-post-card__text-2 {
-  gap: var(--spacing);
-}
-.feed-post-card__block-20 {
-  gap: var(--spacing);
-}
-.feed-post-card__text-13 {
-  gap: var(--spacing);
-}
-.feed-post-card__block-21 {
-  gap: var(--spacing);
-}
-.feed-post-card__button-7 {
-  gap: var(--spacing);
-}
-.feed-post-card__block-18 {
-  gap: calc(var(--spacing) * 1.5);
-}
-.feed-post-card__button-4 {
-  gap: calc(var(--spacing) * 1.5);
-}
-.feed-post-card__button-5 {
-  gap: calc(var(--spacing) * 1.5);
-}
-.feed-post-card__button-6 {
-  gap: calc(var(--spacing) * 1.5);
-}
-.feed-post-card__block-7 {
-  gap: calc(var(--spacing) * 2);
-}
-.feed-post-card__block-9 {
-  gap: calc(var(--spacing) * 2);
-}
-.feed-post-card__block-12 {
-  gap: calc(var(--spacing) * 2);
-}
-.feed-post-card__block-13 {
-  gap: calc(var(--spacing) * 2);
-}
-.feed-post-card__footer {
-  gap: calc(var(--spacing) * 2);
-}
-.feed-post-card__header {
-  gap: calc(var(--spacing) * 3);
-}
-.feed-post-card__block-15 {
-  gap: calc(var(--spacing) * 3);
-}
-:where(.feed-post-card__block-6>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
-}
-:where(.feed-post-card__block-10>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
-}
-:where(.feed-post-card__block-14>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
-}
-.feed-post-card__block-4 {
-  column-gap: calc(var(--spacing) * 1.5);
-}
-.feed-post-card__block-3 {
-  column-gap: calc(var(--spacing) * 2);
-}
-.feed-post-card__block-3 {
-  row-gap: calc(var(--spacing) * .5);
-}
-.feed-post-card__block-4 {
-  row-gap: calc(var(--spacing) * .5);
-}
-.feed-post-card__button {
+
+.post-card__name {
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  overflow: hidden;
-}
-.feed-post-card__text-6 {
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.feed-post-card__text-8 {
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.feed-post-card__text-10 {
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.feed-post-card__block-8 {
-  overflow: hidden;
-}
-.feed-post-card__text-you {
-  border-radius: 3.40282e38px;
-}
-.feed-post-card__text-2 {
-  border-radius: 3.40282e38px;
-}
-.feed-post-card__block-16 {
-  border-radius: var(--radius-lg);
-}
-.feed-post-card__button-4 {
-  border-radius: var(--radius-lg);
-}
-.feed-post-card__button-5 {
-  border-radius: var(--radius-lg);
-}
-.feed-post-card__button-6 {
-  border-radius: var(--radius-lg);
-}
-.feed-post-card__button-7 {
-  border-radius: var(--radius-lg);
-}
-.feed-post-card__article {
-  border-radius: var(--radius-xl);
-}
-.feed-post-card__block-8 {
-  border-radius: var(--radius-xl);
-}
-.feed-post-card__block-11 {
-  border-radius: var(--radius-xl);
-}
-.feed-post-card__block-15 {
-  border-radius: var(--radius-xl);
-}
-.feed-post-card__article {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.feed-post-card__text-2 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.feed-post-card__block-8 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.feed-post-card__block-11 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.feed-post-card__block-15 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.feed-post-card__button-4 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.feed-post-card__button-5 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.feed-post-card__footer {
-  border-top-style: var(--border-style,solid);
-  border-top-width: 1px;
-}
-.feed-post-card__text-2 {
-  border-color: var(--ui-zinc-800);
-}
-.feed-post-card__block-8 {
-  border-color: var(--ui-zinc-800);
-}
-.feed-post-card__button-4 {
-  border-color: var(--ui-zinc-800);
-}
-.feed-post-card__button-5 {
-  border-color: var(--ui-zinc-800);
-}
-.feed-post-card__article {
-  border-color: var(--app-border-quiet);
-}
-.feed-post-card__block-11 {
-  border-color: var(--app-border-quiet);
-}
-.feed-post-card__block-15 {
-  border-color: var(--app-border-quiet);
-}
-.feed-post-card__footer {
-  border-color: var(--app-border-quiet);
-}
-.feed-post-card__block-8 {
-  background-color: var(--ui-black);
-}
-.feed-post-card__text-you {
-  background-color: var(--ui-zinc-800);
-}
-.feed-post-card__block-16 {
-  background-color: var(--ui-zinc-800);
-}
-.feed-post-card__block-11 {
-  background-color: var(--app-surface-tint-soft);
-}
-.feed-post-card__block-15 {
-  background-color: var(--app-surface-tint-soft);
-}
-.feed-post-card__text-2 {
-  background-color: var(--app-surface-tint);
-}
-.feed-post-card__article {
-  background-color: var(--app-surface-inset);
-}
-.feed-post-card__image--variant-1 {
-  object-fit: contain;
-}
-.feed-post-card__video {
-  object-fit: contain;
-}
-.feed-post-card__image {
-  object-fit: cover;
-}
-.feed-post-card__block-11 {
-  padding: calc(var(--spacing) * 3);
-}
-.feed-post-card__block-15 {
-  padding: calc(var(--spacing) * 3);
-}
-.feed-post-card__block-9 {
-  padding: calc(var(--spacing) * 6);
-}
-.feed-post-card__text-13 {
-  padding-inline: calc(var(--spacing) * 1.5);
-}
-.feed-post-card__text-you {
-  padding-inline: calc(var(--spacing) * 2);
-}
-.feed-post-card__text-2 {
-  padding-inline: calc(var(--spacing) * 2);
-}
-.feed-post-card__button-4 {
-  padding-inline: calc(var(--spacing) * 2.5);
-}
-.feed-post-card__button-6 {
-  padding-inline: calc(var(--spacing) * 2.5);
-}
-.feed-post-card__button-7 {
-  padding-inline: calc(var(--spacing) * 2.5);
-}
-.feed-post-card__button-5 {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.feed-post-card__header {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.feed-post-card__block-5 {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.feed-post-card__block-6 {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.feed-post-card__block-19 {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.feed-post-card__footer {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.feed-post-card__text-you {
-  padding-block: calc(var(--spacing) * .5);
-}
-.feed-post-card__text-2 {
-  padding-block: var(--spacing);
-}
-.feed-post-card__footer {
-  padding-block: calc(var(--spacing) * 2.5);
-}
-.feed-post-card__block-5 {
-  padding-top: calc(var(--spacing) * 3);
-}
-.feed-post-card__block-6 {
-  padding-top: calc(var(--spacing) * 3);
-}
-.feed-post-card__block-19 {
-  padding-top: calc(var(--spacing) * 3);
-}
-.feed-post-card__header {
-  padding-top: calc(var(--spacing) * 4);
-}
-.feed-post-card__text-15 {
-  padding-right: var(--spacing);
-}
-.feed-post-card__button-2 {
+  font: inherit;
+  font-size: var(--app-text-body);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--app-text);
+  cursor: pointer;
+  transition: color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.post-card__you {
+  flex-shrink: 0;
+  padding: 1px 5px;
+  border: 1px solid color-mix(in oklab, var(--app-success) 35%, transparent);
+  border-radius: 4px;
   font-family: var(--font-mono);
-}
-.feed-post-card__text-9 {
-  font-family: var(--font-mono);
-}
-.feed-post-card__text-11 {
-  font-family: var(--font-mono);
-}
-.feed-post-card__text-12 {
-  font-family: var(--font-mono);
-}
-.feed-post-card__text-14 {
-  font-family: var(--font-mono);
-}
-.feed-post-card__text-5 {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.feed-post-card__button {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.feed-post-card__block-4 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.feed-post-card__button-3 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.feed-post-card__text-6 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.feed-post-card__text-8 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.feed-post-card__text-10 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.feed-post-card__button-6 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.feed-post-card__button-7 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.feed-post-card__text-you {
-  font-size: 10px;
-}
-.feed-post-card__text-2 {
-  font-size: 10px;
-}
-.feed-post-card__text {
-  font-size: 11px;
-}
-.feed-post-card__button-2 {
-  font-size: 11px;
-}
-.feed-post-card__text-7 {
-  font-size: 11px;
-}
-.feed-post-card__text-9 {
-  font-size: 11px;
-}
-.feed-post-card__block-13 {
-  font-size: 11px;
-}
-.feed-post-card__text-11 {
-  font-size: 11px;
-}
-.feed-post-card__button-4 {
-  font-size: 11px;
-}
-.feed-post-card__button-5 {
-  font-size: 11px;
-}
-.feed-post-card__text-13 {
-  font-size: 11px;
-}
-.feed-post-card__text-your-post {
-  font-size: 11px;
-}
-.feed-post-card__text-15 {
-  font-size: 11px;
-}
-.feed-post-card__text-5 {
-  --leading: var(--leading-relaxed);
-  line-height: var(--leading-relaxed);
-}
-.feed-post-card__text-you {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.feed-post-card__text-2 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.feed-post-card__button-3 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.feed-post-card__text-8 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.feed-post-card__text-10 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.feed-post-card__button-4 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.feed-post-card__button-5 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.feed-post-card__button-6 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.feed-post-card__text-13 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.feed-post-card__button-7 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.feed-post-card__button {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.feed-post-card__text-6 {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.feed-post-card__button {
-  --tracking: var(--tracking-tight);
-  letter-spacing: var(--tracking-tight);
-}
-.feed-post-card__text-you {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.feed-post-card__text-5 {
-  overflow-wrap: break-word;
-}
-.feed-post-card__link {
-  word-break: break-all;
-}
-.feed-post-card__text-5 {
-  white-space: pre-wrap;
-}
-.feed-post-card__button-7 {
-  color: var(--color-red-400);
-}
-.feed-post-card__link {
-  color: var(--ui-zinc-100);
-}
-.feed-post-card__button {
-  color: var(--ui-zinc-200);
-}
-.feed-post-card__text-5 {
-  color: var(--ui-zinc-200);
-}
-.feed-post-card__text-you {
-  color: var(--ui-zinc-300);
-}
-.feed-post-card__file-headphone {
-  color: var(--ui-zinc-300);
-}
-.feed-post-card__block-16 {
-  color: var(--ui-zinc-300);
-}
-.feed-post-card__button-4 {
-  color: var(--ui-zinc-300);
-}
-.feed-post-card__button-5 {
-  color: var(--ui-zinc-300);
-}
-.feed-post-card__button-3 {
-  color: var(--ui-zinc-400);
-}
-.feed-post-card__block-4 {
-  color: var(--ui-zinc-500);
-}
-.feed-post-card__text-2 {
-  color: var(--ui-zinc-500);
-}
-.feed-post-card__block-9 {
-  color: var(--ui-zinc-500);
-}
-.feed-post-card__text-9 {
-  color: var(--ui-zinc-500);
-}
-.feed-post-card__block-13 {
-  color: var(--ui-zinc-500);
-}
-.feed-post-card__text-11 {
-  color: var(--ui-zinc-500);
-}
-.feed-post-card__button-6 {
-  color: var(--ui-zinc-500);
-}
-.feed-post-card__text {
-  color: var(--ui-zinc-600);
-}
-.feed-post-card__text-13 {
-  color: var(--ui-zinc-600);
-}
-.feed-post-card__text-your-post {
-  color: var(--ui-zinc-600);
-}
-.feed-post-card__text-15 {
-  color: var(--ui-zinc-600);
-}
-.feed-post-card__text-you {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+  color: var(--app-success);
 }
-.feed-post-card__time {
-  --numeric-spacing: tabular-nums;
-  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+
+.post-card__you--quiet {
+  border-color: var(--app-border);
+  color: var(--app-muted-2);
 }
-.feed-post-card__text-9 {
-  --numeric-spacing: tabular-nums;
-  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+
+.post-card__meta {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--app-muted-2);
 }
-.feed-post-card__text-11 {
-  --numeric-spacing: tabular-nums;
-  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+
+.post-card__meta-row {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
 }
-.feed-post-card__text-12 {
-  --numeric-spacing: tabular-nums;
-  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+
+.post-card__pubkey,
+.post-card__time {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.01em;
+  color: var(--app-muted-2);
 }
-.feed-post-card__text-14 {
-  --numeric-spacing: tabular-nums;
-  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+
+.post-card__pubkey {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--app-dur-fast) var(--app-ease-standard);
 }
-.feed-post-card__link {
-  text-decoration-line: underline;
+
+.post-card__sep {
+  font-size: 10px;
+  color: var(--app-border-strong);
 }
-.feed-post-card__link {
-  -webkit-text-decoration-color: var(--ui-zinc-600);
-  text-decoration-color: var(--ui-zinc-600);
+
+.post-card__expiry {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+  white-space: nowrap;
 }
-.feed-post-card__link {
+
+.post-card__expiry-icon {
+  width: 11px;
+  height: 11px;
+}
+
+.post-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-1);
+}
+
+.post-card__text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--app-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.post-card__link {
+  color: var(--app-primary);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--app-primary) 40%, transparent);
   text-underline-offset: 2px;
+  cursor: pointer;
+  transition: text-decoration-color var(--app-dur-fast) var(--app-ease-standard);
 }
-.feed-post-card__images {
-  opacity: .5;
+
+.post-card__more {
+  align-self: flex-start;
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--app-muted);
+  cursor: pointer;
+  transition: color var(--app-dur-fast) var(--app-ease-standard);
 }
-.feed-post-card__article {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
+
+.post-card__media {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
 }
-.feed-post-card__button-6 {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
+
+.post-card__visuals {
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  overflow: hidden;
+  background-color: var(--app-border);
 }
-.feed-post-card__button-7 {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
+
+.post-card__visuals--grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-.feed-post-card__article {
-  --duration: .15s;
-  transition-duration: .15s;
+
+.post-card__visual {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 120px;
+  background-color: var(--app-surface-inset);
+  overflow: hidden;
 }
-[data-theme="light"] .feed-post-card__button-7 {
+
+.post-card__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  transition: transform var(--app-dur-slow) var(--app-ease-swift);
+}
+
+.post-card__visuals--grid .post-card__image {
+  height: 200px;
+}
+
+.post-card__video {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+}
+
+.post-card__visual-wait {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--app-space-4);
+  text-align: center;
+}
+
+.post-card__wait-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--app-muted-2);
+}
+
+.post-card__wait-name {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--app-muted);
+  overflow-wrap: anywhere;
+}
+
+.post-card__wait-size {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--app-muted-2);
+}
+
+.post-card__audio-list,
+.post-card__files {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+}
+
+.post-card__audio-row {
+  padding: var(--app-space-3);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background-color: var(--app-surface-soft);
+}
+
+.post-card__audio-head {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-2);
+  min-width: 0;
+}
+
+.post-card__file-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: var(--app-muted);
+}
+
+.post-card__file-name {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--app-text);
+}
+
+.post-card__file-size {
+  flex-shrink: 0;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--app-muted-2);
+}
+
+.post-card__audio {
+  width: 100%;
+  margin-top: var(--app-space-2);
+}
+
+.post-card__decrypting {
+  padding-top: var(--app-space-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--app-muted);
+}
+
+.post-card__file {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-3);
+  min-width: 0;
+  padding: var(--app-space-2) var(--app-space-3);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background-color: var(--app-surface-soft);
+  transition: border-color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.post-card__file-tile {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border: 1px solid var(--app-border);
+  border-radius: 4px;
+  background-color: var(--app-surface);
+  color: var(--app-muted);
+}
+
+.post-card__file-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.post-card__file-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.post-card__file-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--app-muted);
+  cursor: pointer;
+  transition:
+    color var(--app-dur-fast) var(--app-ease-standard),
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.post-card__reactions {
+  padding-top: var(--app-space-3);
+  border-top: 1px solid var(--app-border);
+}
+
+.post-card__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--app-space-2) var(--app-space-4);
+  padding-top: var(--app-space-3);
+  border-top: 1px solid var(--app-border);
+}
+
+.post-card__foot-left,
+.post-card__foot-right {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-3);
+  min-width: 0;
+}
+
+.post-card__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--app-muted);
+  cursor: pointer;
+  transition:
+    color var(--app-dur-fast) var(--app-ease-standard),
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.post-card__action-icon {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.post-card__action--danger:hover {
   color: var(--app-danger);
 }
-[data-theme="light"] .feed-post-card__text-you {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .feed-post-card__file-headphone {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .feed-post-card__block-16 {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .feed-post-card__button-4 {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .feed-post-card__button-5 {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .feed-post-card__button-3 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .feed-post-card__block-4 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .feed-post-card__text-2 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .feed-post-card__block-9 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .feed-post-card__text-9 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .feed-post-card__block-13 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .feed-post-card__text-11 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .feed-post-card__button-6 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .feed-post-card__text {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .feed-post-card__text-13 {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .feed-post-card__text-your-post {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .feed-post-card__text-15 {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .feed-post-card__button-2:hover {
-  color: var(--app-text) !important;
-}
-[data-theme="light"] .feed-post-card__button-6:hover {
-  color: var(--app-text) !important;
-}
-}
+
+.post-card__count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--app-muted-2);
 }
 
-@layer gupt-components {
-
-@supports (color:color-mix(in lab,red,red)) {
-.feed-post-card__block-8 {
-  background-color: color-mix(in oklab,var(--ui-black) 40%,transparent);
+.post-card__note {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--app-muted-2);
 }
+
+.post-card__action:focus-visible,
+.post-card__file-action:focus-visible,
+.post-card__name:focus-visible,
+.post-card__pubkey:focus-visible,
+.post-card__more:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--app-primary) 70%, transparent);
+  outline-offset: 2px;
 }
 
+@media (hover: hover) {
+  .post-card:hover {
+    border-color: var(--app-border-strong);
+    background-color: var(--app-surface-raised);
+    transform: translateY(-1px);
+  }
+
+  .post-card__name:hover,
+  .post-card__pubkey:hover {
+    color: var(--app-primary);
+  }
+
+  .post-card__more:hover,
+  .post-card__action:hover,
+  .post-card__file-action:hover {
+    color: var(--app-text);
+    background-color: var(--app-surface-soft);
+  }
+
+  .post-card__link:hover {
+    text-decoration-color: var(--app-primary);
+  }
+
+  .post-card:hover .post-card__image {
+    transform: scale(1.012);
+  }
+}
+
+@media (pointer: coarse) {
+  .post-card__action,
+  .post-card__file-action {
+    min-height: var(--app-control-h);
+  }
+}
+
+@media (max-width: 30rem) {
+  .post-card {
+    padding: var(--app-space-4);
+  }
+
+  .post-card__visuals--grid {
+    grid-template-columns: 1fr;
+  }
+
+  .post-card__expiry {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .post-card,
+  .post-card__image {
+    animation: none;
+    transition: none;
+  }
+
+  .post-card:hover {
+    transform: none;
+  }
 }
 </style>
