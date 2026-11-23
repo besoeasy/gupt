@@ -259,6 +259,8 @@ function handleSelect(conv) {
 @media (min-width:40rem) {
 .chat-sidebar__text {
   display: flex;
+
+
 }
 }
 
@@ -339,9 +341,18 @@ function handleSelect(conv) {
 }
 .chat-sidebar__text {
   display: none;
+
+
 }
 .chat-sidebar__button-start-new {
   display: inline-flex;
+
+
+
+
+
+
+
 }
 .chat-sidebar__button-invites-connect {
   display: inline-flex;
@@ -377,7 +388,14 @@ function handleSelect(conv) {
   height: calc(var(--spacing) * 5);
 }
 .chat-sidebar__button-start-new {
-  height: calc(var(--spacing) * 8);
+  height: 32px;
+
+
+
+
+
+
+
 }
 .chat-sidebar__button-invites-connect {
   height: calc(var(--spacing) * 8);
@@ -393,9 +411,11 @@ function handleSelect(conv) {
 }
 .chat-sidebar__text-5 {
   height: 1px;
+
 }
 .chat-sidebar__text-7 {
   height: 1px;
+
 }
 .chat-sidebar__square-pen {
   width: calc(var(--spacing) * 3.5);
@@ -453,9 +473,11 @@ function handleSelect(conv) {
 }
 .chat-sidebar__text-5 {
   flex: 1;
+
 }
 .chat-sidebar__text-7 {
   flex: 1;
+
 }
 .chat-sidebar__block-6 {
   flex-shrink: 0;
@@ -465,6 +487,13 @@ function handleSelect(conv) {
 }
 .chat-sidebar__button-start-new {
   cursor: pointer;
+
+
+
+
+
+
+
 }
 .chat-sidebar__button-invites-connect {
   cursor: pointer;
@@ -492,12 +521,21 @@ function handleSelect(conv) {
 }
 .chat-sidebar__button-start-new {
   align-items: center;
+
+
+
+
+
+
+
 }
 .chat-sidebar__button-invites-connect {
   align-items: center;
 }
 .chat-sidebar__text {
   align-items: center;
+
+
 }
 .chat-sidebar__block-5 {
   align-items: center;
@@ -543,12 +581,21 @@ function handleSelect(conv) {
 }
 .chat-sidebar__button-start-new {
   gap: calc(var(--spacing) * 1.5);
+
+
+
+
+
+
+
 }
 .chat-sidebar__button-invites-connect {
   gap: calc(var(--spacing) * 1.5);
 }
 .chat-sidebar__text {
   gap: calc(var(--spacing) * 1.5);
+
+
 }
 .chat-sidebar__button {
   gap: calc(var(--spacing) * 1.5);
@@ -621,7 +668,14 @@ function handleSelect(conv) {
   overflow-y: auto;
 }
 .chat-sidebar__button-start-new {
-  border-radius: var(--radius-lg);
+  border-radius: var(--app-radius-sm);
+
+
+
+
+
+
+
 }
 .chat-sidebar__button-invites-connect {
   border-radius: var(--radius-lg);
@@ -694,16 +748,25 @@ function handleSelect(conv) {
   background-color: var(--ui-black);
 }
 .chat-sidebar__button-start-new {
-  background-color: var(--color-white);
+  background-color: var(--app-text);
+
+
+
+
+
+
+
 }
 .chat-sidebar__button {
   background-color: var(--color-white);
 }
 .chat-sidebar__text-5 {
-  background-color: var(--app-surface-raised-tint-soft);
+  background-color: var(--app-border);
+
 }
 .chat-sidebar__text-7 {
-  background-color: var(--app-surface-raised-tint-soft);
+  background-color: var(--app-border);
+
 }
 .chat-sidebar__block-13 {
   background-color: var(--ui-zinc-900);
@@ -728,6 +791,13 @@ function handleSelect(conv) {
 }
 .chat-sidebar__button-start-new {
   padding-inline: calc(var(--spacing) * 3);
+
+
+
+
+
+
+
 }
 .chat-sidebar__button-invites-connect {
   padding-inline: calc(var(--spacing) * 3);
@@ -785,26 +855,43 @@ function handleSelect(conv) {
 }
 .chat-sidebar__text {
   font-family: var(--font-mono);
+
+
 }
 .chat-sidebar__text-pinned {
   font-family: var(--font-mono);
+
+
 }
 .chat-sidebar__text-6 {
   font-family: var(--font-mono);
+
+
 }
 .chat-sidebar__text-all {
   font-family: var(--font-mono);
+
+
 }
 .chat-sidebar__text-8 {
   font-family: var(--font-mono);
+
+
 }
 .chat-sidebar__subtitle-no-conversations {
   font-size: var(--text-base);
   line-height: var(--leading,var(--text-base--line-height));
 }
 .chat-sidebar__button-start-new {
-  font-size: var(--text-xs);
+  font-size: 10px;
   line-height: var(--leading,var(--text-xs--line-height));
+
+
+
+
+
+
+
 }
 .chat-sidebar__button-invites-connect {
   font-size: var(--text-xs);
@@ -823,19 +910,29 @@ function handleSelect(conv) {
   line-height: var(--leading,var(--text-xs--line-height));
 }
 .chat-sidebar__text {
-  font-size: 10px;
+  font-size: 9.5px;
+
+
 }
 .chat-sidebar__text-pinned {
-  font-size: 10px;
+  font-size: 9.5px;
+
+
 }
 .chat-sidebar__text-6 {
-  font-size: 10px;
+  font-size: 9.5px;
+
+
 }
 .chat-sidebar__text-all {
-  font-size: 10px;
+  font-size: 9.5px;
+
+
 }
 .chat-sidebar__text-8 {
-  font-size: 10px;
+  font-size: 9.5px;
+
+
 }
 .chat-sidebar__text-4 {
   --leading: var(--leading-relaxed);
@@ -851,7 +948,14 @@ function handleSelect(conv) {
 }
 .chat-sidebar__button-start-new {
   --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
+  font-weight: 500;
+
+
+
+
+
+
+
 }
 .chat-sidebar__subtitle-no-conversations {
   --font-weight: var(--font-weight-semibold);
@@ -868,20 +972,35 @@ function handleSelect(conv) {
 .chat-sidebar__text {
   --tracking: var(--tracking-wider);
   letter-spacing: var(--tracking-wider);
+
+
 }
 .chat-sidebar__text-pinned {
   --tracking: var(--tracking-wider);
   letter-spacing: var(--tracking-wider);
+
+
 }
 .chat-sidebar__text-all {
   --tracking: var(--tracking-wider);
   letter-spacing: var(--tracking-wider);
+
+
 }
 .chat-sidebar__text {
   white-space: nowrap;
+
+
 }
 .chat-sidebar__button-start-new {
-  color: var(--ui-black);
+  color: var(--app-bg);
+
+
+
+
+
+
+
 }
 .chat-sidebar__button {
   color: var(--ui-black);
@@ -905,46 +1024,73 @@ function handleSelect(conv) {
   color: var(--ui-zinc-400);
 }
 .chat-sidebar__text {
-  color: var(--ui-zinc-500);
+  color: var(--app-muted-2);
+
+
 }
 .chat-sidebar__text-4 {
   color: var(--ui-zinc-500);
 }
 .chat-sidebar__text-pinned {
-  color: var(--ui-zinc-500);
+  color: var(--app-muted-2);
+
+
 }
 .chat-sidebar__text-all {
-  color: var(--ui-zinc-500);
+  color: var(--app-muted-2);
+
+
 }
 .chat-sidebar__text-2 {
   color: var(--ui-zinc-600);
 }
 .chat-sidebar__text-6 {
-  color: var(--ui-zinc-600);
+  color: var(--app-muted-2);
+
+
 }
 .chat-sidebar__text-8 {
-  color: var(--ui-zinc-600);
+  color: var(--app-muted-2);
+
+
 }
 .chat-sidebar__text {
   text-transform: uppercase;
+
+
 }
 .chat-sidebar__text-pinned {
   text-transform: uppercase;
+
+
 }
 .chat-sidebar__text-all {
   text-transform: uppercase;
+
+
 }
 .chat-sidebar__text-6 {
   --numeric-spacing: tabular-nums;
   font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+
+
 }
 .chat-sidebar__text-8 {
   --numeric-spacing: tabular-nums;
   font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+
+
 }
 .chat-sidebar__button-start-new {
   --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+  box-shadow: none;
+
+
+
+
+
+
+
 }
 .chat-sidebar__button-invites-connect {
   --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
@@ -962,6 +1108,13 @@ function handleSelect(conv) {
   transition-property: all;
   transition-timing-function: var(--ease,var(--default-transition-timing-function));
   transition-duration: var(--duration,var(--default-transition-duration));
+
+
+
+
+
+
+
 }
 .chat-sidebar__button-invites-connect {
   transition-property: all;
@@ -1053,5 +1206,48 @@ function handleSelect(conv) {
   color: var(--app-text-soft);
 }
 }
+}
+
+/* Ledger pass: section labels read as ledger headings, not pills. */
+
+.chat-sidebar__text-pinned,
+.chat-sidebar__text-all {
+  letter-spacing: var(--app-tracking-label);
+}
+
+.chat-sidebar__button-start-new {
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+}
+
+.chat-sidebar__button-start-new:focus-visible,
+.chat-sidebar__button-invites-connect:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--app-primary) 70%, transparent);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .chat-sidebar__button-invites-connect:hover {
+    border-color: var(--app-border-strong);
+    background-color: var(--app-surface-soft);
+    color: var(--app-text);
+  }
+
+  .chat-sidebar__button-start-new:hover {
+    color: var(--app-bg);
+  }
+}
+
+@media (pointer: coarse) {
+  .chat-sidebar__button-start-new,
+  .chat-sidebar__button-invites-connect {
+    min-height: var(--app-touch-h);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-sidebar__button-start-new {
+    transition: none;
+  }
 }
 </style>
