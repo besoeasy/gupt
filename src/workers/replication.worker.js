@@ -4,7 +4,7 @@
 import { createEngineStore } from "../lib/engine/store.js";
 import { createBlobAdapter } from "../lib/engine/blobs.js";
 import { blobHashesOf, postEventOnce, putBlobToRelay, syncCycle } from "../lib/engine/core.js";
-import { ENGINE_SEND_ROUNDS, relayAttemptTimeoutMs } from "../lib/engine/core.js";
+import { ENGINE_SEND_ROUNDS, nextRetryMs, relayAttemptTimeoutMs } from "../lib/engine/core.js";
 import { rankRelays } from "../lib/relay/score.js";
 import { filterLiveRelays } from "../lib/relay/circuit.js";
 import { checkRelayHealth } from "../lib/rabta/index.js";
@@ -47,6 +47,12 @@ function post(type, payload) {
 
 function log(msg) {
   post("log", { msg });
+}
+
+/** Retry pacing: the send lane waits the same exponential backoff the rest of
+ * the engine uses instead of firing another round immediately. */
+function pause(ms) {
+  return new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
 }
 
 /** Same timeline as the main-thread [gupt:send] trace, for send stages that
@@ -235,10 +241,15 @@ async function pushPriorityEvent(id, event, store, readyRelays = null) {
 
   // Every candidate relay at once: the fastest accept releases the sender, so
   // a dead or slow node never sits in front of a healthy one. Each attempt
-  // persists its own relay state, and another round only runs if none
-  // accepted (each round doubles the per-attempt budget).
+  // persists its own relay state. Another round only runs if none accepted,
+  // and it waits the retry backoff first (1s, 2s, …), so a node that is down
+  // is not hammered three times in a burst.
   let acked = false;
   for (let round = 0; round < ENGINE_SEND_ROUNDS; round++) {
+    if (round > 0) {
+      trace(id, "priority-round-backoff", { round, delayMs: nextRetryMs(round - 1) });
+      await pause(nextRetryMs(round - 1));
+    }
     const roundRelays = remaining.filter((relay) => !alreadyOk.has(relay));
     if (!roundRelays.length) break;
     await Promise.all(
