@@ -359,234 +359,260 @@ const dueLabel = computed(() => formatTaskDue({ dueAt: normalizeTaskDueAt(form.v
 </template>
 
 <style scoped>
+/* Ledger pass: one task sheet, mono controls, a ruled record. */
+
 .task-detail {
   min-height: 100dvh;
+  padding-bottom: var(--app-space-8);
   background: var(--app-bg);
   color: var(--app-text);
-  animation: task-in 0.25s ease;
-}
-
-@keyframes task-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  animation: ledger-fade 260ms var(--app-ease-standard) both;
 }
 
 .task-detail__wrap {
-  width: 100%;
-  max-width: 42rem;
-  margin-inline: auto;
-  padding: 1.5rem 1rem 4rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--app-space-5);
+  width: 100%;
+  max-width: 700px;
+  margin-inline: auto;
+  padding: var(--app-space-6) var(--app-space-4);
 }
 
 .task-detail__lede {
-  font-size: var(--text-sm);
+  margin: 0;
+  font-size: var(--app-text-meta);
+  line-height: 1.6;
   color: var(--app-muted);
 }
 
 .task-detail__card {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 1.25rem;
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--app-border-quiet);
-  background: var(--app-surface-inset);
+  gap: var(--app-space-4);
+  padding: var(--app-space-5);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  animation: ledger-rise 420ms var(--app-ease-emphasized) both;
 }
 
 .task-detail__top {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 6px;
   justify-content: flex-end;
 }
 
 .task-detail__btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
-  min-height: 44px;
-  padding-inline: 0.75rem;
-  border-radius: var(--radius-lg);
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding-inline: 11px;
   border: 1px solid var(--app-border);
-  background: var(--app-surface-tint);
-  color: var(--app-text-soft);
-  font: inherit;
-  font-size: var(--text-xs);
+  border-radius: var(--app-radius-sm);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
   font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
   cursor: pointer;
   transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease;
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-standard);
 }
 
 .task-detail__btn svg {
-  width: 16px;
-  height: 16px;
-}
-
-.task-detail__btn:hover {
-  background: var(--app-surface-soft);
-  border-color: var(--app-border-strong);
-  color: var(--app-text);
+  width: 12px;
+  height: 12px;
 }
 
 .task-detail__btn:active {
-  scale: 0.97;
+  transform: translateY(1px);
 }
 
 .task-detail__btn--primary {
-  background: var(--app-text);
   border-color: var(--app-text);
-  color: var(--app-bg);
-  font-weight: 600;
-}
-
-.task-detail__btn--primary:hover {
   background: var(--app-text);
   color: var(--app-bg);
-  filter: brightness(0.92);
 }
 
 .task-detail__btn--danger {
-  color: var(--app-danger);
-}
-
-.task-detail__btn--danger:hover {
-  background: var(--app-danger-soft);
-  border-color: color-mix(in srgb, var(--app-danger) 35%, transparent);
+  border-color: color-mix(in oklab, var(--app-danger) 28%, var(--app-border));
   color: var(--app-danger);
 }
 
 .task-detail__btn--done {
+  border-color: color-mix(in oklab, var(--app-success) 30%, var(--app-border));
+  background: var(--app-success-soft);
   color: var(--app-success);
 }
 
 .task-detail__name {
-  font-size: var(--text-xl);
+  margin: 0;
+  font-size: var(--app-text-heading);
   font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: var(--app-tracking-heading);
+  color: var(--app-text);
   overflow-wrap: anywhere;
 }
 
 .task-detail__name--done {
   color: var(--app-muted);
   text-decoration: line-through;
+  text-decoration-thickness: 1px;
 }
 
 .task-detail__due {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
-  font-size: var(--text-sm);
-  color: var(--app-text-soft);
+  gap: 6px;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: var(--app-muted);
 }
 
 .task-detail__due svg {
-  width: 16px;
-  height: 16px;
-  color: var(--app-muted);
+  width: 12px;
+  height: 12px;
+  color: var(--app-muted-2);
 }
 
 .task-detail__prio {
+  margin: 0;
   font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--app-muted);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--app-warning);
 }
 
 .task-detail__notes {
+  margin: 0;
+  padding-top: var(--app-space-4);
+  border-top: 1px solid var(--app-border);
+  font-size: 13px;
+  line-height: 1.75;
   white-space: pre-wrap;
-  font-size: var(--text-sm);
   color: var(--app-text-soft);
+  overflow-wrap: anywhere;
 }
 
 .task-detail__tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.375rem;
-  font-size: 11px;
-  font-family: var(--font-mono);
-  color: var(--app-muted);
+  gap: 5px;
+  margin: 0;
 }
 
 .task-detail__tags span {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 2px 0.5rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--app-border-quiet);
+  gap: 3px;
+  padding: 2px 6px;
+  border: 1px solid var(--app-border);
+  border-radius: 3px;
+  background: var(--app-surface-soft);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.02em;
+  color: var(--app-muted);
 }
 
 .task-detail__tags button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
+  padding: 0;
   border: 0;
   background: transparent;
-  color: var(--app-muted);
+  color: var(--app-muted-2);
   cursor: pointer;
+}
+
+.task-detail__tags button svg {
+  width: 9px;
+  height: 9px;
 }
 
 .task-detail__meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 11px;
+  gap: var(--app-space-2);
+  padding-top: var(--app-space-4);
+  border-top: 1px solid var(--app-border);
 }
 
 .task-detail__mini {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  min-height: 44px;
-  padding-inline: 0.5rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--app-border-quiet);
+  gap: 4px;
+  min-height: 26px;
+  padding-inline: 7px;
+  border: 1px solid var(--app-border);
+  border-radius: 4px;
   background: transparent;
-  color: var(--app-muted);
-  font: inherit;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
   cursor: pointer;
+  transition:
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard);
 }
 
 .task-detail__mini svg {
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 10px;
 }
 
 .task-detail__label {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
-  font-size: var(--text-xs);
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
   font-weight: 500;
-  color: var(--app-text-soft);
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
 }
 
 .task-detail__label svg {
-  width: 14px;
-  height: 14px;
+  width: 11px;
+  height: 11px;
 }
 
 .task-detail__input {
   width: 100%;
-  min-height: 44px;
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--radius-lg);
+  min-height: 40px;
+  padding: 10px 12px;
   border: 1px solid var(--app-border);
-  background: var(--app-surface-inset-strong);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
+  font-family: var(--font-sans);
+  font-size: var(--app-text-body);
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
   color: var(--app-text);
-  font: inherit;
-  font-size: var(--text-sm);
+  transition:
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    box-shadow var(--app-dur-fast) var(--app-ease-standard);
 }
 
 .task-detail__input::placeholder {
@@ -596,81 +622,171 @@ const dueLabel = computed(() => formatTaskDue({ dueAt: normalizeTaskDueAt(form.v
 .task-detail__input:focus {
   outline: none;
   border-color: var(--app-border-strong);
+  box-shadow: var(--app-focus-ring);
 }
 
 .task-detail__hint {
-  margin-top: -0.375rem;
+  margin: -8px 0 0;
   font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--app-muted);
+  font-size: 9.5px;
+  color: var(--app-muted-2);
 }
 
 .task-detail__fieldset {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
 .task-detail__legend {
-  font-size: var(--text-xs);
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
   font-weight: 500;
-  color: var(--app-text-soft);
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
 }
 
 .task-detail__segmented {
   display: flex;
-  gap: 0.25rem;
-  padding: 0.25rem;
-  border-radius: var(--radius-lg);
+  gap: 2px;
+  padding: 2px;
   border: 1px solid var(--app-border);
-  background: var(--app-surface-inset-strong);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
 }
 
 .task-detail__seg {
   flex: 1;
-  min-height: 44px;
+  min-height: 30px;
+  padding-inline: 8px;
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: 3px;
   background: transparent;
-  color: var(--app-muted);
-  font: inherit;
-  font-size: var(--text-xs);
-  font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.02em;
   text-transform: capitalize;
+  color: var(--app-muted);
   cursor: pointer;
   transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard);
 }
 
 .task-detail__seg--on {
-  background: var(--app-surface-raised);
-  color: var(--app-text);
+  background: var(--app-text);
+  color: var(--app-bg);
 }
 
 .task-detail__check-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  min-height: 44px;
-  font-size: var(--text-sm);
+  gap: 8px;
+  min-height: 32px;
+  font-size: 12px;
   color: var(--app-text-soft);
   cursor: pointer;
 }
 
 .task-detail__checkbox {
-  width: 20px;
-  height: 20px;
-  accent-color: var(--app-success);
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--app-text);
 }
 
 .task-detail__footnote {
-  font-size: 11px;
-  line-height: 1.5;
+  margin: 0;
+  padding-top: var(--app-space-3);
+  border-top: 1px solid var(--app-border);
+  font-size: 10.5px;
+  line-height: 1.65;
   color: var(--app-muted-2);
 }
 
 .spin {
   animation: var(--animate-spin);
+}
+
+@media (min-width: 40rem) {
+  .task-detail__wrap {
+    padding-inline: var(--app-space-6);
+  }
+
+  .task-detail__card {
+    padding: var(--app-space-6);
+  }
+}
+
+@media (hover: hover) {
+  .task-detail__btn:hover {
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+  }
+
+  .task-detail__btn--primary:hover {
+    border-color: var(--app-text);
+    background: color-mix(in oklab, var(--app-text) 86%, transparent);
+    color: var(--app-bg);
+  }
+
+  .task-detail__btn--danger:hover {
+    border-color: var(--app-danger);
+    background: var(--app-danger-soft);
+    color: var(--app-danger);
+  }
+
+  .task-detail__btn--done:hover {
+    border-color: var(--app-success);
+    background: var(--app-success-soft);
+    color: var(--app-success);
+  }
+
+  .task-detail__mini:hover {
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+  }
+
+  .task-detail__tags button:hover {
+    color: var(--app-danger);
+  }
+
+  .task-detail__seg:not(.task-detail__seg--on):hover {
+    background: var(--app-surface);
+    color: var(--app-text);
+  }
+}
+
+@media (pointer: coarse) {
+  .task-detail__btn,
+  .task-detail__mini,
+  .task-detail__seg,
+  .task-detail__check-row,
+  .task-detail__tags button {
+    min-height: var(--app-touch-h);
+  }
+
+  .task-detail__tags button {
+    min-width: var(--app-touch-h);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task-detail,
+  .task-detail__card {
+    animation: none;
+  }
+
+  .task-detail__btn,
+  .task-detail__mini,
+  .task-detail__input,
+  .task-detail__seg {
+    transition: none;
+  }
 }
 </style>
