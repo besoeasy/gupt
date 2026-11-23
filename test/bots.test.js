@@ -9,8 +9,10 @@ import {
   BOT_MAX_NAME,
   collapseBots,
   collectBotBeacons,
+  formatBotUsers,
   normalizeBotWebsite,
   parseBotBeacon,
+  parseBotUsers,
   recentBots,
   shortBotPubkey,
 } from "../src/lib/bots.js";
@@ -159,6 +161,32 @@ test("short pubkeys keep a recognisable prefix and suffix", () => {
   const hex = "ab".repeat(32);
   assert.equal(shortBotPubkey(hex), "abababab…ababab");
   assert.equal(shortBotPubkey(""), "");
+});
+
+test("a self-reported user count parses, invalid counts become null", () => {
+  assert.equal(parseBotBeacon(beacon(KEY_A, { name: "bot", users: 1234 })).users, 1234);
+  assert.equal(parseBotBeacon(beacon(KEY_A, { name: "bot" })).users, null);
+  assert.equal(parseBotBeacon(beacon(KEY_A, { name: "bot", users: "5678" })).users, 5678);
+  assert.equal(parseBotBeacon(beacon(KEY_A, { name: "bot", users: -1 })).users, null);
+  assert.equal(parseBotBeacon(beacon(KEY_A, { name: "bot", users: 1.5 })).users, null);
+  assert.equal(parseBotBeacon(beacon(KEY_A, { name: "bot", users: "many" })).users, null);
+  assert.equal(parseBotBeacon(beacon(KEY_A, { name: "bot", users: 99999999 })).users, null);
+  // An invalid count never drops the beacon.
+  assert.ok(parseBotBeacon(beacon(KEY_A, { name: "bot", users: "many" })));
+});
+
+test("user counts format compactly", () => {
+  assert.equal(formatBotUsers(0), "0");
+  assert.equal(formatBotUsers(1), "1");
+  assert.equal(formatBotUsers(982), "982");
+  assert.equal(formatBotUsers(1000), "1k");
+  assert.equal(formatBotUsers(1234), "1.2k");
+  assert.equal(formatBotUsers(10000), "10k");
+  assert.equal(formatBotUsers(2500000), "2.5M");
+  assert.equal(formatBotUsers(null), "");
+  assert.equal(formatBotUsers(-1), "");
+  assert.equal(parseBotUsers(""), null);
+  assert.equal(parseBotUsers(undefined), null);
 });
 
 test("the local sightings ledger keeps first seen and prunes stale bots", () => {

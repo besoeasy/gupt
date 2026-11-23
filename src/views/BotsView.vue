@@ -1,9 +1,9 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { Bot, ExternalLink, RefreshCw, Search } from "@/icons";
+import { Bot, ExternalLink, RefreshCw, Search, Users } from "@/icons";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { useOpenConversation } from "@/composables/useOpenConversation";
-import { BOT_ESTABLISHED_DAYS, fetchBots, shortBotPubkey } from "@/lib/bots";
+import { BOT_ESTABLISHED_DAYS, fetchBots, formatBotUsers, shortBotPubkey } from "@/lib/bots";
 import { botKnownDays, readBotSightings, recordBotSightings } from "@/lib/botSightings";
 import { useIdentityStore } from "@/stores/identity";
 
@@ -336,6 +336,14 @@ onBeforeUnmount(() => {
 
           <div class="bots-view__block-21">
             <div class="bots-view__block-22">
+              <p
+                v-if="bot.users !== null && bot.users !== undefined"
+                class="bots-view__users"
+                title="Self-reported by the bot"
+              >
+                <Users class="bots-view__users-icon" />
+                <span>{{ formatBotUsers(bot.users) }} {{ bot.users === 1 ? "user" : "users" }}</span>
+              </p>
               <a
                 v-if="bot.website"
                 :href="bot.website"
@@ -1561,5 +1569,25 @@ onBeforeUnmount(() => {
 }
 }
 
+}
+
+/* Hand-written: self-reported user count on bot cards. */
+.bots-view__users {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--spacing) * 1.5);
+  font-size: 11px;
+  line-height: calc(var(--spacing) * 5);
+  font-weight: var(--font-weight-medium);
+  color: var(--ui-zinc-400);
+  white-space: nowrap;
+}
+.bots-view__users-icon {
+  width: calc(var(--spacing) * 3.5);
+  height: calc(var(--spacing) * 3.5);
+  flex-shrink: 0;
+}
+[data-theme="light"] .bots-view__users {
+  color: var(--app-muted);
 }
 </style>

@@ -9,6 +9,7 @@ export const BOT_MAX_NAME = 64;
 export const BOT_MAX_DESCRIPTION = 280;
 export const BOT_MAX_OWNER = 80;
 export const BOT_MAX_WEBSITE = 300;
+export const BOT_MAX_USERS = 10000000;
 export const BOT_ESTABLISHED_DAYS = 30;
 /** A beacon is a heartbeat: older than this and the bot is no longer live. */
 export const BOT_ACTIVE_WINDOW_MS = 60 * 60 * 1000;
@@ -55,6 +56,32 @@ export function botPubkey(event) {
 }
 
 /**
+ * Self-reported user count. A claim, not proof — anyone can publish any
+ * number — so invalid values become null and never drop the beacon.
+ */
+export function parseBotUsers(value) {
+  if (value === undefined || value === null || value === "") return null;
+  const num = Number(value);
+  if (!Number.isFinite(num) || !Number.isInteger(num)) return null;
+  if (num < 0 || num > BOT_MAX_USERS) return null;
+  return num;
+}
+
+/** Compact count for cards: 982, 1.2k, 10k, 3.4M. Empty string when unknown. */
+export function formatBotUsers(value) {
+  if (value === null || value === undefined || value === "") return "";
+  const num = Number(value);
+  if (!Number.isFinite(num) || !Number.isInteger(num) || num < 0) return "";
+  if (num < 1000) return String(num);
+  if (num < 1000000) {
+    const k = num / 1000;
+    return `${k >= 100 ? Math.round(k) : Math.round(k * 10) / 10}k`.replace(/\.0k$/, "k");
+  }
+  const m = num / 1000000;
+  return `${m >= 100 ? Math.round(m) : Math.round(m * 10) / 10}M`.replace(/\.0M$/, "M");
+}
+
+/**
  * Validate one relay event into the shape the directory renders. Anything
  * malformed, unsigned, or from another collection returns null.
  */
@@ -84,6 +111,7 @@ export function parseBotBeacon(event) {
     owner: cleanBotText(data.owner, BOT_MAX_OWNER),
     website,
     websiteHost,
+    users: parseBotUsers(data.users),
     createdAt,
     expiresAt: Math.floor(Number(event.expires_at) || 0) * 1000,
     eventId: event.id,

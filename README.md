@@ -238,7 +238,7 @@ Signed in:  Bookmarks view ──▶ queue drains ──▶ encrypted, published
 ### 🤖 Bots
 
 - **Bot directory** built from signed `gupt/bot/beacon` heartbeats; only beacons from the last 60 minutes are listed, newest per public key ([protocol](https://gist.githubusercontent.com/besoeasy/098bbed1f63a57a16f208c15155fbf7c/raw/bots.md)).
-- One card per bot key with name, owner, description, website, short key and beacon age.
+- One card per bot key with name, owner, description, website, short key, beacon age and self-reported user count (`data.users`, unverified).
 - A 30-day local “known since” ledger adds a `30d+` badge that relays cannot spoof — no central registry, no server-side moderation, no bought badges.
 - Filters **All / Established / New**, search across name, description, owner and website host; established bots sort first.
 - Auto-refresh every 60 seconds while the tab is visible, plus refresh on returning to the tab.
