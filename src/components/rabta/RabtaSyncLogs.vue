@@ -18,418 +18,190 @@ function formatTime(ts) {
 }
 
 function levelClass(level) {
-  if (level === "error") return "rabta-sync-logs__danger";
-  if (level === "warn") return "rabta-sync-logs__warning";
-  return "rabta-sync-logs__muted";
+  if (level === "error") return "mesh-logs__level--error";
+  if (level === "warn") return "mesh-logs__level--warning";
+  return "mesh-logs__level--info";
 }
 </script>
 
 <template>
-  <div class="rabta-sync-logs__block">
-    <div class="rabta-sync-logs__block-2">
-      <div class="rabta-sync-logs__block-3">
-        <Terminal class="rabta-sync-logs__terminal" :stroke-width="1.8" />
-        <h3 class="rabta-sync-logs__heading-live-worker">Live Worker Sync Audit</h3>
-        <span class="rabta-sync-logs__text">({{ logs.length }})</span>
+  <section class="mesh-logs">
+    <header class="mesh-logs__head">
+      <div class="mesh-logs__title">
+        <Terminal class="mesh-logs__icon" :stroke-width="1.8" aria-hidden="true" />
+        <h3 class="mesh-logs__heading">Live worker sync audit</h3>
+        <span class="mesh-logs__count">{{ logs.length }}</span>
       </div>
 
-      <button
-        v-if="logs.length"
-        type="button"
-        class="rabta-sync-logs__button-clear"
-        @click="emit('clear')"
-      >
-        <Trash2 class="rabta-sync-logs__trash2" :stroke-width="2" />
+      <button v-if="logs.length" type="button" class="mesh-logs__clear" @click="emit('clear')">
+        <Trash2 class="mesh-logs__clear-icon" :stroke-width="1.9" aria-hidden="true" />
         Clear
       </button>
-    </div>
+    </header>
 
-    <!-- Log records -->
-    <div
-      v-if="logs.length"
-      class="rabta-sync-logs__block-4"
-    >
-      <div
-        v-for="log in logs"
-        :key="log.id"
-        class="rabta-sync-logs__block-5"
-      >
-        <span class="rabta-sync-logs__text-2">{{ formatTime(log.timestamp) }}</span>
-        <span
-          class="rabta-sync-logs__text-3"
-          :class="levelClass(log.level)"
-        >
-          {{ log.level }}
-        </span>
-        <span class="rabta-sync-logs__text-4">{{ log.message }}</span>
+    <div v-if="logs.length" class="mesh-logs__list">
+      <div v-for="log in logs" :key="log.id" class="mesh-logs__row">
+        <span class="mesh-logs__time">{{ formatTime(log.timestamp) }}</span>
+        <span class="mesh-logs__level" :class="levelClass(log.level)">{{ log.level }}</span>
+        <span class="mesh-logs__message">{{ log.message }}</span>
       </div>
     </div>
 
-    <div
-      v-else
-      class="rabta-sync-logs__block-6"
-    >
+    <p v-else class="mesh-logs__empty">
       Worker idle. Logs from cross-server sync operations will appear here in real time.
-    </div>
-  </div>
+    </p>
+  </section>
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: the worker audit is a monospace ledger sheet. */
 
-/* Light theme adjustments */
-
-@layer gupt-components {
-
-@media (hover:hover) {
-.rabta-sync-logs__button-clear:hover {
-  border-color: var(--ui-zinc-700);
-}
+.mesh-logs {
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  overflow: hidden;
 }
 
-@media (hover:hover) {
-.rabta-sync-logs__button-clear:hover {
-  color: var(--ui-zinc-200);
-}
-}
-
-@layer gupt-components {
-.rabta-sync-logs__block-2 {
+.mesh-logs__head {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--app-space-2);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--app-border);
 }
-.rabta-sync-logs__block-3 {
-  display: flex;
-}
-.rabta-sync-logs__block-5 {
-  display: flex;
-}
-.rabta-sync-logs__button-clear {
+
+.mesh-logs__title {
   display: inline-flex;
-}
-.rabta-sync-logs__trash2 {
-  height: calc(var(--spacing) * 3);
-}
-.rabta-sync-logs__terminal {
-  height: calc(var(--spacing) * 4);
-}
-.rabta-sync-logs__button-clear {
-  height: calc(var(--spacing) * 8);
-}
-.rabta-sync-logs__block-4 {
-  max-height: calc(var(--spacing) * 56);
-}
-.rabta-sync-logs__trash2 {
-  width: calc(var(--spacing) * 3);
-}
-.rabta-sync-logs__terminal {
-  width: calc(var(--spacing) * 4);
-}
-.rabta-sync-logs__text-4 {
+  align-items: center;
+  gap: 7px;
   min-width: 0;
 }
-.rabta-sync-logs__text-4 {
-  flex: 1;
+
+.mesh-logs__icon {
+  width: 13px;
+  height: 13px;
+  color: var(--app-muted-2);
 }
-.rabta-sync-logs__text-2 {
-  flex-shrink: 0;
+
+.mesh-logs__heading {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-text);
 }
-.rabta-sync-logs__text-3 {
-  flex-shrink: 0;
+
+.mesh-logs__count {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--app-muted-2);
+  font-variant-numeric: tabular-nums;
 }
-.rabta-sync-logs__button-clear {
+
+.mesh-logs__clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 26px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
   cursor: pointer;
+  transition: color var(--app-dur-fast) var(--app-ease-standard);
 }
-.rabta-sync-logs__block-4 {
-  scrollbar-width: thin;
+
+.mesh-logs__clear-icon {
+  width: 11px;
+  height: 11px;
 }
-.rabta-sync-logs__block-2 {
-  align-items: center;
-}
-.rabta-sync-logs__block-3 {
-  align-items: center;
-}
-.rabta-sync-logs__button-clear {
-  align-items: center;
-}
-.rabta-sync-logs__block-5 {
-  align-items: flex-start;
-}
-.rabta-sync-logs__block-2 {
-  justify-content: space-between;
-}
-.rabta-sync-logs__button-clear {
-  gap: calc(var(--spacing) * 1.5);
-}
-.rabta-sync-logs__block-3 {
-  gap: calc(var(--spacing) * 2);
-}
-.rabta-sync-logs__block-5 {
-  gap: calc(var(--spacing) * 2);
-}
-:where(.rabta-sync-logs__block-4>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 1.5) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 1.5) * calc(1 - 0));
-}
-:where(.rabta-sync-logs__block>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 3) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 3) * calc(1 - 0));
-}
-.rabta-sync-logs__block-4 {
+
+.mesh-logs__list {
+  max-height: 260px;
   overflow-y: auto;
 }
-.rabta-sync-logs__block-5 {
-  border-radius: .25rem;
-}
-.rabta-sync-logs__text-3 {
-  border-radius: .25rem;
-}
-.rabta-sync-logs__button-clear {
-  border-radius: var(--radius-lg);
-}
-.rabta-sync-logs__block-6 {
-  border-radius: var(--radius-lg);
-}
-.rabta-sync-logs__block {
-  border-radius: var(--radius-xl);
-}
-.rabta-sync-logs__block {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.rabta-sync-logs__button-clear {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.rabta-sync-logs__text-3 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.rabta-sync-logs__block-6 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.rabta-sync-logs__block-6 {
-  --border-style: dashed;
-  border-style: dashed;
-}
-.rabta-sync-logs__warning {
-  border-color: #f99c0033;
-}
-.rabta-sync-logs__danger {
-  border-color: #fb2c3633;
-}
-.rabta-sync-logs__muted {
-  border-color: var(--ui-zinc-700);
-}
-.rabta-sync-logs__button-clear {
-  border-color: var(--ui-zinc-800);
-}
-.rabta-sync-logs__block-6 {
-  border-color: var(--app-border-faint);
-}
-.rabta-sync-logs__block {
-  border-color: var(--app-border-quiet);
-}
-.rabta-sync-logs__warning {
-  background-color: var(--app-warning-soft);
-}
-.rabta-sync-logs__danger {
-  background-color: var(--app-danger-soft);
-}
-.rabta-sync-logs__muted {
-  background-color: var(--ui-zinc-800);
-}
-.rabta-sync-logs__block {
-  background-color: var(--app-surface-tint-soft);
-}
-.rabta-sync-logs__button-clear {
-  background-color: var(--app-surface-tint);
-}
-.rabta-sync-logs__block-5 {
-  background-color: var(--app-surface-inset-strong);
-}
-.rabta-sync-logs__block {
-  padding: calc(var(--spacing) * 4);
-}
-.rabta-sync-logs__text-3 {
-  padding-inline: var(--spacing);
-}
-.rabta-sync-logs__button-clear {
-  padding-inline: calc(var(--spacing) * 2.5);
-}
-.rabta-sync-logs__block-5 {
-  padding-inline: calc(var(--spacing) * 2.5);
-}
-.rabta-sync-logs__block-5 {
-  padding-block: calc(var(--spacing) * 1.5);
-}
-.rabta-sync-logs__block-6 {
-  padding-block: calc(var(--spacing) * 6);
-}
-.rabta-sync-logs__block-4 {
-  padding-right: var(--spacing);
-}
-.rabta-sync-logs__block-6 {
-  text-align: center;
-}
-.rabta-sync-logs__text {
+
+.mesh-logs__row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 14px;
   font-family: var(--font-mono);
+  font-size: 9.5px;
+  line-height: 1.6;
+  color: var(--app-muted);
 }
-.rabta-sync-logs__block-4 {
-  font-family: var(--font-mono);
+
+.mesh-logs__row + .mesh-logs__row {
+  border-top: 1px solid color-mix(in oklab, var(--app-border) 60%, transparent);
 }
-.rabta-sync-logs__block-6 {
-  font-family: var(--font-mono);
-}
-.rabta-sync-logs__heading-live-worker {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.rabta-sync-logs__text {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.rabta-sync-logs__block-6 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.rabta-sync-logs__text-3 {
+
+.mesh-logs__time {
+  flex-shrink: 0;
   font-size: 9px;
+  color: var(--app-muted-2);
+  font-variant-numeric: tabular-nums;
 }
-.rabta-sync-logs__button-clear {
-  font-size: 11px;
-}
-.rabta-sync-logs__block-4 {
-  font-size: 11px;
-}
-.rabta-sync-logs__button-clear {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.rabta-sync-logs__heading-live-worker {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.rabta-sync-logs__text-3 {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.rabta-sync-logs__heading-live-worker {
-  --tracking: var(--tracking-tight);
-  letter-spacing: var(--tracking-tight);
-}
-.rabta-sync-logs__text-3 {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.rabta-sync-logs__text-4 {
-  overflow-wrap: break-word;
-}
-.rabta-sync-logs__warning {
-  color: var(--color-amber-400);
-}
-.rabta-sync-logs__danger {
-  color: var(--color-red-400);
-}
-.rabta-sync-logs__heading-live-worker {
-  color: var(--ui-zinc-100);
-}
-.rabta-sync-logs__block-5 {
-  color: var(--ui-zinc-300);
-}
-.rabta-sync-logs__terminal {
-  color: var(--ui-zinc-400);
-}
-.rabta-sync-logs__button-clear {
-  color: var(--ui-zinc-400);
-}
-.rabta-sync-logs__muted {
-  color: var(--ui-zinc-400);
-}
-.rabta-sync-logs__text {
-  color: var(--ui-zinc-500);
-}
-.rabta-sync-logs__block-6 {
-  color: var(--ui-zinc-500);
-}
-.rabta-sync-logs__text-2 {
-  color: var(--ui-zinc-600);
-}
-.rabta-sync-logs__text-3 {
+
+.mesh-logs__level {
+  flex-shrink: 0;
+  width: 38px;
+  font-size: 8px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-.rabta-sync-logs__text {
-  --numeric-spacing: tabular-nums;
-  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+
+.mesh-logs__level--info {
+  color: var(--app-muted-2);
 }
-.rabta-sync-logs__text-2 {
-  --numeric-spacing: tabular-nums;
-  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
-}
-.rabta-sync-logs__button-clear {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.rabta-sync-logs__button-clear:active {
-  --scale-x: 95%;
-  --scale-y: 95%;
-  --scale-z: 95%;
-  scale: 95% 95%;
-}
-[data-theme="light"] .rabta-sync-logs__warning {
+
+.mesh-logs__level--warning {
   color: var(--app-warning);
 }
-[data-theme="light"] .rabta-sync-logs__danger {
+
+.mesh-logs__level--error {
   color: var(--app-danger);
 }
-[data-theme="light"] .rabta-sync-logs__block-5 {
+
+.mesh-logs__message {
+  min-width: 0;
   color: var(--app-text-soft);
-}
-[data-theme="light"] .rabta-sync-logs__terminal {
-  color: var(--app-muted);
-}
-[data-theme="light"] .rabta-sync-logs__button-clear {
-  color: var(--app-muted);
-}
-[data-theme="light"] .rabta-sync-logs__muted {
-  color: var(--app-muted);
-}
-[data-theme="light"] .rabta-sync-logs__text {
-  color: var(--app-muted);
-}
-[data-theme="light"] .rabta-sync-logs__block-6 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .rabta-sync-logs__text-2 {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .rabta-sync-logs__button-clear:hover {
-  color: var(--app-text) !important;
-}
-}
+  overflow-wrap: anywhere;
 }
 
-@layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-logs__warning {
-  border-color: color-mix(in oklab,var(--color-amber-500) 20%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-logs__danger {
-  border-color: color-mix(in oklab,var(--color-red-500) 20%,transparent);
-}
+.mesh-logs__empty {
+  margin: 0;
+  padding: 24px 14px;
+  font-size: 11px;
+  line-height: 1.6;
+  text-align: center;
+  color: var(--app-muted-2);
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-logs__muted {
-  border-color: color-mix(in oklab,var(--ui-zinc-700) 50%,transparent);
-}
+@media (hover: hover) {
+  .mesh-logs__clear:hover {
+    color: var(--app-text);
+  }
 }
 
+@media (pointer: coarse) {
+  .mesh-logs__clear {
+    min-height: var(--app-touch-h);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mesh-logs__clear {
+    transition: none;
+  }
 }
 </style>
