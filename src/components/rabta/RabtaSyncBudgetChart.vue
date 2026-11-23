@@ -108,7 +108,7 @@ function formatAgo(ts) {
         <ChartColumn class="budget-chart__icon" :stroke-width="1.8" aria-hidden="true" />
         <div>
           <div class="budget-chart__titleline">
-            <h3 class="budget-chart__heading">Sync budget utilization</h3>
+            <h3 class="budget-chart__heading">Sync Budget Utilization</h3>
             <span v-if="history.length" class="budget-chart__rounds">
               {{ history.length }} {{ history.length === 1 ? "round" : "rounds" }}
             </span>

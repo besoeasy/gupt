@@ -176,9 +176,9 @@ function memberActivity(pk) {
         </p>
       </section>
 
-      <!-- Live relay telemetry -->
+      <!-- Live Relay Telemetry -->
       <section class="drawer__section">
-        <h4 class="drawer__label">Live relay telemetry</h4>
+        <h4 class="drawer__label">Live Relay Telemetry</h4>
 
         <div class="drawer__facts">
           <div class="drawer__fact">
@@ -192,7 +192,7 @@ function memberActivity(pk) {
           <div class="drawer__fact">
             <span class="drawer__fact-label">
               <Database class="drawer__fact-icon" :stroke-width="1.8" aria-hidden="true" />
-              Relay events
+              Relay Events
             </span>
             <span class="drawer__fact-value">
               {{ relayEventCount !== null ? `${relayEventCount} events` : "Querying…" }}
@@ -202,7 +202,7 @@ function memberActivity(pk) {
           <div class="drawer__fact">
             <span class="drawer__fact-label">
               <ShieldCheck class="drawer__fact-icon" :stroke-width="1.8" aria-hidden="true" />
-              Sync state
+              Sync State
             </span>
             <span
               class="drawer__fact-value"

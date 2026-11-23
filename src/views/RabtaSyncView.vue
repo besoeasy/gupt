@@ -145,7 +145,10 @@ function formatAgo(ts) {
       <div v-if="rabtaSync.lastError || rabtaSync.status === 'error'" class="mesh-note" role="alert">
         <CircleAlert class="mesh-note__icon" :stroke-width="2" aria-hidden="true" />
         <div class="mesh-note__body">
-          <p class="mesh-note__title">Worker exception: {{ rabtaSync.lastError }}</p>
+          <p class="mesh-note__title">Worker Exception</p>
+          <p v-if="rabtaSync.lastError" class="mesh-note__meta mesh-note__meta--error">
+            {{ rabtaSync.lastError }}
+          </p>
           <p v-if="rabtaSync.restartCountdown" class="mesh-note__meta">
             Auto-recovering fresh worker thread in {{ rabtaSync.restartCountdown }}s (attempt #{{ rabtaSync.crashCount }})…
           </p>
@@ -154,7 +157,7 @@ function formatAgo(ts) {
           </p>
         </div>
         <button type="button" class="mesh-note__action" @click="rabtaSync.restartWorkerNow">
-          Restart worker
+          Restart Worker Now
         </button>
       </div>
 
@@ -463,6 +466,12 @@ function formatAgo(ts) {
   font-family: var(--font-mono);
   font-size: 9.5px;
   color: var(--app-muted);
+}
+
+.mesh-note__meta--error {
+  font-size: 10px;
+  color: var(--app-danger);
+  overflow-wrap: anywhere;
 }
 
 .mesh-note__action {

@@ -752,7 +752,10 @@ test("RabtaSyncBudgetChart component exists and displays budget utilization tele
   );
   assert.ok(content.includes("Sync Budget Utilization"), "Must have header title");
   assert.ok(content.includes("50 units cap/run"), "Must explain budget cap");
-  assert.ok(content.includes("min-h-[44px]"), "Must satisfy 44px min touch target rule");
+  assert.ok(
+    content.includes("min-height: var(--app-touch-h)"),
+    "Must satisfy 44px min touch target rule",
+  );
   assert.ok(content.includes("ChartColumn"), "Must use SVG icon");
 });
 
