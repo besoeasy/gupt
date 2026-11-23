@@ -1,7 +1,6 @@
 <script setup>
 import { computed, ref } from "vue";
-import { useRouter } from "vue-router";
-import { Bell, Check, Phone, Video, ShieldCheck, Users, Info, Timer, Lock, UserPlus } from "@/icons";
+import { Bell, Check, Phone, Video, ShieldCheck, Timer, Lock } from "@/icons";
 import { avatarUrl, groupAvatarUrl } from "@/lib/avatar";
 import ChatCallUnlockSheet from "@/components/chatv2/ChatCallUnlockSheet.vue";
 
@@ -17,7 +16,6 @@ const props = defineProps({
   sentCount: { type: Number, default: 0 },
   isTrusted: { type: Boolean, default: false },
   memberCount: { type: Number, default: 0 },
-  drawerOpen: { type: Boolean, default: false },
   canStartCall: { type: Boolean, default: false },
   timerLabel: { type: String, default: "" },
   canPing: { type: Boolean, default: false },
@@ -25,21 +23,9 @@ const props = defineProps({
   pingSent: { type: Boolean, default: false },
   pingCooldown: { type: Boolean, default: false },
   pingSending: { type: Boolean, default: false },
-  isContact: { type: Boolean, default: false },
-  contactSaving: { type: Boolean, default: false },
-  contactSaved: { type: Boolean, default: false },
 });
 
-const emit = defineEmits([
-  "back",
-  "start-audio-call",
-  "start-video-call",
-  "ping",
-  "toggle-drawer",
-  "add-contact",
-]);
-
-const router = useRouter();
+const emit = defineEmits(["back", "start-audio-call", "start-video-call", "toggle-drawer", "ping"]);
 
 const displayTitle = computed(() => props.title || (props.isGroup ? "Group" : "Conversation"));
 const avatarSrc = computed(() => {
@@ -80,13 +66,6 @@ function startCall(kind) {
   emit(kind === "video" ? "start-video-call" : "start-audio-call");
 }
 
-function openIdentity() {
-  if (!props.isGroup && props.peerPubkey) {
-    router.push(`/profile/${props.peerPubkey}`);
-    return;
-  }
-  emit("toggle-drawer");
-}
 </script>
 
 <template>
@@ -94,8 +73,8 @@ function openIdentity() {
     <button
       type="button"
       class="chat-head__identity"
-      :title="isGroup ? 'Group details' : 'View profile'"
-      @click="openIdentity"
+      :title="isGroup ? 'Group details' : 'Contact details'"
+      @click="emit('toggle-drawer')"
     >
       <span class="chat-head__avatar">
         <img
@@ -129,15 +108,6 @@ function openIdentity() {
         </span>
 
         <span class="chat-head__status">
-          <span
-            v-if="!isGroup"
-            class="chat-head__dot"
-            :class="{
-              'chat-head__dot--live': peerIsFresh && !lastSeenLoading,
-              'chat-head__dot--pulse': lastSeenLoading,
-            }"
-            aria-hidden="true"
-          />
           <span class="chat-head__status-label">{{ statusText }}</span>
 
           <span
@@ -148,51 +118,15 @@ function openIdentity() {
             <Timer class="chat-head__chip-icon" :stroke-width="1.8" aria-hidden="true" />
             {{ timerLabel }}
           </span>
-
-          <span
-            v-if="!isGroup && !isTrusted"
-            class="chat-head__chip chat-head__chip--warn"
-            :title="`Calls unlock after 7 messages — ${trustSent} of 7 sent`"
-          >
-            <Lock class="chat-head__chip-icon" :stroke-width="1.8" aria-hidden="true" />
-            {{ trustSent }}/7
-          </span>
         </span>
       </span>
     </button>
 
-    <div class="chat-head__actions">
-      <button
-        v-if="!isGroup && peerPubkey && (!isContact || contactSaved)"
-        type="button"
-        class="chat-head__action chat-head__action--labelled"
-        :class="{ 'chat-head__action--done': contactSaved }"
-        :disabled="contactSaving || contactSaved"
-        :title="contactSaved ? 'Added to contacts' : 'Add to contacts'"
-        :aria-label="contactSaved ? 'Added to contacts' : 'Add to contacts'"
-        :aria-busy="contactSaving"
-        @click="emit('add-contact')"
-      >
-        <Check
-          v-if="contactSaved"
-          class="chat-head__icon"
-          :stroke-width="2"
-          aria-hidden="true"
-        />
-        <UserPlus
-          v-else
-          class="chat-head__icon"
-          :class="{ 'chat-head__icon--pulse': contactSaving }"
-          :stroke-width="1.8"
-          aria-hidden="true"
-        />
-        <span class="chat-head__action-label">{{ contactSaved ? "Added" : "Add" }}</span>
-      </button>
-
+    <div v-if="!isGroup" class="chat-head__actions">
       <button
         v-if="canPing"
         type="button"
-        class="chat-head__action chat-head__action--labelled"
+        class="chat-head__action"
         :class="{ 'chat-head__action--done': pingSent }"
         :disabled="pingCooldown || pingSending"
         :title="pingLabel || 'Ping · wake them via ntfy'"
@@ -200,12 +134,7 @@ function openIdentity() {
         :aria-busy="pingSending"
         @click="emit('ping')"
       >
-        <Check
-          v-if="pingSent"
-          class="chat-head__icon"
-          :stroke-width="2"
-          aria-hidden="true"
-        />
+        <Check v-if="pingSent" class="chat-head__icon" :stroke-width="2" aria-hidden="true" />
         <Bell
           v-else
           class="chat-head__icon"
@@ -213,70 +142,44 @@ function openIdentity() {
           :stroke-width="1.8"
           aria-hidden="true"
         />
-        <span class="chat-head__action-label">{{ pingSent ? "Pinged" : "Ping" }}</span>
       </button>
-
-      <template v-if="!isGroup">
-        <button
-          type="button"
-          class="chat-head__action"
-          :disabled="isTrusted && !canStartCall"
-          :aria-disabled="!isTrusted || !canStartCall"
-          :title="
-            isTrusted
-              ? 'Start audio call'
-              : `Calls locked — ${trustRemaining} more message${trustRemaining === 1 ? '' : 's'} to unlock`
-          "
-          :aria-label="
-            isTrusted ? 'Start audio call' : `Audio call locked, ${trustSent} of 7 messages sent`
-          "
-          @click="startCall('audio')"
-        >
-          <Phone class="chat-head__icon" :stroke-width="1.8" aria-hidden="true" />
-          <Lock
-            v-if="!isTrusted"
-            class="chat-head__lock"
-            :stroke-width="2.2"
-            aria-hidden="true"
-          />
-        </button>
-
-        <button
-          type="button"
-          class="chat-head__action"
-          :disabled="isTrusted && !canStartCall"
-          :aria-disabled="!isTrusted || !canStartCall"
-          :title="
-            isTrusted
-              ? 'Start video call'
-              : `Calls locked — ${trustRemaining} more message${trustRemaining === 1 ? '' : 's'} to unlock`
-          "
-          :aria-label="
-            isTrusted ? 'Start video call' : `Video call locked, ${trustSent} of 7 messages sent`
-          "
-          @click="startCall('video')"
-        >
-          <Video class="chat-head__icon" :stroke-width="1.8" aria-hidden="true" />
-          <Lock
-            v-if="!isTrusted"
-            class="chat-head__lock"
-            :stroke-width="2.2"
-            aria-hidden="true"
-          />
-        </button>
-      </template>
 
       <button
         type="button"
         class="chat-head__action"
-        :class="{ 'chat-head__action--on': drawerOpen }"
-        :title="isGroup ? 'Group details' : 'Contact & relay details'"
-        :aria-label="isGroup ? 'Group details' : 'Contact & relay details'"
-        :aria-pressed="drawerOpen"
-        @click="emit('toggle-drawer')"
+        :disabled="isTrusted && !canStartCall"
+        :aria-disabled="!isTrusted || !canStartCall"
+        :title="
+          isTrusted
+            ? 'Start audio call'
+            : `Calls locked — ${trustRemaining} more message${trustRemaining === 1 ? '' : 's'} to unlock`
+        "
+        :aria-label="
+          isTrusted ? 'Start audio call' : `Audio call locked, ${trustSent} of 7 messages sent`
+        "
+        @click="startCall('audio')"
       >
-        <Users v-if="isGroup" class="chat-head__icon" :stroke-width="1.8" aria-hidden="true" />
-        <Info v-else class="chat-head__icon" :stroke-width="1.8" aria-hidden="true" />
+        <Phone class="chat-head__icon" :stroke-width="1.8" aria-hidden="true" />
+        <Lock v-if="!isTrusted" class="chat-head__lock" :stroke-width="2.2" aria-hidden="true" />
+      </button>
+
+      <button
+        type="button"
+        class="chat-head__action"
+        :disabled="isTrusted && !canStartCall"
+        :aria-disabled="!isTrusted || !canStartCall"
+        :title="
+          isTrusted
+            ? 'Start video call'
+            : `Calls locked — ${trustRemaining} more message${trustRemaining === 1 ? '' : 's'} to unlock`
+        "
+        :aria-label="
+          isTrusted ? 'Start video call' : `Video call locked, ${trustSent} of 7 messages sent`
+        "
+        @click="startCall('video')"
+      >
+        <Video class="chat-head__icon" :stroke-width="1.8" aria-hidden="true" />
+        <Lock v-if="!isTrusted" class="chat-head__lock" :stroke-width="2.2" aria-hidden="true" />
       </button>
     </div>
 
@@ -418,25 +321,6 @@ function openIdentity() {
   min-width: 0;
 }
 
-.chat-head__dot {
-  width: 5px;
-  height: 5px;
-  flex-shrink: 0;
-  border-radius: 999px;
-  background-color: var(--app-muted-2);
-}
-
-.chat-head__dot--live {
-  background-color: var(--app-success);
-  color: var(--app-success);
-  animation: ledger-dot-pulse 2.8s var(--app-ease-standard) infinite;
-}
-
-.chat-head__dot--pulse {
-  background-color: var(--app-muted);
-  animation: ledger-dot-pulse 1.4s var(--app-ease-standard) infinite;
-}
-
 .chat-head__status-label {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -464,11 +348,6 @@ function openIdentity() {
   white-space: nowrap;
 }
 
-.chat-head__chip--warn {
-  border-color: color-mix(in oklab, var(--app-warning) 30%, transparent);
-  color: var(--app-warning);
-}
-
 .chat-head__chip-icon {
   width: 9px;
   height: 9px;
@@ -486,7 +365,6 @@ function openIdentity() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
   width: 36px;
   height: 36px;
   flex-shrink: 0;
@@ -503,18 +381,6 @@ function openIdentity() {
     transform var(--app-dur-fast) var(--app-ease-swift);
 }
 
-.chat-head__action--labelled {
-  width: auto;
-  padding: 0 var(--app-space-2);
-}
-
-.chat-head__action-label {
-  font-family: var(--font-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
 .chat-head__action:disabled {
   opacity: 0.4;
   cursor: default;
@@ -523,12 +389,6 @@ function openIdentity() {
 .chat-head__action--done {
   border-color: color-mix(in oklab, var(--app-success) 30%, transparent);
   color: var(--app-success);
-}
-
-.chat-head__action--on {
-  border-color: var(--app-text);
-  background-color: var(--app-text);
-  color: var(--app-bg);
 }
 
 .chat-head__action:focus-visible {
@@ -560,7 +420,7 @@ function openIdentity() {
     color: var(--app-primary);
   }
 
-  .chat-head__action:not(:disabled, .chat-head__action--on):hover {
+  .chat-head__action:not(:disabled):hover {
     border-color: var(--app-border);
     background-color: var(--app-surface-soft);
     color: var(--app-text);
@@ -576,30 +436,15 @@ function openIdentity() {
     width: var(--app-touch-h);
     height: var(--app-touch-h);
   }
-
-  .chat-head__action--labelled {
-    width: auto;
-    padding: 0 var(--app-space-3);
-  }
 }
 
 @media (max-width: 30rem) {
   .chat-head {
     padding-inline: var(--app-space-3);
   }
-
-  .chat-head__action-label {
-    display: none;
-  }
-
-  .chat-head__action--labelled {
-    width: 36px;
-    padding: 0;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .chat-head__dot,
   .chat-head__icon {
     animation: none;
   }

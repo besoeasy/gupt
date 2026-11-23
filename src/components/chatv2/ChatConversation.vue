@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
+import { useRouter } from "vue-router";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppSkeleton from "@/components/AppSkeleton.vue";
@@ -55,6 +56,7 @@ const props = defineProps({
 
 const emit = defineEmits(["back"]);
 
+const router = useRouter();
 const identity = useIdentityStore();
 const profileStore = useProfileStore();
 const { displayName, profilePicture, prefetch } = profileStore;
@@ -276,6 +278,12 @@ async function handleAddContact() {
   } finally {
     contactSaving.value = false;
   }
+}
+
+function openPeerProfile() {
+  if (!peerPubkey.value) return;
+  drawerOpen.value = false;
+  router.push(`/profile/${peerPubkey.value}`);
 }
 
 watch(
@@ -1025,7 +1033,6 @@ onBeforeUnmount(() => {
       :sent-count="sentCount"
       :is-trusted="isTrusted"
       :member-count="groupMemberCount"
-      :drawer-open="drawerOpen"
       :can-start-call="canStartCall"
       :timer-label="!isGroup && chatTimerSec !== CHAT_TIMER_DEFAULT_SEC ? chatTimerText : ''"
       :can-ping="canPing"
@@ -1033,11 +1040,7 @@ onBeforeUnmount(() => {
       :ping-sent="pingSent"
       :ping-cooldown="pingCooldown"
       :ping-sending="pingSending"
-      :is-contact="isPeerContact"
-      :contact-saving="contactSaving"
-      :contact-saved="contactSaved"
       @back="emit('back')"
-      @add-contact="handleAddContact"
       @start-audio-call="startAudioCall"
       @start-video-call="startVideoCall"
       @ping="handlePing"
@@ -1207,9 +1210,14 @@ onBeforeUnmount(() => {
         :member-seen-at="memberSeenAt"
         :self-pubkey="selfPubkey"
         :timer-sec="chatTimerSec"
+        :is-contact="isPeerContact"
+        :contact-saving="contactSaving"
+        :contact-saved="contactSaved"
         @close="drawerOpen = false"
         @refresh="refreshEnrichedData"
         @update:timer="updateChatTimer"
+        @add-contact="handleAddContact"
+        @view-profile="openPeerProfile"
       />
     </div>
   </div>

@@ -9,6 +9,8 @@ import {
   Copy,
   Check,
   ExternalLink,
+  UserRound,
+  UserPlus,
   Users,
   Database,
   RefreshCw,
@@ -46,9 +48,12 @@ const props = defineProps({
   memberSeenAt: { type: Map, default: () => new Map() },
   selfPubkey: { type: String, default: "" },
   timerSec: { type: Number, default: CHAT_TIMER_DEFAULT_SEC },
+  isContact: { type: Boolean, default: false },
+  contactSaving: { type: Boolean, default: false },
+  contactSaved: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["close", "refresh", "update:timer"]);
+const emit = defineEmits(["close", "refresh", "update:timer", "add-contact", "view-profile"]);
 
 const copiedKey = ref(false);
 
@@ -149,6 +154,46 @@ function memberActivity(pk) {
           <Copy v-else class="drawer__copy-icon" :stroke-width="1.9" aria-hidden="true" />
           <span>{{ copiedKey ? "Public key copied" : "Copy Ed25519 pubkey" }}</span>
         </button>
+
+        <div v-if="!isGroup && peerPubkey" class="drawer__actions">
+          <button
+            type="button"
+            class="drawer__action"
+            title="Open full profile"
+            aria-label="Open full profile"
+            @click="emit('view-profile')"
+          >
+            <UserRound class="drawer__action-icon" :stroke-width="1.9" aria-hidden="true" />
+            <span>View profile</span>
+          </button>
+
+          <button
+            v-if="!isContact || contactSaved"
+            type="button"
+            class="drawer__action"
+            :class="{ 'drawer__action--done': contactSaved }"
+            :disabled="contactSaving || contactSaved"
+            :title="contactSaved ? 'Added to contacts' : 'Add to contacts'"
+            :aria-label="contactSaved ? 'Added to contacts' : 'Add to contacts'"
+            :aria-busy="contactSaving"
+            @click="emit('add-contact')"
+          >
+            <Check
+              v-if="contactSaved"
+              class="drawer__action-icon"
+              :stroke-width="2"
+              aria-hidden="true"
+            />
+            <UserPlus
+              v-else
+              class="drawer__action-icon"
+              :class="{ 'drawer__action-icon--pulse': contactSaving }"
+              :stroke-width="1.9"
+              aria-hidden="true"
+            />
+            <span>{{ contactSaved ? "Added" : "Add contact" }}</span>
+          </button>
+        </div>
       </section>
 
       <!-- Message timer (DMs only) -->
@@ -417,6 +462,54 @@ function memberActivity(pk) {
   color: var(--app-success);
 }
 
+.drawer__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.drawer__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding-inline: 10px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.drawer__action:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.drawer__action--done {
+  border-color: color-mix(in oklab, var(--app-success) 30%, transparent);
+  color: var(--app-success);
+}
+
+.drawer__action-icon {
+  width: 11px;
+  height: 11px;
+}
+
+.drawer__action-icon--pulse {
+  animation: ledger-dot-pulse 1.2s var(--app-ease-standard) infinite;
+}
+
 /* ---- Sections ---- */
 
 .drawer__section {
@@ -624,7 +717,8 @@ function memberActivity(pk) {
     color: var(--app-text);
   }
 
-  .drawer__copy:hover {
+  .drawer__copy:hover,
+  .drawer__action:hover {
     border-color: var(--app-border-strong);
     color: var(--app-text);
   }
@@ -638,6 +732,7 @@ function memberActivity(pk) {
 @media (pointer: coarse) {
   .drawer__tool,
   .drawer__copy,
+  .drawer__action,
   .drawer__site {
     min-height: var(--app-touch-h);
   }
