@@ -2352,8 +2352,10 @@ export async function recordOutboxResult({
   return { failedIds };
 }
 
-/** Queue-only status: reads ≤200 small rows, never the mailbox. */
-export async function getOutboxSnapshot({ origins = null, filter = null, failedAfter = 5 } = {}) {
+/** Queue-only status: reads ≤200 small rows, never the mailbox. A row is
+ * terminal only when its nextDue is OUTBOX_DONE_AT; the attempt count just
+ * says how long it has been retrying. */
+export async function getOutboxSnapshot({ origins = null, filter = null } = {}) {
   const rows = await db.outbox.toArray().catch(() => []);
   const nowMs = now();
   const include = Array.isArray(origins) ? new Set(origins) : null;

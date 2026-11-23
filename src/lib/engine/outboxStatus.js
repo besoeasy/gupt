@@ -9,7 +9,6 @@ const EMPTY = {
   total: 0,
   failedIds: [],
   oldestCreatedAt: 0,
-  failedAfter: 5,
   updatedAt: 0,
 };
 
@@ -27,7 +26,6 @@ export function applyOutboxStatus(status) {
     total: Number(status.total) || 0,
     failedIds: Array.isArray(status.failedIds) ? status.failedIds : [],
     oldestCreatedAt: Number(status.oldestCreatedAt) || 0,
-    failedAfter: Number(status.failedAfter) || EMPTY.failedAfter,
     updatedAt,
     loading: false,
   });

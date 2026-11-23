@@ -28,12 +28,7 @@ import {
 } from "../groupIdentity.js";
 import { RECEIPT_COLLECTION, RECEIPT_TYPE } from "../receipts.js";
 import { verifyEvent } from "../rabta/index.js";
-import {
-  ENGINE_APP_COLLECTIONS,
-  ENGINE_CHAT_COLLECTION,
-  ENGINE_FAILED_AFTER_ATTEMPTS,
-  ENGINE_ORIGINS,
-} from "./core.js";
+import { ENGINE_APP_COLLECTIONS, ENGINE_CHAT_COLLECTION, ENGINE_ORIGINS } from "./core.js";
 
 export { ENGINE_ORIGINS } from "./core.js";
 const ENGINE_APPLIED_ORIGIN = "dm";
@@ -121,10 +116,9 @@ export function createEngineStore({ blobs, log = () => {}, selfHex = null } = {}
       return getRelayScores();
     },
 
-    async getOutboxStatus({ failedAfter = ENGINE_FAILED_AFTER_ATTEMPTS } = {}) {
+    async getOutboxStatus() {
       return getOutboxSnapshot({
         origins: ENGINE_ORIGINS,
-        failedAfter,
       });
     },
 

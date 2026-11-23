@@ -5,7 +5,7 @@
 //   listUnsyncedEvents(limit)                        -> rows: { id, event, syncAttempts }
 //   markEventsSynced(ids, ts)
 //   recordOutboxResult({ ackedIds, unackedIds })     -> { failedIds }
-//   getOutboxStatus({ failedAfter })                 -> { pending, stuck, failed, failedIds, ... }
+//   getOutboxStatus()                                  -> { pending, stuck, failed, failedIds, ... }
 //   hasEventIds(ids)                                 -> Set of ids already stored
 //   getEventsByIds(ids)                              -> rows
 //   putInboundEvent(event, selfHex)                  -> boolean stored

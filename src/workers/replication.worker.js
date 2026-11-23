@@ -4,6 +4,7 @@
 import { createEngineStore } from "../lib/engine/store.js";
 import { createBlobAdapter } from "../lib/engine/blobs.js";
 import { blobHashesOf, postEventOnce, putBlobToRelay, syncCycle } from "../lib/engine/core.js";
+import { ENGINE_SEND_ROUNDS, relayAttemptTimeoutMs } from "../lib/engine/core.js";
 import { rankRelays } from "../lib/relay/score.js";
 import { filterLiveRelays } from "../lib/relay/circuit.js";
 
@@ -118,54 +119,63 @@ async function pushPriorityEvent(id, event, store) {
     operation: isBlobSend ? "blob" : "publish",
     relayModes: config.relayModes,
   });
-  for (const relay of ordered) {
-    const startedAt = Date.now();
-    const outcome = { relay, ok: false, latencyMs: 0 };
-    post("sendReport", {
-      report: { eventId: id, relay, state: "trying", at: startedAt },
-    });
-    try {
-      const ok = await postEventOnce(relay, event);
-      outcome.ok = Boolean(ok);
-      outcome.latencyMs = Date.now() - startedAt;
-      post("relayOutcomes", {
-        operation: "publish",
-        outcomes: [{ ...outcome, eventId: id }],
-      });
+  // Up to three rounds over the ranked relays; each round doubles the per
+  // attempt budget, so a slow best relay gets more time instead of being
+  // mistaken for a dead one. The first accept returns; anything slower than
+  // that falls through to the background batch cycle.
+  for (let round = 0; round < ENGINE_SEND_ROUNDS; round++) {
+    for (const relay of ordered) {
+      const startedAt = Date.now();
+      const outcome = { relay, ok: false, latencyMs: 0 };
+      // A known-slow best relay earns its observed budget instead of the flat
+      // circuit window; later rounds double it.
+      const timeoutMs = relayAttemptTimeoutMs(scores?.[relay]?.latencyMs, round);
       post("sendReport", {
-        report: {
-          eventId: id,
-          relay,
-          state: outcome.ok ? "ok" : "error",
-          latencyMs: outcome.latencyMs,
-          at: Date.now(),
-          error: outcome.ok ? null : "Relay did not accept the event",
-        },
+        report: { eventId: id, relay, state: "trying", timeoutMs, at: startedAt },
       });
-      if (outcome.ok) {
-        post("acked", { ids: [id] });
-        post("sendReport", { report: { eventId: id, state: "complete", at: Date.now() } });
-        return; // First ack releases the sender; batch cycle mirrors the rest.
+      try {
+        const ok = await postEventOnce(relay, event, { timeoutMs });
+        outcome.ok = Boolean(ok);
+        outcome.latencyMs = Date.now() - startedAt;
+        post("relayOutcomes", {
+          operation: "publish",
+          outcomes: [{ ...outcome, eventId: id }],
+        });
+        post("sendReport", {
+          report: {
+            eventId: id,
+            relay,
+            state: outcome.ok ? "ok" : "error",
+            latencyMs: outcome.latencyMs,
+            at: Date.now(),
+            error: outcome.ok ? null : "Relay did not accept the event",
+          },
+        });
+        if (outcome.ok) {
+          post("acked", { ids: [id] });
+          post("sendReport", { report: { eventId: id, state: "complete", at: Date.now() } });
+          return; // First ack releases the sender; batch cycle mirrors the rest.
+        }
+      } catch (err) {
+        outcome.ok = false;
+        outcome.latencyMs = Date.now() - startedAt;
+        outcome.error = err?.message || String(err);
+        post("relayOutcomes", {
+          operation: "publish",
+          outcomes: [{ ...outcome, eventId: id }],
+        });
+        post("sendReport", {
+          report: {
+            eventId: id,
+            relay,
+            state: "error",
+            latencyMs: outcome.latencyMs,
+            at: Date.now(),
+            error: outcome.error,
+          },
+        });
+        log(`priority push ${id.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
       }
-    } catch (err) {
-      outcome.ok = false;
-      outcome.latencyMs = Date.now() - startedAt;
-      outcome.error = err?.message || String(err);
-      post("relayOutcomes", {
-        operation: "publish",
-        outcomes: [{ ...outcome, eventId: id }],
-      });
-      post("sendReport", {
-        report: {
-          eventId: id,
-          relay,
-          state: "error",
-          latencyMs: outcome.latencyMs,
-          at: Date.now(),
-          error: outcome.error,
-        },
-      });
-      log(`priority push ${id.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
     }
   }
 }
