@@ -19,50 +19,32 @@ const emit = defineEmits(["confirm", "cancel"]);
       leave-active-class="app-modal-leave-active"
       leave-to-class="app-modal-leave-to"
     >
-      <div
-        v-if="open"
-        class="app-confirm-dialog__block"
-      >
-        <div class="app-confirm-dialog__block-2" @click="emit('cancel')" />
+      <div v-if="open" class="confirm">
+        <div class="confirm__backdrop" @click="emit('cancel')" />
+
         <div
-          class="app-modal-panel app-confirm-dialog__dialog"
+          class="app-modal-panel confirm__panel"
           role="dialog"
           aria-modal="true"
           :aria-label="title"
         >
-          <div
-            class="app-confirm-dialog__block-3"
-          >
-            <div class="app-confirm-dialog__block-4">
-              <h2 class="app-confirm-dialog__subtitle">{{ title }}</h2>
-              <p class="app-confirm-dialog__text">{{ message }}</p>
+          <header class="confirm__head">
+            <div class="confirm__body">
+              <h2 class="confirm__title">{{ title }}</h2>
+              <p class="confirm__message">{{ message }}</p>
             </div>
-            <button
-              type="button"
-              class="app-confirm-dialog__button-cancel"
-              title="Cancel"
-              @click="emit('cancel')"
-            >
-              <X class="app-confirm-dialog__x" />
+            <button type="button" class="confirm__close" title="Cancel" @click="emit('cancel')">
+              <X class="confirm__close-icon" :stroke-width="2" aria-hidden="true" />
             </button>
-          </div>
-          <div class="app-confirm-dialog__block-5">
-            <button
-              type="button"
-              class="app-confirm-dialog__button-cancel-2"
-              @click="emit('cancel')"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="app-confirm-dialog__button"
-              @click="emit('confirm')"
-            >
-              <Trash2 class="app-confirm-dialog__trash2" />
+          </header>
+
+          <footer class="confirm__actions">
+            <button type="button" class="confirm__btn" @click="emit('cancel')">Cancel</button>
+            <button type="button" class="confirm__btn confirm__btn--danger" @click="emit('confirm')">
+              <Trash2 class="confirm__btn-icon" :stroke-width="1.9" aria-hidden="true" />
               {{ confirmLabel }}
             </button>
-          </div>
+          </footer>
         </div>
       </div>
     </Transition>
@@ -70,304 +52,182 @@ const emit = defineEmits(["confirm", "cancel"]);
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: a bottom sheet on phones, a hairline panel above. */
 
-/* Light theme adjustments */
-
-@layer gupt-components {
-
-
-
-
-@media (hover:hover) {
-.app-confirm-dialog__button-cancel:hover {
-  background-color: var(--app-surface-hover);
-}
-}
-
-@media (hover:hover) {
-.app-confirm-dialog__button:hover {
-  background-color: #fb2c3640;
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.app-confirm-dialog__button:hover {
-  background-color: color-mix(in oklab,var(--color-red-500) 25%,transparent);
-}
-}
-}
-
-@media (hover:hover) {
-.app-confirm-dialog__button-cancel:hover {
-  color: var(--app-text);
-}
-}
-
-@media (hover:hover) {
-.app-confirm-dialog__button-cancel-2:hover {
-  color: var(--app-text);
-}
-}
-
-@media (min-width:40rem) {
-.app-confirm-dialog__block {
-  align-items: center;
-}
-}
-
-@media (min-width:40rem) {
-.app-confirm-dialog__dialog {
-  border-radius: var(--radius-3xl);
-}
-}
-
-@media (min-width:40rem) {
-.app-confirm-dialog__block {
-  padding: calc(var(--spacing) * 4);
-}
-}
-
-@layer gupt-components {
-.app-confirm-dialog__block-2 {
-  position: absolute;
-}
-.app-confirm-dialog__block {
+.confirm {
   position: fixed;
-}
-.app-confirm-dialog__dialog {
-  position: relative;
-}
-.app-confirm-dialog__block {
   inset: 0;
-}
-.app-confirm-dialog__block-2 {
-  inset: 0;
-}
-.app-confirm-dialog__dialog {
-  z-index: 10;
-}
-.app-confirm-dialog__block {
   z-index: 60;
-}
-.app-confirm-dialog__text {
-  margin-top: var(--spacing);
-}
-.app-confirm-dialog__block {
   display: flex;
-}
-.app-confirm-dialog__block-3 {
-  display: flex;
-}
-.app-confirm-dialog__block-5 {
-  display: flex;
-}
-.app-confirm-dialog__button {
-  display: inline-flex;
-}
-.app-confirm-dialog__trash2 {
-  height: calc(var(--spacing) * 4);
-}
-.app-confirm-dialog__x {
-  height: calc(var(--spacing) * 5);
-}
-.app-confirm-dialog__trash2 {
-  width: calc(var(--spacing) * 4);
-}
-.app-confirm-dialog__x {
-  width: calc(var(--spacing) * 5);
-}
-.app-confirm-dialog__dialog {
-  width: 100%;
-}
-.app-confirm-dialog__dialog {
-  max-width: var(--container-sm);
-}
-.app-confirm-dialog__block-4 {
-  min-width: 0;
-}
-.app-confirm-dialog__button {
-  align-items: center;
-}
-.app-confirm-dialog__block {
   align-items: flex-end;
-}
-.app-confirm-dialog__block-3 {
-  align-items: flex-start;
-}
-.app-confirm-dialog__block-3 {
-  justify-content: space-between;
-}
-.app-confirm-dialog__block {
   justify-content: center;
+  padding: 0;
 }
-.app-confirm-dialog__block-5 {
-  justify-content: flex-end;
+
+.confirm__backdrop {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklab, #000 58%, transparent);
+  backdrop-filter: blur(2px);
 }
-.app-confirm-dialog__button {
-  gap: calc(var(--spacing) * 1.5);
-}
-.app-confirm-dialog__block-5 {
-  gap: calc(var(--spacing) * 2);
-}
-.app-confirm-dialog__block-3 {
-  gap: calc(var(--spacing) * 3);
-}
-.app-confirm-dialog__dialog {
+
+.confirm__panel {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 25rem;
+  border: 1px solid var(--app-border);
+  border-bottom: 0;
+  border-radius: var(--app-radius-lg) var(--app-radius-lg) 0 0;
+  background: var(--app-surface);
+  box-shadow: 0 -24px 60px -30px rgba(0, 0, 0, 0.6);
   overflow: hidden;
 }
-.app-confirm-dialog__button-cancel {
-  border-radius: var(--radius-xl);
+
+.confirm__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--app-space-3);
+  padding: var(--app-space-5) var(--app-space-5) var(--app-space-4);
+  border-bottom: 1px solid var(--app-border);
 }
-.app-confirm-dialog__button-cancel-2 {
-  border-radius: var(--radius-xl);
+
+.confirm__body {
+  min-width: 0;
 }
-.app-confirm-dialog__button {
-  border-radius: var(--radius-xl);
-}
-.app-confirm-dialog__dialog {
-  border-top-left-radius: var(--radius-3xl);
-  border-top-right-radius: var(--radius-3xl);
-}
-.app-confirm-dialog__dialog {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.app-confirm-dialog__block-3 {
-  border-bottom-style: var(--border-style,solid);
-  border-bottom-width: 1px;
-}
-.app-confirm-dialog__dialog {
-  border-color: var(--app-border);
-}
-.app-confirm-dialog__block-3 {
-  border-color: var(--app-border);
-}
-.app-confirm-dialog__dialog {
-  background-color: var(--app-surface);
-}
-.app-confirm-dialog__block-2 {
-  background-color: var(--ui-black);
-}
-.app-confirm-dialog__button {
-  background-color: #fb2c3626;
-}
-.app-confirm-dialog__button-cancel {
-  padding: calc(var(--spacing) * 1.5);
-}
-.app-confirm-dialog__button-cancel-2 {
-  padding-inline: calc(var(--spacing) * 3.5);
-}
-.app-confirm-dialog__button {
-  padding-inline: calc(var(--spacing) * 3.5);
-}
-.app-confirm-dialog__block-3 {
-  padding-inline: calc(var(--spacing) * 5);
-}
-.app-confirm-dialog__block-5 {
-  padding-inline: calc(var(--spacing) * 5);
-}
-.app-confirm-dialog__button-cancel-2 {
-  padding-block: calc(var(--spacing) * 2);
-}
-.app-confirm-dialog__button {
-  padding-block: calc(var(--spacing) * 2);
-}
-.app-confirm-dialog__block-3 {
-  padding-block: calc(var(--spacing) * 4);
-}
-.app-confirm-dialog__block-5 {
-  padding-block: calc(var(--spacing) * 4);
-}
-.app-confirm-dialog__subtitle {
-  font-size: var(--text-base);
-  line-height: var(--leading,var(--text-base--line-height));
-}
-.app-confirm-dialog__text {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.app-confirm-dialog__button-cancel-2 {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.app-confirm-dialog__button {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.app-confirm-dialog__text {
-  --leading: calc(var(--spacing) * 6);
-  line-height: calc(var(--spacing) * 6);
-}
-.app-confirm-dialog__subtitle {
-  --font-weight: var(--font-weight-bold);
-  font-weight: var(--font-weight-bold);
-}
-.app-confirm-dialog__button-cancel-2 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.app-confirm-dialog__button {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.app-confirm-dialog__text {
-  color: var(--app-muted);
-}
-.app-confirm-dialog__button-cancel {
-  color: var(--app-muted);
-}
-.app-confirm-dialog__button-cancel-2 {
-  color: var(--app-muted);
-}
-.app-confirm-dialog__subtitle {
+
+.confirm__title {
+  margin: 0;
+  font-size: var(--app-text-heading);
+  font-weight: 600;
+  letter-spacing: var(--app-tracking-heading);
   color: var(--app-text);
 }
-.app-confirm-dialog__button {
-  color: var(--color-red-400);
+
+.confirm__message {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  line-height: 1.65;
+  color: var(--app-muted);
 }
-.app-confirm-dialog__dialog {
-  --shadow: 0 24px 64px var(--shadow-color,#0006);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 24px 64px var(--shadow-color,#0006);
+
+.confirm__close {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--app-radius-sm);
+  background: transparent;
+  color: var(--app-muted-2);
+  cursor: pointer;
+  transition:
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard);
 }
-.app-confirm-dialog__block-2 {
-  --backdrop-blur: blur(var(--blur-xs));
-  -webkit-backdrop-filter: blur(var(--blur-xs)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
-  backdrop-filter: blur(var(--blur-xs)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
+
+.confirm__close-icon {
+  width: 13px;
+  height: 13px;
 }
-.app-confirm-dialog__button-cancel {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
+
+.confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: var(--app-space-4) var(--app-space-5);
 }
-.app-confirm-dialog__button-cancel-2 {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
+
+.confirm__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  padding-inline: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-standard);
 }
-.app-confirm-dialog__button {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
+
+.confirm__btn:active {
+  transform: translateY(1px);
 }
-[data-theme="light"] .app-confirm-dialog__button {
+
+.confirm__btn-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.confirm__btn--danger {
+  border-color: color-mix(in oklab, var(--app-danger) 34%, var(--app-border));
+  background: var(--app-danger-soft);
   color: var(--app-danger);
 }
-}
+
+@media (min-width: 40rem) {
+  .confirm {
+    align-items: center;
+    padding: var(--app-space-4);
+  }
+
+  .confirm__panel {
+    border: 1px solid var(--app-border-strong);
+    border-radius: var(--app-radius-lg);
+    box-shadow: 0 24px 64px -30px rgba(0, 0, 0, 0.7);
+  }
 }
 
-@layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.app-confirm-dialog__block-2 {
-  background-color: color-mix(in oklab,var(--ui-black) 70%,transparent);
-}
+@media (hover: hover) {
+  .confirm__close:hover {
+    background: var(--app-surface-soft);
+    color: var(--app-text);
+  }
+
+  .confirm__btn:hover {
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+  }
+
+  .confirm__btn--danger:hover {
+    border-color: var(--app-danger);
+    background: color-mix(in oklab, var(--app-danger) 16%, var(--app-surface));
+    color: var(--app-danger);
+  }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.app-confirm-dialog__button {
-  background-color: color-mix(in oklab,var(--color-red-500) 15%,transparent);
+@media (pointer: coarse) {
+  .confirm__close,
+  .confirm__btn {
+    min-height: var(--app-touch-h);
+  }
+
+  .confirm__close {
+    min-width: var(--app-touch-h);
+  }
 }
-}
+
+@media (prefers-reduced-motion: reduce) {
+  .confirm__close,
+  .confirm__btn {
+    transition: none;
+  }
 }
 </style>
