@@ -285,23 +285,23 @@
   --container-5xl: 64rem;
   --container-6xl: 72rem;
   --text-xs: .75rem;
-  --text-xs--line-height: calc(1 / .75);
-  --text-sm: .875rem;
-  --text-sm--line-height: calc(1.25 / .875);
-  --text-base: 1rem;
-  --text-base--line-height: 1.5 ;
-  --text-lg: 1.125rem;
-  --text-lg--line-height: calc(1.75 / 1.125);
-  --text-xl: 1.25rem;
-  --text-xl--line-height: calc(1.75 / 1.25);
+  --text-xs--line-height: 1.5;
+  --text-sm: .8125rem;
+  --text-sm--line-height: 1.5;
+  --text-base: .9375rem;
+  --text-base--line-height: 1.55 ;
+  --text-lg: 1.0625rem;
+  --text-lg--line-height: 1.45;
+  --text-xl: 1.1875rem;
+  --text-xl--line-height: 1.35;
   --text-2xl: 1.5rem;
-  --text-2xl--line-height: calc(2 / 1.5);
+  --text-2xl--line-height: 1.25;
   --text-3xl: 1.875rem;
-  --text-3xl--line-height: 1.2 ;
+  --text-3xl--line-height: 1.15 ;
   --text-4xl: 2.25rem;
-  --text-4xl--line-height: calc(2.5 / 2.25);
+  --text-4xl--line-height: 1.1;
   --text-5xl: 3rem;
-  --text-5xl--line-height: 1;
+  --text-5xl--line-height: 1.05;
   --text-6xl: 3.75rem;
   --text-6xl--line-height: 1;
   --font-weight-normal: 400;
@@ -319,9 +319,9 @@
   --radius-sm: .25rem;
   --radius-md: .375rem;
   --radius-lg: .5rem;
-  --radius-xl: .75rem;
-  --radius-2xl: 1rem;
-  --radius-3xl: 1.5rem;
+  --radius-xl: .625rem;
+  --radius-2xl: .75rem;
+  --radius-3xl: .875rem;
   --ease-in: cubic-bezier(.4, 0, 1, 1);
   --ease-out: cubic-bezier(0, 0, .2, 1);
   --ease-in-out: cubic-bezier(.4, 0, .2, 1);
@@ -341,6 +341,47 @@
 }
 
 /* ---------- Keyframes ---------- */
+
+/* Ledger motion primitives. Shared names so a component's scoped styles can
+   reuse the same enter/pulse language without redefining the curve. */
+@keyframes ledger-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ledger-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ledger-draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes ledger-dot-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 45%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 5px transparent;
+  }
+}
 
 @keyframes spin{to{transform:rotate(360deg)}}
 
@@ -562,27 +603,30 @@
   --app-ease-swift: cubic-bezier(0.16, 1, 0.3, 1);
   --app-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --app-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --app-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
   --app-dur-fast: 140ms;
   --app-dur-base: 220ms;
   --app-dur-slow: 340ms;
-  --app-bg: #07080b;
-  --app-bg-soft: #0b0d12;
-  --app-surface: #10131a;
-  --app-surface-raised: #151922;
-  --app-surface-soft: rgba(255, 255, 255, 0.055);
-  --app-surface-hover: rgba(255, 255, 255, 0.09);
-  --app-border: rgba(255, 255, 255, 0.085);
-  --app-border-strong: rgba(255, 255, 255, 0.14);
-  --app-text: #f7f8fb;
-  --app-text-soft: #c7ccd8;
-  --app-muted: #8b93a4;
-  --app-muted-2: #677080;
-  --app-primary: #4d9fff;
-  --app-primary-strong: #2f7ff2;
-  --app-primary-soft: rgba(77, 159, 255, 0.16);
+  --app-dur-xslow: 520ms;
+  --app-stagger: 45ms;
+  --app-bg: #000000;
+  --app-bg-soft: #0a0a0a;
+  --app-surface: #0a0a0a;
+  --app-surface-raised: #141414;
+  --app-surface-soft: rgba(255, 255, 255, 0.06);
+  --app-surface-hover: rgba(255, 255, 255, 0.1);
+  --app-border: rgba(255, 255, 255, 0.1);
+  --app-border-strong: rgba(255, 255, 255, 0.18);
+  --app-text: #ededed;
+  --app-text-soft: #a6a6a6;
+  --app-muted: #8a8a8a;
+  --app-muted-2: #5c5c5c;
+  --app-primary: #3b9eff;
+  --app-primary-strong: #0070f3;
+  --app-primary-soft: rgba(59, 158, 255, 0.14);
   --app-success: #48d597;
-  --app-success-soft: rgba(72, 213, 151, 0.16);
-  --app-danger: #ef4444;
+  --app-success-soft: rgba(72, 213, 151, 0.14);
+  --app-danger: #f05252;
   --app-warning: #f3bb58;
   --app-info: var(--color-sky-400);
   --app-warning-strong: var(--color-amber-300);
@@ -607,22 +651,49 @@
      both themes, and these tokens keep the pair out of components. */
   --app-qr-ink: #000000;
   --app-qr-paper: #ffffff;
-  --app-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
-  --app-radius-sm: 10px;
-  --app-radius-md: 14px;
-  --app-radius-lg: 20px;
+  --app-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+  --app-radius-sm: 6px;
+  --app-radius-md: 10px;
+  --app-radius-lg: 14px;
+  --app-radius-sheet: 18px;
+
+  /* Ledger: one geometry, one rhythm, one type scale. Components read these
+     instead of inventing their own px values. */
+  --app-space-1: 4px;
+  --app-space-2: 8px;
+  --app-space-3: 12px;
+  --app-space-4: 16px;
+  --app-space-5: 24px;
+  --app-space-6: 40px;
+  --app-space-7: 64px;
+  --app-space-8: 96px;
+  --app-text-label: 10.5px;
+  --app-text-meta: 12px;
+  --app-text-body: 13px;
+  --app-text-title: 19px;
+  --app-text-display: 30px;
+  --app-tracking-label: 0.09em;
+  --app-tracking-display: -0.03em;
+  --app-leading-body: 1.55;
+  --app-row-h: 56px;
+  --app-control-h: 34px;
+  --app-touch-h: 44px;
+  --app-focus-ring: 0 0 0 2px color-mix(in srgb, var(--app-primary) 55%, transparent);
+  --app-glow-amber: 0 0 7px color-mix(in srgb, var(--app-warning) 55%, transparent);
+  --app-glow-primary: 0 0 18px color-mix(in srgb, var(--app-primary) 35%, transparent);
+  --app-lift: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 16px 40px rgba(0, 0, 0, 0.38);
   /* Dark-mode base tokens (Tailwind color remapping targets above) */
   --ui-black: var(--app-bg);
   --ui-zinc-950: var(--app-bg-soft);
   --ui-zinc-900: var(--app-surface);
   --ui-zinc-800: var(--app-surface-raised);
-  --ui-zinc-700: #293141;
-  --ui-zinc-600: #465164;
+  --ui-zinc-700: #2a2a2a;
+  --ui-zinc-600: #454545;
   --ui-zinc-500: var(--app-muted);
   --ui-zinc-400: var(--app-text-soft);
-  --ui-zinc-300: var(--app-text-soft);
-  --ui-zinc-200: #e4e4e7;
-  --ui-zinc-100: #f4f4f5;
+  --ui-zinc-300: #c7c7c7;
+  --ui-zinc-200: #e5e5e5;
+  --ui-zinc-100: #f5f5f5;
   --ui-zinc-50: #fafafa;
   /* Component-level semantic vars */
   --nav-bg: var(--app-bg);
@@ -1040,48 +1111,49 @@ body {
 [data-theme="light"] {
   color-scheme: light;
   --app-bg: #ffffff;
-  --app-bg-soft: #eceef1;
+  --app-bg-soft: #fafafa;
   --app-surface: #ffffff;
-  --app-surface-raised: #ffffff;
-  --app-surface-soft: rgba(15, 23, 42, 0.045);
-  --app-surface-hover: rgba(15, 23, 42, 0.06);
-  --app-border: rgba(15, 23, 42, 0.09);
-  --app-border-strong: rgba(15, 23, 42, 0.16);
-  --app-text: #0f172a;
-  --app-text-soft: #334155;
-  --app-muted: #64748b;
-  --app-muted-2: #94a3b8;
-  --app-primary: #2563eb;
-  --app-primary-strong: #1d4ed8;
-  --app-primary-soft: rgba(37, 99, 235, 0.1);
+  --app-surface-raised: #f2f2f2;
+  --app-surface-soft: rgba(0, 0, 0, 0.04);
+  --app-surface-hover: rgba(0, 0, 0, 0.06);
+  --app-border: #eaeaea;
+  --app-border-strong: #d4d4d4;
+  --app-text: #0a0a0a;
+  --app-text-soft: #404040;
+  --app-muted: #737373;
+  --app-muted-2: #a3a3a3;
+  --app-primary: #0070f3;
+  --app-primary-strong: #0059c9;
+  --app-primary-soft: rgba(0, 112, 243, 0.1);
   --app-success: #059669;
   --app-success-soft: rgba(5, 150, 105, 0.1);
   --app-danger: #dc2626;
-  --app-warning: #d97706;
+  --app-warning: #b45309;
   --app-info: #0369a1;
-  --app-warning-strong: #b45309;
+  --app-warning-strong: #92400e;
   --app-accent-share: #7c3aed;
-  --app-shadow: 0 2px 8px rgba(15, 23, 42, 0.06), 0 12px 32px rgba(15, 23, 42, 0.08);
+  --app-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.08);
+  --app-lift: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 16px 40px rgba(0, 0, 0, 0.08);
   /* Tailwind zinc remap */
   --ui-black: var(--app-bg);
   --ui-zinc-950: var(--app-bg-soft);
   --ui-zinc-900: var(--app-surface);
-  --ui-zinc-800: #e2e8f0;
-  --ui-zinc-700: #cbd5e1;
-  --ui-zinc-600: #94a3b8;
+  --ui-zinc-800: #ededed;
+  --ui-zinc-700: #d4d4d4;
+  --ui-zinc-600: #a3a3a3;
   --ui-zinc-500: var(--app-muted);
   --ui-zinc-400: var(--app-text-soft);
-  --ui-zinc-300: #475569;
-  --ui-zinc-200: #1e293b;
-  --ui-zinc-100: #0f172a;
-  --ui-zinc-50: #020617;
+  --ui-zinc-300: #525252;
+  --ui-zinc-200: #262626;
+  --ui-zinc-100: #0a0a0a;
+  --ui-zinc-50: #000000;
   /* Component-level tokens */
   --nav-bg: #ffffff;
   --nav-border: var(--app-border);
   --nav-icon-active: var(--app-primary);
   --bubble-mine-bg: #2563eb;
   --bubble-mine-text: #ffffff;
-  --bubble-them-bg: #f1f5f9;
+  --bubble-them-bg: #f5f5f5;
   --bubble-them-text: var(--app-text);
 }
 
