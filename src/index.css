@@ -316,12 +316,12 @@
   --leading-tight: 1.25;
   --leading-snug: 1.375;
   --leading-relaxed: 1.625;
-  --radius-sm: .25rem;
-  --radius-md: .375rem;
-  --radius-lg: .5rem;
-  --radius-xl: .625rem;
-  --radius-2xl: .75rem;
-  --radius-3xl: .875rem;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 22px;
+  --radius-3xl: 26px;
   --ease-in: cubic-bezier(.4, 0, 1, 1);
   --ease-out: cubic-bezier(0, 0, .2, 1);
   --ease-in-out: cubic-bezier(.4, 0, .2, 1);
