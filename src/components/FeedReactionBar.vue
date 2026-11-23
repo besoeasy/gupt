@@ -11,29 +11,20 @@ const emit = defineEmits(["react"]);
 </script>
 
 <template>
-  <div class="feed-reaction-bar__block" @click.stop>
+  <div class="reaction-bar" @click.stop>
     <button
       v-for="emoji in FEED_REACTIONS"
       :key="emoji"
       type="button"
       :disabled="disabled"
-      class="feed-reaction-bar__button"
-      :class="
-        myReaction === emoji
-          ? 'feed-reaction-bar__button--variant-1'
-          : 'feed-reaction-bar__button--variant-2'
-      "
+      class="reaction-bar__chip"
+      :class="{ 'reaction-bar__chip--active': myReaction === emoji }"
       :title="myReaction === emoji ? 'Tap to remove' : 'React'"
+      :aria-pressed="myReaction === emoji"
       @click="emit('react', emoji)"
     >
-      <span>{{ emoji }}</span>
-      <span
-        v-if="counts?.[emoji]"
-        class="feed-reaction-bar__text"
-        :class="myReaction === emoji ? 'feed-reaction-bar__text--variant-1' : 'feed-reaction-bar__text--muted'"
-      >
-        {{ counts[emoji] }}
-      </span>
+      <span class="reaction-bar__glyph">{{ emoji }}</span>
+      <span v-if="counts?.[emoji]" class="reaction-bar__count">{{ counts[emoji] }}</span>
     </button>
   </div>
 </template>
@@ -41,127 +32,84 @@ const emit = defineEmits(["react"]);
 <style scoped>
 @layer base, gupt-components;
 
-/* Light theme adjustments */
+/* Ledger reactions: quiet hairline chips; the one you chose is filled ink. */
 
-@layer gupt-components {
-
-@media (hover:hover) {
-.feed-reaction-bar__button--variant-2:hover {
-  border-color: var(--ui-zinc-700);
-}
-}
-
-@media (hover:hover) {
-.feed-reaction-bar__button--variant-2:hover {
-  background-color: var(--app-surface-tint-soft);
-}
-}
-
-@layer gupt-components {
-.feed-reaction-bar__block {
+.reaction-bar {
   display: flex;
-}
-.feed-reaction-bar__button {
-  display: inline-flex;
-}
-.feed-reaction-bar__button {
-  height: calc(var(--spacing) * 8);
-}
-.feed-reaction-bar__button {
-  min-width: calc(var(--spacing) * 9);
-}
-.feed-reaction-bar__button {
-  cursor: pointer;
-}
-.feed-reaction-bar__block {
   flex-wrap: wrap;
-}
-.feed-reaction-bar__block {
   align-items: center;
-}
-.feed-reaction-bar__button {
-  align-items: center;
-}
-.feed-reaction-bar__button {
-  justify-content: center;
-}
-.feed-reaction-bar__block {
-  gap: var(--spacing);
-}
-.feed-reaction-bar__button {
-  gap: var(--spacing);
-}
-.feed-reaction-bar__button {
-  border-radius: var(--radius-lg);
-}
-.feed-reaction-bar__button {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.feed-reaction-bar__button--variant-1 {
-  border-color: var(--ui-zinc-600);
-}
-.feed-reaction-bar__button--variant-2 {
-  border-color: var(--ui-zinc-800);
-}
-.feed-reaction-bar__button--variant-2 {
-  background-color: #0000;
-}
-.feed-reaction-bar__button--variant-1 {
-  background-color: var(--ui-zinc-800);
-}
-.feed-reaction-bar__button {
-  padding-inline: calc(var(--spacing) * 2);
-}
-.feed-reaction-bar__text {
-  font-family: var(--font-mono);
-}
-.feed-reaction-bar__button {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.feed-reaction-bar__text {
-  font-size: 11px;
-}
-.feed-reaction-bar__text {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.feed-reaction-bar__text--variant-1 {
-  color: var(--ui-zinc-100);
-}
-.feed-reaction-bar__text--muted {
-  color: var(--ui-zinc-500);
-}
-.feed-reaction-bar__text {
-  --numeric-spacing: tabular-nums;
-  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
-}
-.feed-reaction-bar__button {
-  transition-property: all;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.feed-reaction-bar__button:active {
-  --scale-x: 95%;
-  --scale-y: 95%;
-  --scale-z: 95%;
-  scale: 95% 95%;
-}
-.feed-reaction-bar__button:disabled {
-  opacity: .5;
-}
-[data-theme="light"] .feed-reaction-bar__text--muted {
-  color: var(--app-muted);
-}
-}
+  gap: var(--app-space-2);
 }
 
-@layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.feed-reaction-bar__button--variant-1 {
-  background-color: color-mix(in oklab,var(--ui-zinc-800) 70%,transparent);
+.reaction-bar__chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: var(--app-touch-h);
+  min-height: var(--app-touch-h);
+  padding: 0 var(--app-space-2);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background-color: transparent;
+  color: var(--app-muted);
+  cursor: pointer;
+  transition:
+    color var(--app-dur-fast) var(--app-ease-standard),
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-swift);
 }
+
+.reaction-bar__chip:active {
+  transform: scale(0.94);
 }
+
+.reaction-bar__chip:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.reaction-bar__chip--active {
+  border-color: var(--app-text);
+  background-color: var(--app-text);
+  color: var(--app-bg);
+}
+
+.reaction-bar__chip:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--app-primary) 70%, transparent);
+  outline-offset: 2px;
+}
+
+.reaction-bar__glyph {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.reaction-bar__count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: inherit;
+}
+
+@media (hover: hover) {
+  .reaction-bar__chip:not(.reaction-bar__chip--active, :disabled):hover {
+    border-color: var(--app-border-strong);
+    background-color: var(--app-surface-soft);
+    color: var(--app-text);
+    transform: translateY(-1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reaction-bar__chip {
+    transition: none;
+  }
+
+  .reaction-bar__chip:active {
+    transform: none;
+  }
 }
 </style>
