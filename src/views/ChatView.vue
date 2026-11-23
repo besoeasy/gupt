@@ -11,10 +11,10 @@ const hasActiveConversation = computed(() => Boolean(activeType.value && activeR
 </script>
 
 <template>
-  <div class="chat-view__block">
+  <div class="chat-view">
     <main class="chat-view__main">
       <!-- Conversation List View (/chat) -->
-      <div v-if="!hasActiveConversation" class="chat-view__block-2">
+      <div v-if="!hasActiveConversation" class="chat-view__pane">
         <ChatSidebar
           :active-conversation-id="activeConversationId"
           @select-conversation="selectConversation"
@@ -22,7 +22,7 @@ const hasActiveConversation = computed(() => Boolean(activeType.value && activeR
       </div>
 
       <!-- Active Chat Conversation View (/chat/:conversationId) -->
-      <div v-else class="chat-view__block-3">
+      <div v-else class="chat-view__pane">
         <ChatConversation
           :key="activeConversationId"
           :conversation-type="activeType"
@@ -35,83 +35,32 @@ const hasActiveConversation = computed(() => Boolean(activeType.value && activeR
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: the chat shell is a full-height column with no chrome of its own. */
 
-@layer gupt-components {
-.chat-view__block {
+.chat-view {
   position: relative;
-}
-
-.chat-view__main {
-  margin-inline: auto;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  background: var(--app-bg);
+  color: var(--app-text);
+  overflow: hidden;
 }
 
 .chat-view__main {
   display: flex;
-}
-
-.chat-view__block {
-  height: 100%;
-}
-
-.chat-view__main {
-  height: 100%;
-}
-
-.chat-view__block-2 {
-  height: 100%;
-}
-
-.chat-view__block-3 {
-  height: 100%;
-}
-
-.chat-view__block {
-  width: 100%;
-}
-
-.chat-view__main {
-  width: 100%;
-}
-
-.chat-view__block-2 {
-  width: 100%;
-}
-
-.chat-view__block-3 {
-  width: 100%;
-}
-
-.chat-view__main {
-  max-width: var(--container-6xl);
-}
-
-.chat-view__block {
-  min-width: 0;
-}
-
-.chat-view__main {
-  min-width: 0;
-}
-
-.chat-view__main {
   flex-direction: column;
-}
-
-.chat-view__block {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  max-width: 72rem;
+  margin-inline: auto;
   overflow: hidden;
 }
 
-.chat-view__main {
-  overflow: hidden;
-}
-
-.chat-view__block {
-  background-color: var(--app-bg);
-}
-
-.chat-view__block {
-  color: var(--app-text);
-}
+.chat-view__pane {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
 }
 </style>

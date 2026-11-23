@@ -6,149 +6,96 @@ import BackupNodeCard from "@/components/BackupNodeCard.vue";
 </script>
 
 <template>
-  <main
-    class="backup-integration-view__main"
-  >
-    <div class="backup-integration-view__block">
-      <div class="backup-integration-view__block-2">
-        <PageHeader eyebrow="Self-hosting" title="Local backup node">
-          <p class="backup-integration-view__text">
-            Run a Rabta node yourself, in one command. This browser already keeps a 1:1 copy of your
-            account, so a backup node is for an off-device copy.
-          </p>
-        </PageHeader>
+  <main class="backup">
+    <div class="backup__inner">
+      <PageHeader eyebrow="Self-hosting" title="Local backup node">
+        <p class="backup__lede">
+          Run a Rabta node yourself, in one command. This browser already keeps a 1:1 copy of your
+          account, so a backup node is for an off-device copy.
+        </p>
+      </PageHeader>
 
-        <section class="backup-integration-view__section">
-          <h2
-            class="backup-integration-view__subtitle"
-          >
-            <Container class="backup-integration-view__container" :stroke-width="2" aria-hidden="true" />
-            Docker &amp; Podman
-          </h2>
-          <BackupNodeCard />
-        </section>
-      </div>
+      <section class="backup__section">
+        <h2 class="backup__label">
+          <Container class="backup__label-icon" :stroke-width="1.9" aria-hidden="true" />
+          Docker &amp; Podman
+        </h2>
+        <BackupNodeCard />
+      </section>
     </div>
   </main>
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: one self-hosting record under a mono section label. */
 
-/* Light theme adjustments */
-
-@layer gupt-components {
-@media (min-width:40rem) {
-.backup-integration-view__block {
-  padding-inline: calc(var(--spacing) * 6);
-}
-}
-
-@media (min-width:64rem) {
-.backup-integration-view__main {
-  height: 100%;
-}
-}
-
-@media (min-width:64rem) {
-.backup-integration-view__block {
-  padding-inline: calc(var(--spacing) * 8);
-}
-}
-
-@layer gupt-components {
-.backup-integration-view__block {
-  margin-inline: auto;
-}
-.backup-integration-view__subtitle {
-  display: inline-flex;
-}
-.backup-integration-view__container {
-  height: calc(var(--spacing) * 3.5);
-}
-.backup-integration-view__main {
+.backup {
   min-height: 100dvh;
-}
-.backup-integration-view__container {
-  width: calc(var(--spacing) * 3.5);
-}
-.backup-integration-view__block {
-  width: 100%;
-}
-.backup-integration-view__block {
-  max-width: var(--container-6xl);
-}
-.backup-integration-view__subtitle {
-  align-items: center;
-}
-.backup-integration-view__subtitle {
-  gap: calc(var(--spacing) * 1.5);
-}
-:where(.backup-integration-view__section>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 3) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 3) * calc(1 - 0));
-}
-:where(.backup-integration-view__block>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 8) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 8) * calc(1 - 0));
-}
-:where(.backup-integration-view__block-2>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 8) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 8) * calc(1 - 0));
-}
-.backup-integration-view__main {
-  overflow-x: hidden;
-}
-.backup-integration-view__main {
-  overflow-y: auto;
-}
-.backup-integration-view__main {
-  background-color: var(--app-bg);
-}
-.backup-integration-view__block {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.backup-integration-view__block {
-  padding-block: calc(var(--spacing) * 6);
-}
-.backup-integration-view__text {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.backup-integration-view__subtitle {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.backup-integration-view__text {
-  --leading: calc(var(--spacing) * 6);
-  line-height: calc(var(--spacing) * 6);
-}
-.backup-integration-view__subtitle {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.backup-integration-view__subtitle {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.backup-integration-view__text {
-  color: var(--app-muted);
-}
-.backup-integration-view__main {
+  background: var(--app-bg);
   color: var(--app-text);
+  animation: ledger-fade 240ms var(--app-ease-standard) both;
 }
-.backup-integration-view__subtitle {
-  color: var(--ui-zinc-500);
+
+.backup__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-6);
+  width: 100%;
+  max-width: 720px;
+  margin-inline: auto;
+  padding: var(--app-space-6) var(--app-space-4) var(--app-space-8);
 }
-.backup-integration-view__subtitle {
-  text-transform: uppercase;
-}
-[data-theme="light"] .backup-integration-view__subtitle {
+
+.backup__lede {
+  max-width: 58ch;
+  margin: 0;
+  font-size: var(--app-text-meta);
+  line-height: 1.65;
   color: var(--app-muted);
 }
+
+.backup__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+  animation: ledger-rise 440ms var(--app-ease-emphasized) 50ms both;
 }
+
+.backup__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--app-text-label);
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+}
+
+.backup__label-icon {
+  width: 13px;
+  height: 13px;
+}
+
+@media (min-width: 40rem) {
+  .backup__inner {
+    padding-inline: var(--app-space-6);
+  }
+}
+
+@media (min-width: 64rem) {
+  .backup {
+    height: 100%;
+    overflow-y: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backup,
+  .backup__section {
+    animation: none;
+  }
 }
 </style>
