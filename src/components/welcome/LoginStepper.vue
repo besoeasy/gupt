@@ -17,66 +17,65 @@ const progress = computed(() => {
 </script>
 
 <template>
-  <nav class="login-stepper" :style="{ '--count': steps.length }" aria-label="Sign-in progress">
-    <div class="login-stepper__track" aria-hidden="true">
-      <span class="login-stepper__fill" :style="{ width: `${progress}%` }" />
+  <nav class="stepper" :style="{ '--count': steps.length }" aria-label="Sign-in progress">
+    <div class="stepper__track" aria-hidden="true">
+      <span class="stepper__fill" :style="{ width: `${progress}%` }" />
     </div>
 
-    <ol class="login-stepper__list">
-      <li v-for="(item, index) in steps" :key="item.key" class="login-stepper__item">
+    <ol class="stepper__list">
+      <li v-for="(item, index) in steps" :key="item.key" class="stepper__item">
         <button
           type="button"
-          class="login-stepper__dot"
+          class="stepper__dot"
           :class="{
-            'login-stepper__dot--done': index < current,
-            'login-stepper__dot--current': index === current,
+            'stepper__dot--done': index < current,
+            'stepper__dot--current': index === current,
           }"
           :disabled="disabled || index > current"
           :aria-current="index === current ? 'step' : undefined"
           :aria-label="`Step ${index + 1}: ${item.label}${index < current ? ' (completed)' : ''}`"
           @click="$emit('select', index)"
         >
-          <span class="login-stepper__dot-core">
-            <Check v-if="index < current" class="login-stepper__check" aria-hidden="true" />
+          <span class="stepper__core">
+            <Check v-if="index < current" class="stepper__check" :stroke-width="2.4" aria-hidden="true" />
             <span v-else>{{ index + 1 }}</span>
           </span>
         </button>
-        <span
-          class="login-stepper__label"
-          :class="{ 'login-stepper__label--current': index === current }"
-        >{{ item.label }}</span>
+        <span class="stepper__label" :class="{ 'stepper__label--current': index === current }">
+          {{ item.label }}
+        </span>
       </li>
     </ol>
   </nav>
 </template>
 
 <style scoped>
-.login-stepper {
+/* Ledger pass: a numbered rail, not a progress bar. */
+
+.stepper {
   --count: 4;
   position: relative;
   width: 100%;
 }
 
-.login-stepper__track {
+.stepper__track {
   position: absolute;
   top: 22px;
   left: calc(100% / (2 * var(--count)));
   right: calc(100% / (2 * var(--count)));
-  height: 2px;
-  border-radius: 999px;
-  background-color: var(--app-border);
+  height: 1px;
+  background: var(--app-border);
   overflow: hidden;
 }
 
-.login-stepper__fill {
+.stepper__fill {
   display: block;
   height: 100%;
-  border-radius: inherit;
-  background-color: var(--app-primary);
-  transition: width 0.35s var(--app-ease-swift, cubic-bezier(0.22, 1, 0.36, 1));
+  background: var(--app-text);
+  transition: width 360ms var(--app-ease-emphasized);
 }
 
-.login-stepper__list {
+.stepper__list {
   position: relative;
   display: grid;
   grid-template-columns: repeat(var(--count), 1fr);
@@ -85,109 +84,109 @@ const progress = computed(() => {
   list-style: none;
 }
 
-.login-stepper__item {
+.stepper__item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
+  gap: 5px;
   min-width: 0;
 }
 
-.login-stepper__dot {
+.stepper__dot {
   display: grid;
   place-items: center;
   width: 44px;
   height: 44px;
   padding: 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: 50%;
   background: transparent;
-  color: var(--app-muted);
+  color: var(--app-muted-2);
   cursor: default;
   -webkit-tap-highlight-color: transparent;
 }
 
-.login-stepper__dot-core {
+.stepper__core {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
   border: 1px solid var(--app-border);
-  border-radius: 999px;
-  background-color: var(--app-surface);
+  border-radius: 50%;
+  background: var(--app-surface);
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
   transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease,
-    transform 0.2s ease;
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-standard);
 }
 
-.login-stepper__dot--done {
+.stepper__dot--done {
   cursor: pointer;
 }
 
-.login-stepper__dot--done .login-stepper__dot-core {
-  border-color: var(--app-primary);
-  background-color: var(--app-primary);
-  color: var(--app-primary-contrast, #fff);
+.stepper__dot--done .stepper__core {
+  border-color: var(--app-text);
+  background: var(--app-text);
+  color: var(--app-bg);
 }
 
-.login-stepper__dot--current .login-stepper__dot-core {
-  border-color: var(--app-primary);
-  color: var(--app-primary);
-  background-color: color-mix(in srgb, var(--app-primary) 14%, transparent);
-  transform: scale(1.06);
-}
-
-.login-stepper__dot--done:hover .login-stepper__dot-core {
+.stepper__dot--current .stepper__core {
+  border-color: var(--app-text);
+  color: var(--app-text);
   transform: scale(1.08);
 }
 
-.login-stepper__dot:focus-visible {
-  outline: 2px solid var(--app-primary);
-  outline-offset: 2px;
+.stepper__dot:focus-visible {
+  outline: none;
+  box-shadow: var(--app-focus-ring);
 }
 
-.login-stepper__dot:disabled {
+.stepper__dot:disabled {
   opacity: 0.55;
 }
 
-.login-stepper__dot--current:disabled {
+.stepper__dot--current:disabled {
   opacity: 1;
 }
 
-.login-stepper__check {
-  width: 14px;
-  height: 14px;
+.stepper__check {
+  width: 11px;
+  height: 11px;
 }
 
-.login-stepper__label {
+.stepper__label {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 10px;
-  letter-spacing: 0.02em;
-  color: var(--app-muted);
-  transition: color 0.2s ease;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+  transition: color var(--app-dur-fast) var(--app-ease-standard);
 }
 
-.login-stepper__label--current {
+.stepper__label--current {
   color: var(--app-text);
-  font-weight: 600;
+  font-weight: 500;
 }
 
-[data-theme="light"] .login-stepper__dot--current .login-stepper__dot-core {
-  background-color: color-mix(in srgb, var(--app-primary) 10%, #fff);
+@media (hover: hover) {
+  .stepper__dot--done:hover .stepper__core {
+    transform: scale(1.08);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .login-stepper__fill,
-  .login-stepper__dot-core,
-  .login-stepper__label {
+  .stepper__fill,
+  .stepper__core,
+  .stepper__label {
     transition: none;
   }
 }
