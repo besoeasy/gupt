@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { Bot, ExternalLink, RefreshCw, Search, Users } from "@/icons";
+import PageHeader from "@/components/PageHeader.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { useOpenConversation } from "@/composables/useOpenConversation";
 import { BOT_ESTABLISHED_DAYS, fetchBots, formatBotUsers, shortBotPubkey } from "@/lib/bots";
@@ -148,55 +149,45 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="bots-view__block">
+  <div class="bots-view">
     <main class="bots-view__main">
-      <div
-        class="bots-view__block-2"
-      >
-        <div>
-          <h1 class="bots-view__title-bots">
-            Bots
-            <span
-              v-if="enriched.length"
-              class="bots-view__text"
-            >
-              ({{ enriched.length }})
-            </span>
-          </h1>
-          <p class="bots-view__text-2">
-            Signed heartbeats from bots that announced on your relays in the last 60 minutes.
-            Long-running bots are pinned first.
-          </p>
-        </div>
-        <button
-          type="button"
-          :disabled="isRefreshing"
-          class="bots-view__button"
-          @click="load({ refresh: true })"
-        >
-          <RefreshCw class="bots-view__refresh-cw" :class="{ 'bots-view__refresh-cw--spin': isRefreshing }" />
-          <span>Sync</span>
-        </button>
-      </div>
+      <PageHeader eyebrow="Relay directory" title="Bots" :count="enriched.length">
+        <p class="bots-view__lede">
+          Signed heartbeats from bots that announced on your relays in the last 60 minutes.
+          Long-running bots are pinned first.
+        </p>
+        <template #actions>
+          <button
+            type="button"
+            :disabled="isRefreshing"
+            class="bots-action"
+            @click="load({ refresh: true })"
+          >
+            <RefreshCw class="bots-action__icon" :class="{ 'bots-action__icon--spin': isRefreshing }" />
+            <span>Sync</span>
+          </button>
+        </template>
+      </PageHeader>
 
-      <div
-        v-if="error"
-        class="bots-view__block-3"
-      >
+      <div v-if="error" class="bots-note" role="alert">
         <span>{{ error }}</span>
-        <button
-          type="button"
-          class="bots-view__button-retry"
-          @click="load({ refresh: true })"
-        >
+        <button type="button" class="bots-note__retry" @click="load({ refresh: true })">
           Retry
         </button>
       </div>
 
-      <div class="bots-view__block-4">
-        <div
-          class="bots-view__block-5"
-        >
+      <div class="bots-filters">
+        <div class="bots-search">
+          <Search class="bots-search__icon" aria-hidden="true" />
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search bots, owners, sites…"
+            class="bots-search__field"
+          />
+        </div>
+
+        <div class="bots-filters__chips">
           <button
             v-for="option in [
               { id: 'all', label: 'All', count: counts.all },
@@ -205,67 +196,36 @@ onBeforeUnmount(() => {
             ]"
             :key="option.id"
             type="button"
-            class="bots-view__button-2"
-            :class="
-              filter === option.id
-                ? 'bots-view__button--selected'
-                : 'bots-view__button--muted'
-            "
+            class="bots-chip"
+            :class="{ 'is-active': filter === option.id }"
             @click="filter = option.id"
           >
             {{ option.label }}
-            <span class="bots-view__text-3"
-              >({{ option.count }})</span
-            >
+            <span class="bots-chip__count">{{ option.count }}</span>
           </button>
         </div>
-
-        <div class="bots-view__block-6">
-          <Search
-            class="bots-view__search"
-          />
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search bots, owners, sites…"
-            class="bots-view__field-text"
-          />
-        </div>
       </div>
 
-      <div v-if="isLoading" class="bots-view__status" role="status">
-        <span class="bots-view__text-4">Loading bots…</span>
-        <div
-          v-for="n in 6"
-          :key="n"
-          class="bots-view__block-7"
-          aria-hidden="true"
-        >
-          <div class="bots-view__block-8">
-            <div class="skeleton-shimmer bots-view__block-9" />
-            <div class="bots-view__block-10">
-              <div class="skeleton-shimmer bots-view__block-11" />
-              <div class="skeleton-shimmer bots-view__block-12" />
-            </div>
+      <div v-if="isLoading" class="bots-loading" role="status">
+        <span class="bots-loading__label">Loading bots…</span>
+        <div v-for="n in 6" :key="n" class="bots-skeleton" aria-hidden="true">
+          <div class="skeleton-shimmer bots-skeleton__avatar" />
+          <div class="bots-skeleton__body">
+            <div class="skeleton-shimmer bots-skeleton__line" />
+            <div class="skeleton-shimmer bots-skeleton__line bots-skeleton__line--short" />
           </div>
-          <div class="skeleton-shimmer bots-view__block-13" />
-          <div class="skeleton-shimmer bots-view__block-14" />
         </div>
       </div>
 
-      <div
-        v-else-if="!visibleBots.length"
-        class="bots-view__block-15"
-      >
-        <div
-          class="bots-view__block-16"
-        >
-          <Bot class="bots-view__bot" :stroke-width="1.8" />
-        </div>
-        <h2 class="bots-view__subtitle">
+      <div v-else-if="!visibleBots.length" class="bots-empty">
+        <Bot class="bots-empty__mark" :stroke-width="1.6" aria-hidden="true" />
+        <p class="bots-empty__eyebrow">
+          {{ searchQuery || filter !== "all" ? "No match" : "Quiet relays" }}
+        </p>
+        <h2 class="bots-empty__title">
           {{ searchQuery || filter !== "all" ? "No bots match" : "No bots live right now" }}
         </h2>
-        <p class="bots-view__text-5">
+        <p class="bots-empty__lede">
           {{
             searchQuery || filter !== "all"
               ? "Try another search or filter."
@@ -277,15 +237,15 @@ onBeforeUnmount(() => {
           href="https://gist.githubusercontent.com/besoeasy/098bbed1f63a57a16f208c15155fbf7c/raw/bots.md"
           target="_blank"
           rel="noopener noreferrer"
-          class="bots-view__link-publish-your"
+          class="bots-action bots-empty__action"
         >
           Publish your own bot
-          <ExternalLink class="bots-view__external-link" />
+          <ExternalLink class="bots-action__icon" aria-hidden="true" />
         </a>
         <button
           v-else
           type="button"
-          class="bots-view__button-clear-filters"
+          class="bots-action bots-empty__action"
           @click="
             searchQuery = '';
             filter = 'all';
@@ -295,7 +255,7 @@ onBeforeUnmount(() => {
         </button>
       </div>
 
-      <div v-else class="bots-view__block-17">
+      <div v-else class="bots-list">
         <article
           v-for="bot in visibleBots"
           :key="bot.pubkey"
@@ -303,45 +263,40 @@ onBeforeUnmount(() => {
           tabindex="0"
           :aria-label="`Open chat with ${bot.name}`"
           :aria-busy="openingPubkey === bot.pubkey"
-          class="bots-view__button-3"
-          :class="{ 'bots-view__button--variant-1': openingPubkey === bot.pubkey }"
+          class="bots-row"
+          :class="{ 'bots-row--opening': openingPubkey === bot.pubkey }"
           @click="openBotChat(bot)"
           @keydown.enter.prevent="openBotChat(bot)"
           @keydown.space.prevent="openBotChat(bot)"
         >
-          <div class="bots-view__block-18">
+          <div class="bots-row__avatar">
             <RoboAvatar :pubkey="bot.pubkey" size="md" rounded="xl" :alt="bot.name" />
-            <div class="bots-view__block-19">
-              <div class="bots-view__block-20">
-                <h2 class="bots-view__subtitle-2">
-                  {{ bot.name }}
-                </h2>
-                <span
-                  v-if="bot.established"
-                  class="bots-view__text-6"
-                  :title="`Known to this device for ${BOT_ESTABLISHED_DAYS}+ days`"
-                >
-                  {{ BOT_ESTABLISHED_DAYS }}d+
-                </span>
-              </div>
-              <p v-if="bot.owner" class="bots-view__text-by">by {{ bot.owner }}</p>
-              <p v-else class="bots-view__text-unattributed">unattributed</p>
-            </div>
           </div>
 
-          <p v-if="bot.description" class="bots-view__text-7">
-            {{ bot.description }}
-          </p>
-          <p v-else class="bots-view__text-no-description">No description</p>
+          <div class="bots-row__body">
+            <div class="bots-row__titleline">
+              <h2 class="bots-row__name">{{ bot.name }}</h2>
+              <span
+                v-if="bot.established"
+                class="bots-row__badge"
+                :title="`Known to this device for ${BOT_ESTABLISHED_DAYS}+ days`"
+              >
+                {{ BOT_ESTABLISHED_DAYS }}d+
+              </span>
+            </div>
+            <p v-if="bot.owner" class="bots-row__owner">by {{ bot.owner }}</p>
+            <p v-else class="bots-row__owner bots-row__owner--none">unattributed</p>
 
-          <div class="bots-view__block-21">
-            <div class="bots-view__block-22">
+            <p v-if="bot.description" class="bots-row__description">{{ bot.description }}</p>
+            <p v-else class="bots-row__description bots-row__description--none">No description</p>
+
+            <div class="bots-row__meta">
               <p
                 v-if="bot.users !== null && bot.users !== undefined"
-                class="bots-view__users"
+                class="bots-row__fact"
                 title="Self-reported by the bot"
               >
-                <Users class="bots-view__users-icon" />
+                <Users class="bots-row__meta-icon" aria-hidden="true" />
                 <span>{{ formatBotUsers(bot.users) }} {{ bot.users === 1 ? "user" : "users" }}</span>
               </p>
               <a
@@ -349,20 +304,21 @@ onBeforeUnmount(() => {
                 :href="bot.website"
                 target="_blank"
                 rel="noopener noreferrer nofollow"
-                class="bots-view__link"
+                class="bots-row__site"
                 @click.stop
               >
-                <ExternalLink class="bots-view__external-link-2" />
-                <span class="bots-view__text-8">{{ bot.websiteHost }}</span>
+                <ExternalLink class="bots-row__meta-icon" aria-hidden="true" />
+                <span>{{ bot.websiteHost }}</span>
               </a>
-              <p class="bots-view__text-9" :title="`ed25519:${bot.pubkey}`">
+              <p class="bots-row__key" :title="`ed25519:${bot.pubkey}`">
                 {{ shortBotPubkey(bot.pubkey) }}
               </p>
             </div>
-            <div class="bots-view__block-23">
-              <p>{{ timeAgo(bot.createdAt) }}</p>
-              <p v-if="bot.knownDays !== null" class="bots-view__text-10">{{ knownLabel(bot) }}</p>
-            </div>
+          </div>
+
+          <div class="bots-row__stamp">
+            <p>{{ timeAgo(bot.createdAt) }}</p>
+            <p v-if="bot.knownDays !== null" class="bots-row__known">{{ knownLabel(bot) }}</p>
           </div>
         </article>
       </div>
@@ -371,1223 +327,500 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: the bot directory is a ruled register of live beacons. */
 
-/* Light theme adjustments */
-
-@layer gupt-components {
-
-@media (hover:hover) {
-.bots-view__button:hover {
-  border-color: var(--ui-zinc-700);
-}
+.bots-view {
+  min-height: 100vh;
+  padding-bottom: var(--app-space-8);
+  background: var(--app-bg);
+  color: var(--app-text);
+  animation: ledger-fade 260ms var(--app-ease-standard) both;
 }
 
-@media (hover:hover) {
-.bots-view__link-publish-your:hover {
-  border-color: var(--ui-zinc-700);
-}
-}
-
-@media (hover:hover) {
-.bots-view__button-3:hover {
-  border-color: var(--ui-zinc-700);
-}
+.bots-view__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-5);
+  width: 100%;
+  max-width: var(--container-6xl);
+  margin-inline: auto;
+  padding: var(--app-space-6) var(--app-space-4);
 }
 
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__button-3:hover {
-  border-color: color-mix(in oklab,var(--ui-zinc-700) 80%,transparent);
-}
-}
-}
-
-@media (hover:hover) {
-.bots-view__button:hover {
-  background-color: var(--ui-zinc-800);
-}
+.bots-view__lede {
+  max-width: 60ch;
+  margin: 0;
+  font-size: var(--app-text-meta);
+  line-height: 1.6;
+  color: var(--app-muted);
 }
 
-@media (hover:hover) {
-.bots-view__link-publish-your:hover {
-  background-color: var(--ui-zinc-800);
-}
-}
-
-@media (hover:hover) {
-.bots-view__button-3:hover {
-  background-color: var(--ui-zinc-900);
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__button-3:hover {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 30%,transparent);
-}
-}
-}
-
-@media (hover:hover) {
-.bots-view__button--muted:hover {
-  background-color: var(--app-surface-tint-soft);
-}
-}
-
-@media (hover:hover) {
-.bots-view__button-retry:hover {
-  color: var(--color-red-200);
-}
-}
-
-@media (hover:hover) {
-.bots-view__button:hover {
-  color: var(--color-white);
-}
-}
-
-@media (hover:hover) {
-.bots-view__link-publish-your:hover {
-  color: var(--color-white);
-}
-}
-
-@media (hover:hover) {
-.bots-view__button-clear-filters:hover {
-  color: var(--color-white);
-}
-}
-
-@media (hover:hover) {
-.bots-view__button--muted:hover {
-  color: var(--ui-zinc-200);
-}
-}
-
-@media (hover:hover) {
-.bots-view__button-clear-filters:hover {
-  text-decoration-line: underline;
-}
-}
-
-@media (hover:hover) {
-.bots-view__link:hover {
-  text-decoration-line: underline;
-}
-}
-
-@media (min-width:40rem) {
-.bots-view__status {
-  grid-template-columns: repeat(2,minmax(0,1fr));
-}
-}
-
-@media (min-width:40rem) {
-.bots-view__block-17 {
-  grid-template-columns: repeat(2,minmax(0,1fr));
-}
-}
-
-@media (min-width:40rem) {
-.bots-view__block-2 {
-  flex-direction: row;
-}
-}
-
-@media (min-width:40rem) {
-.bots-view__block-4 {
-  flex-direction: row;
-}
-}
-
-@media (min-width:40rem) {
-.bots-view__block-2 {
+.bots-action {
+  display: inline-flex;
   align-items: center;
-}
+  justify-content: center;
+  gap: 8px;
+  height: 32px;
+  padding-inline: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard);
 }
 
-@media (min-width:40rem) {
-.bots-view__block-4 {
+.bots-action__icon {
+  width: 12px;
+  height: 12px;
+}
+
+.bots-action__icon--spin {
+  animation: var(--animate-spin);
+}
+
+.bots-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.bots-note {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-}
-}
-
-@media (min-width:40rem) {
-.bots-view__block-2 {
   justify-content: space-between;
-}
-}
-
-@media (min-width:40rem) {
-.bots-view__main {
-  padding-inline: calc(var(--spacing) * 6);
-}
-}
-
-@media (min-width:64rem) {
-.bots-view__main {
-  padding-inline: calc(var(--spacing) * 8);
-}
+  gap: var(--app-space-3);
+  padding: 10px 14px;
+  border: 1px solid color-mix(in oklab, var(--app-danger) 30%, var(--app-border));
+  border-radius: var(--app-radius-md);
+  background: var(--app-danger-soft);
+  font-size: 12px;
+  color: var(--app-text);
 }
 
-@media (min-width:80rem) {
-.bots-view__status {
-  grid-template-columns: repeat(3,minmax(0,1fr));
-}
+.bots-note__retry {
+  min-height: 26px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-danger);
+  cursor: pointer;
 }
 
-@media (min-width:80rem) {
-.bots-view__block-17 {
-  grid-template-columns: repeat(3,minmax(0,1fr));
-}
+.bots-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
 }
 
-@layer gupt-components {
-.bots-view__search {
+.bots-search {
+  position: relative;
+}
+
+.bots-search__icon {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  width: 14px;
+  height: 14px;
+  transform: translateY(-50%);
+  color: var(--app-muted-2);
   pointer-events: none;
 }
-.bots-view__text-4 {
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border-width: 0;
+
+.bots-search__field {
+  width: 100%;
+  height: 40px;
+  padding: 0 14px 0 38px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: transparent;
+  font-size: var(--app-text-body);
+  color: var(--app-text);
+  transition:
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    box-shadow var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.bots-search__field::placeholder {
+  color: var(--app-muted-2);
+}
+
+.bots-search__field:focus {
+  outline: none;
+  border-color: var(--app-border-strong);
+  box-shadow: var(--app-focus-ring);
+}
+
+.bots-filters__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bots-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 26px;
+  padding: 5px 8px;
+  border: 1px solid var(--app-border);
+  border-radius: 4px;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.02em;
+  color: var(--app-muted);
+  cursor: pointer;
+  transition:
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.bots-chip__count {
+  color: var(--app-muted-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.bots-chip.is-active {
+  border-color: var(--app-text);
+  background: var(--app-text);
+  color: var(--app-bg);
+}
+
+.bots-chip.is-active .bots-chip__count {
+  color: color-mix(in oklab, var(--app-bg) 65%, transparent);
+}
+
+.bots-loading {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  overflow: hidden;
+}
+
+.bots-loading__label {
+  position: absolute;
   width: 1px;
   height: 1px;
   margin: -1px;
   padding: 0;
-  position: absolute;
   overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
-.bots-view__search {
-  position: absolute;
-}
-.bots-view__block-6 {
-  position: relative;
-}
-.bots-view__search {
-  top: 50%;
-}
-.bots-view__search {
-  left: calc(var(--spacing) * 3);
-}
-.bots-view__main {
-  margin-inline: auto;
-}
-.bots-view__block-16 {
-  margin-inline: auto;
-}
-.bots-view__text-5 {
-  margin-inline: auto;
-}
-.bots-view__text-2 {
-  margin-top: var(--spacing);
-}
-.bots-view__text-5 {
-  margin-top: var(--spacing);
-}
-.bots-view__button-clear-filters {
-  margin-top: calc(var(--spacing) * 4);
-}
-.bots-view__link-publish-your {
-  margin-top: calc(var(--spacing) * 5);
-}
-.bots-view__block-21 {
-  margin-top: auto;
-}
-.bots-view__block-16 {
-  margin-bottom: calc(var(--spacing) * 4);
-}
-.bots-view__text {
-  margin-left: var(--spacing);
-}
-.bots-view__text-3 {
-  margin-left: var(--spacing);
-}
-.bots-view__text-7 {
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  display: -webkit-box;
-  overflow: hidden;
-}
-.bots-view__block-2 {
+
+.bots-skeleton {
   display: flex;
+  align-items: center;
+  gap: var(--app-space-3);
+  padding: 14px;
 }
-.bots-view__block-3 {
+
+.bots-skeleton + .bots-skeleton {
+  border-top: 1px solid var(--app-border);
+}
+
+.bots-skeleton__avatar {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--app-radius-sm);
+}
+
+.bots-skeleton__body {
   display: flex;
-}
-.bots-view__block-4 {
-  display: flex;
-}
-.bots-view__block-8 {
-  display: flex;
-}
-.bots-view__block-16 {
-  display: flex;
-}
-.bots-view__button-3 {
-  display: flex;
-}
-.bots-view__block-18 {
-  display: flex;
-}
-.bots-view__block-20 {
-  display: flex;
-}
-.bots-view__block-21 {
-  display: flex;
-}
-.bots-view__status {
-  display: grid;
-}
-.bots-view__block-17 {
-  display: grid;
-}
-.bots-view__button {
-  display: inline-flex;
-}
-.bots-view__block-5 {
-  display: inline-flex;
-}
-.bots-view__link-publish-your {
-  display: inline-flex;
-}
-.bots-view__link {
-  display: inline-flex;
-}
-.bots-view__block-12 {
-  height: calc(var(--spacing) * 3);
-}
-.bots-view__block-13 {
-  height: calc(var(--spacing) * 3);
-}
-.bots-view__block-14 {
-  height: calc(var(--spacing) * 3);
-}
-.bots-view__external-link-2 {
-  height: calc(var(--spacing) * 3);
-}
-.bots-view__refresh-cw {
-  height: calc(var(--spacing) * 3.5);
-}
-.bots-view__external-link {
-  height: calc(var(--spacing) * 3.5);
-}
-.bots-view__search {
-  height: calc(var(--spacing) * 4);
-}
-.bots-view__block-11 {
-  height: calc(var(--spacing) * 4);
-}
-.bots-view__bot {
-  height: calc(var(--spacing) * 6);
-}
-.bots-view__button {
-  height: calc(var(--spacing) * 8);
-}
-.bots-view__link-publish-your {
-  height: calc(var(--spacing) * 9);
-}
-.bots-view__field-text {
-  height: calc(var(--spacing) * 10);
-}
-.bots-view__block-9 {
-  height: calc(var(--spacing) * 10);
-}
-.bots-view__block-16 {
-  height: calc(var(--spacing) * 12);
-}
-.bots-view__block {
-  min-height: 100vh;
-}
-.bots-view__external-link-2 {
-  width: calc(var(--spacing) * 3);
-}
-.bots-view__refresh-cw {
-  width: calc(var(--spacing) * 3.5);
-}
-.bots-view__external-link {
-  width: calc(var(--spacing) * 3.5);
-}
-.bots-view__search {
-  width: calc(var(--spacing) * 4);
-}
-.bots-view__block-14 {
-  width: 80%;
-}
-.bots-view__bot {
-  width: calc(var(--spacing) * 6);
-}
-.bots-view__block-9 {
-  width: calc(var(--spacing) * 10);
-}
-.bots-view__block-16 {
-  width: calc(var(--spacing) * 12);
-}
-.bots-view__block-12 {
-  width: calc(var(--spacing) * 20);
-}
-.bots-view__block-11 {
-  width: calc(var(--spacing) * 28);
-}
-.bots-view__main {
-  width: 100%;
-}
-.bots-view__field-text {
-  width: 100%;
-}
-.bots-view__block-13 {
-  width: 100%;
-}
-.bots-view__main {
-  max-width: var(--container-6xl);
-}
-.bots-view__block-5 {
-  max-width: 100%;
-}
-.bots-view__link {
-  max-width: 100%;
-}
-.bots-view__text-5 {
-  max-width: var(--container-md);
-}
-.bots-view__block-6 {
-  min-width: 0;
-}
-.bots-view__block-19 {
-  min-width: 0;
-}
-.bots-view__block-22 {
-  min-width: 0;
-}
-.bots-view__block-6 {
   flex: 1;
-}
-.bots-view__block-19 {
-  flex: 1;
-}
-.bots-view__block-5 {
-  flex-shrink: 0;
-}
-.bots-view__text-6 {
-  flex-shrink: 0;
-}
-.bots-view__external-link-2 {
-  flex-shrink: 0;
-}
-.bots-view__block-23 {
-  flex-shrink: 0;
-}
-.bots-view__search {
-  --translate-y: -50% ;
-  translate: var(--translate-x,0) -50% ;
-}
-.bots-view__refresh-cw--spin {
-  animation: var(--animate-spin);
-}
-.bots-view__button {
-  cursor: pointer;
-}
-.bots-view__button-retry {
-  cursor: pointer;
-}
-.bots-view__button-2 {
-  cursor: pointer;
-}
-.bots-view__button-clear-filters {
-  cursor: pointer;
-}
-.bots-view__button-3 {
-  cursor: pointer;
-}
-.bots-view__block-5 {
-  scrollbar-width: none;
-}
-.bots-view__block-2 {
   flex-direction: column;
+  gap: 7px;
 }
-.bots-view__block-4 {
+
+.bots-skeleton__line {
+  height: 10px;
+  border-radius: 3px;
+}
+
+.bots-skeleton__line--short {
+  width: 40%;
+}
+
+.bots-empty {
+  display: flex;
   flex-direction: column;
-}
-.bots-view__button-3 {
-  flex-direction: column;
-}
-.bots-view__block-3 {
-  flex-wrap: wrap;
-}
-.bots-view__button {
   align-items: center;
-}
-.bots-view__block-3 {
-  align-items: center;
-}
-.bots-view__block-8 {
-  align-items: center;
-}
-.bots-view__block-16 {
-  align-items: center;
-}
-.bots-view__link-publish-your {
-  align-items: center;
-}
-.bots-view__block-20 {
-  align-items: center;
-}
-.bots-view__link {
-  align-items: center;
-}
-.bots-view__block-21 {
-  align-items: flex-end;
-}
-.bots-view__block-18 {
-  align-items: flex-start;
-}
-.bots-view__block-3 {
-  justify-content: space-between;
-}
-.bots-view__block-21 {
-  justify-content: space-between;
-}
-.bots-view__block-16 {
-  justify-content: center;
-}
-.bots-view__block-5 {
-  gap: calc(var(--spacing) * .5);
-}
-.bots-view__link {
-  gap: var(--spacing);
-}
-.bots-view__button {
-  gap: calc(var(--spacing) * 1.5);
-}
-.bots-view__link-publish-your {
-  gap: calc(var(--spacing) * 1.5);
-}
-.bots-view__block-3 {
-  gap: calc(var(--spacing) * 2);
-}
-.bots-view__block-20 {
-  gap: calc(var(--spacing) * 2);
-}
-.bots-view__block-4 {
-  gap: calc(var(--spacing) * 3);
-}
-.bots-view__status {
-  gap: calc(var(--spacing) * 3);
-}
-.bots-view__block-8 {
-  gap: calc(var(--spacing) * 3);
-}
-.bots-view__block-17 {
-  gap: calc(var(--spacing) * 3);
-}
-.bots-view__button-3 {
-  gap: calc(var(--spacing) * 3);
-}
-.bots-view__block-18 {
-  gap: calc(var(--spacing) * 3);
-}
-.bots-view__block-21 {
-  gap: calc(var(--spacing) * 3);
-}
-.bots-view__block-2 {
-  gap: calc(var(--spacing) * 4);
-}
-:where(.bots-view__block-22>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * .5) * 0);
-  margin-block-end: calc(calc(var(--spacing) * .5) * calc(1 - 0));
-}
-:where(.bots-view__block-10>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 1.5) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 1.5) * calc(1 - 0));
-}
-:where(.bots-view__block-7>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 3) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 3) * calc(1 - 0));
-}
-:where(.bots-view__main>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 5) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 5) * calc(1 - 0));
-}
-.bots-view__subtitle-2 {
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.bots-view__text-by {
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.bots-view__text-unattributed {
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.bots-view__text-8 {
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.bots-view__text-9 {
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.bots-view__block-5 {
-  overflow-x: auto;
-}
-.bots-view__block-7 {
-  border-radius: var(--radius-2xl);
-}
-.bots-view__button-3 {
-  border-radius: var(--radius-2xl);
-}
-.bots-view__text-6 {
-  border-radius: 3.40282e38px;
-}
-.bots-view__button {
-  border-radius: var(--radius-lg);
-}
-.bots-view__block-5 {
-  border-radius: var(--radius-lg);
-}
-.bots-view__link-publish-your {
-  border-radius: var(--radius-lg);
-}
-.bots-view__button-2 {
-  border-radius: var(--radius-md);
-}
-.bots-view__block-3 {
-  border-radius: var(--radius-xl);
-}
-.bots-view__field-text {
-  border-radius: var(--radius-xl);
-}
-.bots-view__block-9 {
-  border-radius: var(--radius-xl);
-}
-.bots-view__block-15 {
-  border-radius: var(--radius-xl);
-}
-.bots-view__block-16 {
-  border-radius: var(--radius-xl);
-}
-.bots-view__button {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.bots-view__block-3 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.bots-view__block-5 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.bots-view__field-text {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.bots-view__block-7 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.bots-view__block-15 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.bots-view__block-16 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.bots-view__link-publish-your {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.bots-view__button-3 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.bots-view__text-6 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.bots-view__block-2 {
-  border-bottom-style: var(--border-style,solid);
-  border-bottom-width: 1px;
-}
-.bots-view__text-6 {
-  border-color: #00bb7f40;
-}
-.bots-view__block-3 {
-  border-color: #82181a80;
-}
-.bots-view__button {
-  border-color: var(--ui-zinc-800);
-}
-.bots-view__field-text {
-  border-color: var(--ui-zinc-800);
-}
-.bots-view__block-16 {
-  border-color: var(--ui-zinc-800);
-}
-.bots-view__link-publish-your {
-  border-color: var(--ui-zinc-800);
-}
-.bots-view__block-2 {
-  border-color: var(--app-border-quiet);
-}
-.bots-view__block-5 {
-  border-color: var(--app-border-quiet);
-}
-.bots-view__block-7 {
-  border-color: var(--app-border-quiet);
-}
-.bots-view__block-15 {
-  border-color: var(--app-border-quiet);
-}
-.bots-view__button-3 {
-  border-color: var(--app-border-quiet);
-}
-.bots-view__block {
-  background-color: var(--ui-black);
-}
-.bots-view__text-6 {
-  background-color: #00bb7f1a;
-}
-.bots-view__block-3 {
-  background-color: #4608094d;
-}
-.bots-view__button--selected {
-  background-color: var(--ui-zinc-800);
-}
-.bots-view__block-16 {
-  background-color: var(--ui-zinc-900);
-}
-.bots-view__button {
-  background-color: var(--app-surface-tint);
-}
-.bots-view__link-publish-your {
-  background-color: var(--app-surface-tint);
-}
-.bots-view__block-7 {
-  background-color: var(--app-surface-inset);
-}
-.bots-view__block-15 {
-  background-color: var(--app-surface-inset);
-}
-.bots-view__button-3 {
-  background-color: var(--app-surface-inset);
-}
-.bots-view__block-5 {
-  background-color: var(--app-surface-inset-strong);
-}
-.bots-view__field-text {
-  background-color: var(--app-surface-inset-strong);
-}
-.bots-view__block-5 {
-  padding: calc(var(--spacing) * .5);
-}
-.bots-view__block-7 {
-  padding: calc(var(--spacing) * 4);
-}
-.bots-view__button-3 {
-  padding: calc(var(--spacing) * 4);
-}
-.bots-view__text-6 {
-  padding-inline: calc(var(--spacing) * 2);
-}
-.bots-view__button {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.bots-view__button-2 {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.bots-view__main {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.bots-view__block-3 {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.bots-view__link-publish-your {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.bots-view__block-15 {
-  padding-inline: calc(var(--spacing) * 6);
-}
-.bots-view__text-6 {
-  padding-block: calc(var(--spacing) * .5);
-}
-.bots-view__button-2 {
-  padding-block: var(--spacing);
-}
-.bots-view__block-3 {
-  padding-block: calc(var(--spacing) * 3);
-}
-.bots-view__main {
-  padding-block: calc(var(--spacing) * 6);
-}
-.bots-view__block-15 {
-  padding-block: calc(var(--spacing) * 14);
-}
-.bots-view__block-21 {
-  padding-top: var(--spacing);
-}
-.bots-view__field-text {
-  padding-right: calc(var(--spacing) * 4);
-}
-.bots-view__block-2 {
-  padding-bottom: calc(var(--spacing) * 5);
-}
-.bots-view__block {
-  padding-bottom: calc(var(--spacing) * 16);
-}
-.bots-view__field-text {
-  padding-left: calc(var(--spacing) * 9);
-}
-.bots-view__block-15 {
+  gap: var(--app-space-3);
+  padding: var(--app-space-8) var(--app-space-5);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
   text-align: center;
+  animation: ledger-rise 420ms var(--app-ease-emphasized) both;
 }
-.bots-view__block-23 {
-  text-align: right;
+
+.bots-empty__mark {
+  width: 20px;
+  height: 20px;
+  color: var(--app-muted-2);
 }
-.bots-view__text {
+
+.bots-empty__eyebrow {
+  margin: 0;
   font-family: var(--font-mono);
-}
-.bots-view__text-3 {
-  font-family: var(--font-mono);
-}
-.bots-view__text-6 {
-  font-family: var(--font-mono);
-}
-.bots-view__text-2 {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.bots-view__block-3 {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.bots-view__field-text {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.bots-view__subtitle {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.bots-view__text-5 {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.bots-view__subtitle-2 {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.bots-view__text-7 {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.bots-view__text-no-description {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.bots-view__title-bots {
-  font-size: var(--text-xl);
-  line-height: var(--leading,var(--text-xl--line-height));
-}
-.bots-view__button {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.bots-view__button-retry {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.bots-view__button-2 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.bots-view__link-publish-your {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.bots-view__button-clear-filters {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.bots-view__text-by {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.bots-view__text-unattributed {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.bots-view__link {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.bots-view__text-6 {
-  font-size: 9px;
-}
-.bots-view__text-3 {
-  font-size: 10px;
-}
-.bots-view__text {
-  font-size: 11px;
-}
-.bots-view__text-9 {
-  font-size: 11px;
-}
-.bots-view__block-23 {
-  font-size: 11px;
-}
-.bots-view__block-23 {
-  --leading: calc(var(--spacing) * 5);
-  line-height: calc(var(--spacing) * 5);
-}
-.bots-view__text-2 {
-  --leading: calc(var(--spacing) * 6);
-  line-height: calc(var(--spacing) * 6);
-}
-.bots-view__text-5 {
-  --leading: var(--leading-relaxed);
-  line-height: var(--leading-relaxed);
-}
-.bots-view__text-7 {
-  --leading: var(--leading-relaxed);
-  line-height: var(--leading-relaxed);
-}
-.bots-view__text {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.bots-view__button {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.bots-view__button-retry {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.bots-view__button-2 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.bots-view__link-publish-your {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.bots-view__button-clear-filters {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.bots-view__link {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.bots-view__title-bots {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.bots-view__subtitle {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.bots-view__subtitle-2 {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.bots-view__title-bots {
-  --tracking: var(--tracking-tight);
-  letter-spacing: var(--tracking-tight);
-}
-.bots-view__subtitle {
-  --tracking: var(--tracking-tight);
-  letter-spacing: var(--tracking-tight);
-}
-.bots-view__subtitle-2 {
-  --tracking: var(--tracking-tight);
-  letter-spacing: var(--tracking-tight);
-}
-.bots-view__text-6 {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.bots-view__button-2 {
-  white-space: nowrap;
-}
-.bots-view__link {
-  color: var(--app-primary);
-}
-.bots-view__text-6 {
-  color: var(--color-emerald-400);
-}
-.bots-view__block-3 {
-  color: var(--color-red-300);
-}
-.bots-view__title-bots {
-  color: var(--color-white);
-}
-.bots-view__block {
-  color: var(--ui-zinc-100);
-}
-.bots-view__button--selected {
-  color: var(--ui-zinc-100);
-}
-.bots-view__field-text {
-  color: var(--ui-zinc-100);
-}
-.bots-view__subtitle-2 {
-  color: var(--ui-zinc-100);
-}
-.bots-view__subtitle {
-  color: var(--ui-zinc-200);
-}
-.bots-view__button {
-  color: var(--ui-zinc-300);
-}
-.bots-view__link-publish-your {
-  color: var(--ui-zinc-300);
-}
-.bots-view__text-2 {
-  color: var(--ui-zinc-400);
-}
-.bots-view__button--muted {
-  color: var(--ui-zinc-400);
-}
-.bots-view__button-clear-filters {
-  color: var(--ui-zinc-400);
-}
-.bots-view__text-7 {
-  color: var(--ui-zinc-400);
-}
-.bots-view__text {
-  color: var(--ui-zinc-500);
-}
-.bots-view__text-3 {
-  color: var(--ui-zinc-500);
-}
-.bots-view__block-16 {
-  color: var(--ui-zinc-500);
-}
-.bots-view__text-5 {
-  color: var(--ui-zinc-500);
-}
-.bots-view__text-by {
-  color: var(--ui-zinc-500);
-}
-.bots-view__block-23 {
-  color: var(--ui-zinc-500);
-}
-.bots-view__search {
-  color: var(--ui-zinc-600);
-}
-.bots-view__text-unattributed {
-  color: var(--ui-zinc-600);
-}
-.bots-view__text-no-description {
-  color: var(--ui-zinc-600);
-}
-.bots-view__text-9 {
-  color: var(--ui-zinc-600);
-}
-.bots-view__text-10 {
-  color: var(--ui-zinc-600);
-}
-.bots-view__text-6 {
+  font-size: var(--app-text-label);
+  letter-spacing: var(--app-tracking-label);
   text-transform: uppercase;
+  color: var(--app-muted-2);
 }
-.bots-view__text-no-description {
-  font-style: italic;
+
+.bots-empty__title {
+  margin: 0;
+  font-size: var(--app-text-heading);
+  font-weight: 600;
+  letter-spacing: var(--app-tracking-heading);
+  color: var(--app-text);
 }
-.bots-view__text {
-  --numeric-spacing: tabular-nums;
-  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+
+.bots-empty__lede {
+  max-width: 44ch;
+  margin: 0;
+  font-size: var(--app-text-meta);
+  line-height: 1.6;
+  color: var(--app-muted);
 }
-.bots-view__text-3 {
-  --numeric-spacing: tabular-nums;
-  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+
+.bots-empty__action {
+  margin-top: var(--app-space-2);
 }
-.bots-view__button-retry {
-  text-decoration-line: underline;
+
+.bots-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  overflow: hidden;
+  animation: ledger-fade 320ms var(--app-ease-standard) both;
 }
-.bots-view__button-retry {
-  text-underline-offset: 2px;
+
+.bots-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--app-space-3);
+  padding: 14px;
+  cursor: pointer;
+  outline: none;
+  transition:
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    opacity var(--app-dur-fast) var(--app-ease-standard);
 }
-.bots-view__button--variant-1 {
-  opacity: .6;
+
+.bots-row + .bots-row {
+  border-top: 1px solid var(--app-border);
 }
-.bots-view__button {
-  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+
+.bots-row:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--app-primary);
 }
-.bots-view__button--selected {
-  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+
+.bots-row--opening {
+  opacity: 0.55;
 }
-.bots-view__button {
-  transition-property: all;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
+
+.bots-row__avatar {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--app-radius-sm);
+  overflow: hidden;
 }
-.bots-view__button-2 {
-  transition-property: all;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
+
+.bots-row__body {
+  flex: 1;
+  min-width: 0;
 }
-.bots-view__link-publish-your {
-  transition-property: all;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
+
+.bots-row__titleline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
 }
-.bots-view__button-3 {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
+
+.bots-row__name {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--app-text);
+  overflow-wrap: anywhere;
 }
-.bots-view__button-2 {
-  -webkit-user-select: none;
-  user-select: none;
-}
-.bots-view__block-5 {
-  -ms-overflow-style: none;
-}
-.bots-view__field-text::placeholder {
-  color: var(--ui-zinc-600);
-}
-.bots-view__field-text:focus {
-  border-color: var(--ui-zinc-600);
-}
-.bots-view__field-text:focus {
-  --outline-style: none;
-  outline-style: none;
-}
-.bots-view__button-3:focus {
-  --outline-style: none;
-  outline-style: none;
-}
-.bots-view__button-3:focus-visible {
-  border-color: var(--ui-zinc-500);
-}
-.bots-view__button:disabled {
-  opacity: .5;
-}
-.bots-view__block-5::-webkit-scrollbar {
-  display: none;
-}
-[data-theme="light"] .bots-view__text-6 {
+
+.bots-row__badge {
+  padding: 1px 5px;
+  border: 1px solid color-mix(in oklab, var(--app-success) 30%, var(--app-border));
+  border-radius: 3px;
+  background: var(--app-success-soft);
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.04em;
   color: var(--app-success);
 }
-[data-theme="light"] .bots-view__block-3 {
-  color: var(--app-danger);
-}
-[data-theme="light"] .bots-view__button {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .bots-view__link-publish-your {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .bots-view__text-2 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .bots-view__button--muted {
-  color: var(--app-muted);
-}
-[data-theme="light"] .bots-view__button-clear-filters {
-  color: var(--app-muted);
-}
-[data-theme="light"] .bots-view__text-7 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .bots-view__text {
-  color: var(--app-muted);
-}
-[data-theme="light"] .bots-view__text-3 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .bots-view__block-16 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .bots-view__text-5 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .bots-view__text-by {
-  color: var(--app-muted);
-}
-[data-theme="light"] .bots-view__block-23 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .bots-view__search {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .bots-view__text-unattributed {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .bots-view__text-no-description {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .bots-view__text-9 {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .bots-view__text-10 {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .bots-view__button--muted:hover {
-  color: var(--app-text) !important;
-}
-}
+
+.bots-row__owner {
+  margin: 2px 0 0;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.02em;
+  color: var(--app-muted-2);
 }
 
-@layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__text-6 {
-  border-color: color-mix(in oklab,var(--color-emerald-500) 25%,transparent);
-}
+.bots-row__owner--none {
+  color: var(--app-border-strong);
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__block-3 {
-  border-color: color-mix(in oklab,var(--color-red-900) 50%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__text-6 {
-  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
-}
+.bots-row__description {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--app-muted);
+  overflow-wrap: anywhere;
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__block-3 {
-  background-color: color-mix(in oklab,var(--color-red-950) 30%,transparent);
-}
+.bots-row__description--none {
+  color: var(--app-muted-2);
 }
 
+.bots-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin-top: 8px;
 }
 
-/* Hand-written: self-reported user count on bot cards. */
-.bots-view__users {
+.bots-row__fact,
+.bots-row__site,
+.bots-row__key {
   display: inline-flex;
   align-items: center;
-  gap: calc(var(--spacing) * 1.5);
-  font-size: 11px;
-  line-height: calc(var(--spacing) * 5);
-  font-weight: var(--font-weight-medium);
-  color: var(--ui-zinc-400);
+  gap: 4px;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.02em;
+  color: var(--app-muted-2);
+  text-decoration: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.bots-row__site {
+  color: var(--app-muted);
+}
+
+.bots-row__key {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
-.bots-view__users-icon {
-  width: calc(var(--spacing) * 3.5);
-  height: calc(var(--spacing) * 3.5);
-  flex-shrink: 0;
+
+.bots-row__meta-icon {
+  width: 11px;
+  height: 11px;
 }
-[data-theme="light"] .bots-view__users {
-  color: var(--app-muted);
+
+.bots-row__stamp {
+  flex-shrink: 0;
+  padding-top: 1px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  text-align: right;
+  color: var(--app-muted-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.bots-row__stamp p {
+  margin: 0;
+}
+
+.bots-row__known {
+  margin-top: 3px !important;
+  color: var(--app-border-strong);
+}
+
+@media (min-width: 40rem) {
+  .bots-view__main {
+    padding-inline: var(--app-space-6);
+  }
+}
+
+@media (max-width: 30rem) {
+  .bots-row__stamp {
+    display: none;
+  }
+}
+
+@media (hover: hover) {
+  .bots-action:hover {
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+  }
+
+  .bots-row:hover {
+    background: var(--app-surface-soft);
+  }
+
+  .bots-row__site:hover {
+    color: var(--app-primary);
+  }
+
+  .bots-chip:hover {
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+  }
+
+  .bots-note__retry:hover {
+    color: var(--app-text);
+  }
+}
+
+@media (pointer: coarse) {
+  .bots-action,
+  .bots-chip,
+  .bots-note__retry {
+    min-height: var(--app-touch-h);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bots-view,
+  .bots-empty,
+  .bots-list {
+    animation: none;
+  }
+
+  .bots-action,
+  .bots-chip,
+  .bots-row,
+  .bots-search__field {
+    transition: none;
+  }
 }
 </style>
