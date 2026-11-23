@@ -3883,6 +3883,11 @@ defineExpose({
 
 /* Ledger pass: square tool buttons, ink send, no glass. */
 
+.chat-compose-bar__block-21,
+.chat-compose-bar__button-send-message {
+  box-shadow: none;
+}
+
 .chat-compose-bar__button-attach-image:focus-visible,
 .chat-compose-bar__button-format-message:focus-visible,
 .chat-compose-bar__button-preview-formatting:focus-visible,
