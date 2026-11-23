@@ -647,6 +647,7 @@
   --app-surface-raised-tint: var(--ui-zinc-800);
   --app-surface-raised-tint-soft: var(--ui-zinc-800);
   --app-accent-share: #c084fc;
+  --app-accent-heart: #f472b6;
   /* A camera reads contrast, not the theme: QR symbols stay black on white in
      both themes, and these tokens keep the pair out of components. */
   --app-qr-ink: #000000;
@@ -1132,6 +1133,7 @@ body {
   --app-info: #0369a1;
   --app-warning-strong: #92400e;
   --app-accent-share: #7c3aed;
+  --app-accent-heart: #db2777;
   --app-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.08);
   --app-lift: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 16px 40px rgba(0, 0, 0, 0.08);
   /* Tailwind zinc remap */
