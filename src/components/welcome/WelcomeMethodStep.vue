@@ -211,97 +211,107 @@ function clearFile() {
 </template>
 
 <style scoped>
+/* Ledger pass: a two-tab rail over a plain-text field and file record. */
+
 .method-step {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--app-space-4);
 }
 
 .method-step__tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.35rem;
-  padding: 0.3rem;
-  border: 1px solid var(--app-border);
-  border-radius: var(--radius-xl);
-  background-color: var(--app-surface-inset, var(--app-surface-soft));
+  display: flex;
+  gap: var(--app-space-5);
+  border-bottom: 1px solid var(--app-border);
 }
 
 .method-step__tab {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.45rem;
-  min-height: 44px;
-  padding: 0.5rem 0.6rem;
+  gap: 6px;
+  min-height: 38px;
+  margin-bottom: -1px;
+  padding: 0 1px 9px;
   border: 0;
-  border-radius: calc(var(--radius-xl) - 4px);
+  border-bottom: 1px solid transparent;
   background: transparent;
-  color: var(--app-muted);
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
   cursor: pointer;
   transition:
-    background-color 0.2s ease,
-    color 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.method-step__tab:hover {
-  color: var(--app-text);
+    color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard);
 }
 
 .method-step__tab--on {
-  background-color: var(--app-surface);
+  border-bottom-color: var(--app-text);
   color: var(--app-text);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 18%);
 }
 
 .method-step__tab:focus-visible {
-  outline: 2px solid var(--app-primary);
-  outline-offset: 1px;
+  outline: none;
+  box-shadow: var(--app-focus-ring);
+  border-radius: 3px;
 }
 
 .method-step__tab-icon {
-  width: 16px;
-  height: 16px;
+  width: 13px;
+  height: 13px;
 }
+
+/* ---- Secret panel ---- */
 
 .method-step__panel {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  animation: method-step-in 0.25s ease both;
+  gap: var(--app-space-3);
+  animation: ledger-fade 260ms var(--app-ease-standard) both;
 }
 
 .method-step__label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--app-text);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
 }
 
 .method-step__label-hint {
   font-weight: 400;
-  color: var(--app-muted);
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--app-muted-2);
 }
 
 .method-step__input {
   width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
   border: 1px solid var(--app-border);
-  border-radius: 14px;
-  background-color: var(--app-surface-soft);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
   color: var(--app-text);
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  line-height: 1.5;
+  font-family: var(--font-sans);
+  font-size: var(--app-text-body);
+  line-height: 1.6;
   transition:
-    border-color 0.2s ease,
-    background-color 0.2s ease;
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    box-shadow var(--app-dur-fast) var(--app-ease-standard);
 }
 
 .method-step__input--area {
-  padding: 0.875rem 1.125rem;
+  min-height: 132px;
   resize: vertical;
+  font-family: var(--font-mono);
+  font-size: 12px;
 }
 
 .method-step__input::placeholder {
@@ -310,25 +320,31 @@ function clearFile() {
 
 .method-step__input:focus {
   outline: none;
-  border-color: var(--app-primary);
-  background-color: var(--app-surface-hover);
+  border-color: var(--app-border-strong);
+  background: var(--app-surface);
+  box-shadow: var(--app-focus-ring);
 }
 
-.method-step__input--weak {
-  border-color: var(--app-warning, #f59e0b);
+.method-step__input--weak:not(:focus) {
+  border-color: color-mix(in oklab, var(--app-warning) 38%, var(--app-border));
 }
 
 .method-step__meta {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  align-items: baseline;
   justify-content: space-between;
-  gap: 0.75rem;
-  font-size: 11px;
+  gap: 6px;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.02em;
   color: var(--app-muted-2);
 }
 
 .method-step__count {
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--app-muted);
 }
 
 .method-step__warn,
@@ -336,137 +352,145 @@ function clearFile() {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.4rem 0.5rem;
+  gap: 6px;
   margin: 0;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--app-warning, #f59e0b) 35%, transparent);
-  border-radius: var(--radius-lg);
-  background-color: color-mix(in srgb, var(--app-warning, #f59e0b) 10%, transparent);
-  font-size: 0.72rem;
-  line-height: 1.45;
-  color: var(--app-text);
+  padding: 8px 10px;
+  border: 1px solid color-mix(in oklab, var(--app-warning) 30%, var(--app-border));
+  border-radius: var(--app-radius-sm);
+  background: var(--app-warning-soft);
+  font-size: 10.5px;
+  line-height: 1.55;
+  color: var(--app-warning);
 }
 
 .method-step__short--override {
-  border-color: var(--app-border);
-  background-color: var(--app-surface-soft);
-  color: var(--app-muted);
+  border-color: color-mix(in oklab, var(--app-danger) 26%, var(--app-border));
+  background: var(--app-danger-soft);
+  color: var(--app-danger);
 }
 
 .method-step__warn-icon {
-  width: 14px;
-  height: 14px;
   flex-shrink: 0;
-  color: var(--app-warning, #f59e0b);
+  width: 12px;
+  height: 12px;
 }
 
 .method-step__link {
+  min-height: 24px;
   padding: 0;
   border: 0;
-  background: none;
-  color: var(--app-primary);
-  font-size: inherit;
-  font-weight: 600;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--app-text);
   text-decoration: underline;
+  text-decoration-thickness: 1px;
   text-underline-offset: 2px;
   cursor: pointer;
 }
 
 .method-step__link:focus-visible {
-  outline: 2px solid var(--app-primary);
-  outline-offset: 2px;
-  border-radius: 4px;
+  outline: none;
+  box-shadow: var(--app-focus-ring);
+  border-radius: 2px;
 }
+
+/* ---- File panel ---- */
 
 .method-step__file-input {
   position: absolute;
   width: 1px;
   height: 1px;
-  opacity: 0;
-  pointer-events: none;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 .method-step__pick {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.4rem;
+  gap: 6px;
   width: 100%;
-  min-height: 132px;
-  padding: 1.25rem 1rem;
-  border: 1px dashed var(--app-border-strong, var(--app-border));
-  border-radius: var(--radius-xl);
-  background-color: var(--app-surface-soft);
-  color: var(--app-text);
+  padding: var(--app-space-5) var(--app-space-4);
+  border: 1px dashed var(--app-border-strong);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
+  text-align: center;
   cursor: pointer;
   transition:
-    border-color 0.2s ease,
-    background-color 0.2s ease,
-    transform 0.15s ease;
-}
-
-.method-step__pick:hover {
-  border-color: var(--app-primary);
-  background-color: var(--app-surface-hover);
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    background-color var(--app-dur-fast) var(--app-ease-standard);
 }
 
 .method-step__pick:active {
-  transform: scale(0.995);
+  transform: translateY(1px);
 }
 
 .method-step__pick:disabled {
-  opacity: 0.6;
-  cursor: progress;
+  opacity: 0.5;
+  cursor: default;
 }
 
 .method-step__pick:focus-visible {
-  outline: 2px solid var(--app-primary);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--app-focus-ring);
 }
 
 .method-step__pick-icon {
-  width: 26px;
-  height: 26px;
-  color: var(--app-primary);
+  width: 18px;
+  height: 18px;
+  color: var(--app-muted-2);
 }
 
 .method-step__pick-title {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-text);
 }
 
 .method-step__pick-hint {
-  max-width: 30ch;
-  text-align: center;
-  font-size: 0.72rem;
-  line-height: 1.45;
-  color: var(--app-muted);
+  max-width: 36ch;
+  font-size: 10.5px;
+  line-height: 1.55;
+  color: var(--app-muted-2);
 }
 
 .method-step__file {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.85rem;
+  gap: 10px;
+  padding: 10px 12px;
   border: 1px solid var(--app-border);
-  border-radius: var(--radius-xl);
-  background-color: var(--app-surface-soft);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
 }
 
 .method-step__file-icon {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
+  display: inline-flex;
   flex-shrink: 0;
-  border-radius: 999px;
-  background-color: color-mix(in srgb, var(--app-primary) 12%, transparent);
-  color: var(--app-primary);
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface);
+  color: var(--app-muted);
 }
 
 .method-step__file-icon svg {
-  width: 18px;
-  height: 18px;
+  width: 13px;
+  height: 13px;
 }
 
 .method-step__file-body {
@@ -476,50 +500,54 @@ function clearFile() {
 
 .method-step__file-name {
   margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--app-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--app-text);
 }
 
 .method-step__file-meta {
-  margin: 0.15rem 0 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  margin: 2px 0 0;
   font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--app-muted);
+  font-size: 8.5px;
+  letter-spacing: 0.02em;
+  color: var(--app-muted-2);
 }
 
 .method-step-fade-enter-active,
 .method-step-fade-leave-active {
   transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
+    opacity var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-standard);
 }
 
 .method-step-fade-enter-from,
 .method-step-fade-leave-to {
   opacity: 0;
-  transform: translateY(-4px);
+  transform: translateY(-3px);
 }
 
-@keyframes method-step-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
+@media (hover: hover) {
+  .method-step__tab:hover {
+    color: var(--app-text);
   }
-  to {
-    opacity: 1;
-    transform: none;
+
+  .method-step__pick:hover:not(:disabled) {
+    border-color: var(--app-text);
+    background: var(--app-surface);
+  }
+
+  .method-step__link:hover {
+    color: var(--app-muted);
   }
 }
 
-[data-theme="light"] .method-step__tab--on {
-  box-shadow: 0 1px 2px rgb(15 23 42 / 12%);
+@media (pointer: coarse) {
+  .method-step__link {
+    min-height: var(--app-touch-h);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -527,6 +555,12 @@ function clearFile() {
   .method-step-fade-enter-active,
   .method-step-fade-leave-active {
     animation: none;
+    transition: none;
+  }
+
+  .method-step__tab,
+  .method-step__input,
+  .method-step__pick {
     transition: none;
   }
 }
