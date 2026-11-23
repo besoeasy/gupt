@@ -3,6 +3,7 @@
 // store → outbox notify.
 import { verifyEvent } from "../rabta/index.js";
 import { markRawEventsApplied, putRawEvent } from "../idb.js";
+import { logSendStage } from "../sendTrace.js";
 import { getBlobBytes as fetchBlobBytes, putBlob as storeBlob } from "./blobs.js";
 
 export { createBlobAdapter, getBlobBytes, hashBytes, putBlob, putVerifiedBlob } from "./blobs.js";
@@ -106,6 +107,7 @@ export async function publishLocal(event, { origin = "dm", ...denorm } = {}) {
     groupId: denorm.groupId ?? null,
     type: denorm.type ?? null,
   });
+  logSendStage(event.id, "stored-local", { origin });
   // The caller already renders this row; no boot-time re-parse needed.
   void markRawEventsApplied([event.id]).catch(() => {});
 
@@ -116,6 +118,7 @@ export async function publishLocal(event, { origin = "dm", ...denorm } = {}) {
   } catch {
     // Best effort; the worker timer drains regardless.
   }
+  logSendStage(event.id, "engine-woken");
   return { id: event.id, synced: false };
 }
 

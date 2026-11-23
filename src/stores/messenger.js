@@ -24,6 +24,7 @@ import {
 import { dmRoomId, normalizePubkey, shortId } from "@/lib/crypto";
 import { rowsToExpireAt, splitExpiredMessages } from "@/lib/messageExpiry";
 import { debugLog } from "@/lib/debugLog";
+import { hasSendTrace, logSendArrival, logSendStage, startSendTrace } from "@/lib/sendTrace";
 import { groupsApi, decryptLocalGroupRows } from "@/lib/groups";
 import {
   getRawEventsByIds,
@@ -791,6 +792,11 @@ async function ingestRoomRow(roomId, peerPubkey, row, options = {}) {
 
 async function ingestIncomingDirectMessage(identity, row, options = {}) {
   if (row?.id) void markRawEventsApplied([row.id]);
+  logSendArrival(row?.id, row?.created_at || row?.ts, {
+    origin: "dm",
+    type: row?.type,
+    mine: Boolean(row?.mine),
+  });
   const selfPubkey = normalizePubkey(identity.pubkeyHex);
   const peerPubkey = normalizePubkey(row?.peerPubkey);
   if (!selfPubkey || !peerPubkey) return;
@@ -836,6 +842,11 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
 
 async function ingestIncomingGroupMessage(identity, row, options = {}) {
   if (row?.id) void markRawEventsApplied([row.id]);
+  logSendArrival(row?.id, row?.created_at || row?.ts, {
+    origin: "group",
+    type: row?.type,
+    groupId: row?.groupId,
+  });
   const selfPubkey = normalizePubkey(identity.pubkeyHex);
   const groupId = String(row?.groupId || "");
   if (!selfPubkey || !groupId) return;
@@ -958,6 +969,7 @@ function makeOptimisticDmRow(identity, payload) {
 }
 
 async function sendDirectMessage(identity, peerPubkey, payload, opts = {}) {
+  const startedAt = Date.now();
   const sender = snapshotIdentity(identity);
   const peer = normalizePubkey(peerPubkey);
   const self = sender.pubkeyHex;
@@ -973,6 +985,8 @@ async function sendDirectMessage(identity, peerPubkey, payload, opts = {}) {
   const { id, event, publish } = await api.prepareDirectMessage(sender.privkeyHex, peer, payload, {
     ttlSec,
   });
+  startSendTrace(id, startedAt);
+  logSendStage(id, "dm-prepared", { peer: shortId(peer), type, ttlSec });
   const optimistic = makeOptimisticDmRow(sender, {
     ...payload,
     id,
@@ -984,6 +998,7 @@ async function sendDirectMessage(identity, peerPubkey, payload, opts = {}) {
   // The row already carries the confirmed event id, so the later write needs
   // no replacement pass.
   await ingestRoomRow(roomId, peer, optimistic, { persist: true });
+  logSendStage(id, "dm-rendered");
 
   if (opts.onOptimistic) {
     try {
@@ -994,6 +1009,7 @@ async function sendDirectMessage(identity, peerPubkey, payload, opts = {}) {
   // Call signals are ephemeral: direct relay publish, never Dexie.
   if (ephemeral) {
     await publish();
+    logSendStage(id, "dm-signal-published");
     return { id };
   }
 
@@ -1006,12 +1022,14 @@ async function sendDirectMessage(identity, peerPubkey, payload, opts = {}) {
       type,
     });
   } catch (err) {
+    logSendStage(id, "dm-store-failed", { error: err?.message || String(err) });
     const list = roomMessages[roomId] || [];
     roomMessages[roomId] = markMessageStatus(list, id, "failed");
     throw err;
   }
 
   watchRelayAck(id);
+  logSendStage(id, "dm-awaiting-ack");
   return { id };
 }
 
@@ -1033,6 +1051,7 @@ function watchRelayAck(id) {
         markMessageSynced(id);
         return;
       }
+      logSendStage(id, "ack-timeout", { waitedMs: SEND_VISIBLE_TIMEOUT_MS });
       markSendTimedOut(id);
       markMessageFailed(id, getSendReport(id)?.error || "No relay responded in time");
     });
@@ -1040,6 +1059,7 @@ function watchRelayAck(id) {
 
 function markMessageFailed(id, reason = "") {
   const patch = { sendError: String(reason || "No relay responded") };
+  logSendStage(id, "send-failed", { error: patch.sendError });
   rememberOutboxFailed(id, patch.sendError);
   let touched = false;
   for (const [roomId, list] of Object.entries(roomMessages)) {
@@ -1063,6 +1083,8 @@ async function retryMessage(id) {
   if (!key) return false;
   const ok = await retryOutboxEvent(key).catch(() => false);
   if (!ok) return false;
+  if (!hasSendTrace(key)) startSendTrace(key);
+  logSendStage(key, "retry-requested");
   for (const [roomId, list] of Object.entries(roomMessages)) {
     const row = list.find((m) => m.id === key && m.mine);
     if (!row) continue;
@@ -1081,6 +1103,14 @@ async function retryMessage(id) {
 }
 
 function markMessageSynced(id) {
+  const acked = Object.values(getSendReport(id)?.relays || {}).filter(
+    (relay) => relay.state === "ok",
+  );
+  logSendStage(
+    id,
+    "dm-sent",
+    acked.length ? { relays: acked.map((relay) => `${relay.host} ${relay.latencyMs}ms`) } : null,
+  );
   outboxStatusById.delete(String(id || ""));
   markSendComplete(id);
   let touched = false;
@@ -1101,6 +1131,7 @@ function markMessageSynced(id) {
 
 async function sendGroupMessage(identity, groupId, payload, opts = {}) {
   if (!groupId) throw new Error("Missing groupId");
+  const startedAt = Date.now();
   const sender = snapshotIdentity(identity);
   const self = sender.pubkeyHex;
 
@@ -1110,6 +1141,8 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
   const messagePayload = prepared.messagePayload;
   const tempId = prepared.id;
   const ts = Number(messagePayload?.ts || Date.now());
+  startSendTrace(tempId, startedAt);
+  logSendStage(tempId, "group-prepared", { groupId, type: payload?.type || "text" });
 
   const optimistic = {
     id: tempId,
@@ -1144,6 +1177,7 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
 
   try {
     const msg = await groupsApi.sendGroupMessage(sender, groupId, payload, { prepared });
+    logSendStage(msg?.id || tempId, "group-queued");
 
     const list = groupMessages[groupId] || [];
     let next = removeMessage(list, tempId);
@@ -1159,6 +1193,7 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
     if (opts.onConfirmed) opts.onConfirmed(confirmed);
     return confirmed;
   } catch (err) {
+    logSendStage(tempId, "group-store-failed", { error: err?.message || String(err) });
     const list = groupMessages[groupId] || [];
     groupMessages[groupId] = markMessageStatus(list, tempId, "failed");
     throw err;

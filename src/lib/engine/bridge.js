@@ -2,6 +2,7 @@
 // + relay config, surfaces logs, and fans worker events into the app.
 import { DEFAULT_RELAYS, readConfiguredRelays } from "@/config/servers.js";
 import { debugLog } from "@/lib/debugLog.js";
+import { logSendStage } from "@/lib/sendTrace.js";
 import { notifyRelayAck, setOutboxNotifier, setSyncRequester } from "@/lib/engine/index.js";
 import { applySendReport, markSendComplete } from "@/lib/engine/sendReport.js";
 import {
@@ -39,6 +40,14 @@ const WATCHDOG_BUSY_MS = 10 * 60_000;
 let watchdogTimer = null;
 let lastWorkerMessageAt = 0;
 let lastSummaryAt = 0;
+
+function relayHost(relay) {
+  try {
+    return new URL(relay).host || String(relay || "");
+  } catch {
+    return String(relay || "");
+  }
+}
 
 function freshIngestedIds(ids) {
   const now = Date.now();
@@ -148,7 +157,14 @@ function ensureWorker() {
       recordEngineRelayOutcomes(msg.data.outcomes, msg.data.operation);
     } else if (type === "sendReport") {
       if (msg.data?.report) {
-        const report = applySendReport(msg.data.report);
+        const incoming = msg.data.report;
+        logSendStage(incoming.eventId || incoming.id, `relay-${incoming.state || "update"}`, {
+          relay: incoming.relay ? relayHost(incoming.relay) : null,
+          latencyMs: incoming.latencyMs ?? null,
+          timeoutMs: incoming.timeoutMs ?? null,
+          error: incoming.error || null,
+        });
+        const report = applySendReport(incoming);
         if (report?.state === "complete") {
           for (const id of [report.id]) notifyRelayAck(id);
         }
@@ -165,6 +181,7 @@ function ensureWorker() {
       const ids = msg.data.ids || [];
       debugLog(`[engine] acked ${ids.map((id) => String(id).slice(0, 8)).join(",")}`);
       for (const id of ids) {
+        logSendStage(id, "acked");
         notifyRelayAck(id);
         markSendComplete(id);
       }
@@ -221,6 +238,7 @@ export function wakeEngine(priorityId = null) {
     type: "tick",
     priorityId: priorityId ? String(priorityId) : null,
   });
+  if (priorityId) logSendStage(priorityId, "worker-woken");
 }
 
 /** Trigger a full cold-range reconciliation cycle. */
