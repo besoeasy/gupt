@@ -671,9 +671,10 @@
   --app-text-label: 10.5px;
   --app-text-meta: 12px;
   --app-text-body: 13px;
-  --app-text-title: 19px;
+  --app-text-heading: 19px;
   --app-text-display: 30px;
   --app-tracking-label: 0.09em;
+  --app-tracking-heading: -0.01em;
   --app-tracking-display: -0.03em;
   --app-leading-body: 1.55;
   --app-row-h: 56px;

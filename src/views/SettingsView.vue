@@ -410,7 +410,7 @@ function onTabKeydown(event, index) {
 
 .settings-pane__title {
   margin: 0;
-  font-size: var(--app-text-title);
+  font-size: var(--app-text-heading);
   line-height: 1.2;
   font-weight: 600;
   letter-spacing: -0.02em;

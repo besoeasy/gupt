@@ -2861,7 +2861,7 @@ onUnmounted(() => {
   background: currentColor;
   transform: scaleX(0);
   transform-origin: left;
-  transition: transform var(--app-dur) var(--app-ease-emphasized);
+  transition: transform var(--app-dur-base) var(--app-ease-emphasized);
 }
 
 .invite-view__tab--selected,
