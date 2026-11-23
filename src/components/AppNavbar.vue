@@ -92,7 +92,7 @@ const isDragging = ref(false);
 let dragStartX = 0;
 let dragStartScroll = 0;
 let dragMoved = false;
-let dragEndedAt = 0;
+let suppressClick = false;
 let revealTimer = 0;
 let railObserver = null;
 
@@ -136,6 +136,9 @@ function scheduleReveal() {
 }
 
 function onPointerDown(event) {
+  // A new interaction starts here, so a drag that never produced a click
+  // cannot swallow this one.
+  suppressClick = false;
   if (event.pointerType !== "mouse" || event.button !== 0) return;
   const el = scrollEl.value;
   if (!el || el.scrollWidth <= el.clientWidth) return;
@@ -165,14 +168,17 @@ function endDrag() {
   window.removeEventListener("pointermove", onPointerMove);
   window.removeEventListener("pointerup", endDrag);
   window.removeEventListener("pointercancel", endDrag);
-  if (dragMoved) dragEndedAt = Date.now();
+  if (dragMoved) suppressClick = true;
   dragMoved = false;
   updateScrollState();
 }
 
-// A drag must not also activate the button it started on.
+// Consume the click that follows a drag, once. Keyboard and programmatic
+// clicks carry detail 0 and must never be swallowed.
 function onRailClickCapture(event) {
-  if (Date.now() - dragEndedAt > 300) return;
+  if (!suppressClick) return;
+  suppressClick = false;
+  if (event.detail === 0) return;
   event.preventDefault();
   event.stopPropagation();
 }
