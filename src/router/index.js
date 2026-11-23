@@ -114,9 +114,9 @@ const router = createRouter({
       meta: { title: "gupt-mark", skeleton: "detail" },
     },
     {
+      // Stats used to be its own page; it now lives as a Settings section.
       path: "/stats",
-      component: () => import("@/views/StatsView.vue"),
-      meta: { title: "Stats", skeleton: "list" },
+      redirect: { path: "/settings", query: { focus: "analytics" } },
     },
     {
       path: "/profile/:pubkey",

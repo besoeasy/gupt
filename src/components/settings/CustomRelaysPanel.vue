@@ -246,7 +246,10 @@ async function handleProbe() {
       This relay is already in the list.
     </p>
 
-    <RouterLink to="/stats" class="relays-panel__analytics">
+    <RouterLink
+      :to="{ path: '/settings', query: { focus: 'analytics' } }"
+      class="relays-panel__analytics"
+    >
       Detailed relay analytics
       <ArrowUpRight :stroke-width="2" aria-hidden="true" />
     </RouterLink>
