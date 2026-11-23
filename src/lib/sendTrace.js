@@ -8,6 +8,7 @@
 const PREFIX = "[gupt:send]";
 const TRACE_MAX = 256;
 const TRACE_TTL_MS = 10 * 60 * 1000;
+const ARRIVAL_MAX_AGE_MS = 2 * 60 * 1000;
 
 /** eventId -> { at, lastAt }: compose time and the previous stage. */
 const traces = new Map();
@@ -59,12 +60,15 @@ export function logSendStage(eventId, stage, detail = null) {
   else console.info(line);
 }
 
-/** Inbound copy: how old the message is by the sender's own timestamp. */
+/** Inbound copy: how old the message is by the sender's own timestamp.
+ * Backfill from a cold pull is hundreds of rows; only a live message (or the
+ * echo of one this device is still tracing) is worth a line. */
 export function logSendArrival(eventId, sentAt, detail = null) {
   const key = keyOf(eventId);
   if (!key) return;
   const now = Date.now();
   const age = Math.max(0, now - (Number(sentAt) || now));
+  if (age > ARRIVAL_MAX_AGE_MS && !traces.has(key)) return;
   const line = `${PREFIX} ${clock(now)} arrived id=${key.slice(0, 8)} age=${age}ms`;
   if (detail) console.info(line, detail);
   else console.info(line);

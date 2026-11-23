@@ -19,6 +19,10 @@ const CAPABILITIES_REFRESH_MS = 10 * 60 * 1000;
 
 const PRIORITY_QUEUE_MAX = 256;
 const HEARTBEAT_INTERVAL_MS = 10000;
+// A message send must not wait for a whole cold pull. Short cycles still get
+// the lane to themselves; once a cycle has run longer than this, the priority
+// push goes out alongside it (relays treat a duplicate publish as success).
+const PRIORITY_WAIT_GRACE_MS = 2000;
 
 let config = { pubkeyHex: null, relays: [], relayModes: {} };
 let busy = false;
@@ -439,17 +443,26 @@ async function drainPriority() {
     });
     return;
   }
-  // One sender at a time: a full cycle holds the store and the relay queues,
+  // One sender at a time: a short cycle holds the store and the relay queues,
   // so a priority send waits for it instead of pushing the same event twice.
+  // A long cycle (cold pull, big attachment) yields after the grace period:
+  // waiting minutes for it is what made sends look stuck.
   if (busy) {
-    if (!pendingPriority) {
-      trace(priorityQueue[0], "priority-blocked-by-cycle", {
-        queue: priorityQueue.length,
-        cycleAgeMs: lastCycleStartedAt ? Date.now() - lastCycleStartedAt : null,
-      });
+    const cycleAgeMs = lastCycleStartedAt ? Date.now() - lastCycleStartedAt : null;
+    if (cycleAgeMs === null || cycleAgeMs < PRIORITY_WAIT_GRACE_MS) {
+      if (!pendingPriority) {
+        trace(priorityQueue[0], "priority-blocked-by-cycle", {
+          queue: priorityQueue.length,
+          cycleAgeMs,
+        });
+      }
+      pendingPriority = true;
+      return;
     }
-    pendingPriority = true;
-    return;
+    trace(priorityQueue[0], "priority-bypassing-cycle", {
+      queue: priorityQueue.length,
+      cycleAgeMs,
+    });
   }
   priorityBusy = true;
   try {
