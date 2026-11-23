@@ -148,7 +148,7 @@ function hangup() {
 .call-pip__stage {
   position: relative;
   aspect-ratio: 16 / 9;
-  background: var(--ui-black);
+  background: #000;
 }
 
 .call-pip__video {
@@ -169,7 +169,7 @@ function hangup() {
   font-size: 8.5px;
   letter-spacing: var(--app-tracking-label);
   text-transform: uppercase;
-  color: color-mix(in oklab, var(--ui-white) 62%, transparent);
+  color: color-mix(in oklab, var(--color-white) 62%, transparent);
 }
 
 .call-pip__wait-dot {
@@ -271,7 +271,7 @@ function hangup() {
   }
 
   .call-pip__stage:hover .call-pip__wait {
-    color: var(--ui-white);
+    color: var(--color-white);
   }
 }
 

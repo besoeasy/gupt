@@ -171,7 +171,7 @@ function decline() {
 .call-banner__btn--answer {
   border-color: var(--app-success);
   background: var(--app-success);
-  color: var(--ui-white);
+  color: var(--color-white);
 }
 
 .call-banner__icon {
@@ -224,7 +224,7 @@ function decline() {
   .call-banner__btn--answer:hover {
     border-color: var(--app-success);
     background: color-mix(in oklab, var(--app-success) 86%, black);
-    color: var(--ui-white);
+    color: var(--color-white);
   }
 }
 
