@@ -3,16 +3,13 @@ defineProps({
   eyebrow: { type: String, default: "" },
   title: { type: String, default: "" },
   count: { type: [Number, String], default: 0 },
-  eyebrowClass: { type: String, default: "page-header__variant-1" },
 });
 </script>
 
 <template>
   <header class="page-header__header">
     <div class="page-header__block">
-      <p v-if="eyebrow" class="page-header__text" :class="eyebrowClass">
-        {{ eyebrow }}
-      </p>
+      <p v-if="eyebrow" class="page-header__text">{{ eyebrow }}</p>
       <h1 v-if="title" class="page-header__title">
         <span class="page-header__title-text">{{ title }}</span>
         <span v-if="Number(count) > 0" class="page-header__count">{{ count }}</span>
@@ -54,10 +51,6 @@ defineProps({
   letter-spacing: var(--app-tracking-label);
   line-height: 1.4;
   text-transform: uppercase;
-  color: var(--app-muted-2);
-}
-
-.page-header__variant-1 {
   color: var(--app-muted-2);
 }
 
