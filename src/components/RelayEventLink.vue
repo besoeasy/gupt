@@ -68,362 +68,219 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div v-if="hasEvent" ref="root" class="relay-event-link__block">
+  <div v-if="hasEvent" ref="root" class="relay-link">
     <button
       v-if="variant === 'button'"
       type="button"
-      class="relay-event-link__button"
+      class="relay-link__wide"
       :aria-expanded="open"
       @click="toggle"
     >
-      <ExternalLink class="relay-event-link__external-link" :stroke-width="1.8" />
+      <ExternalLink class="relay-link__icon" :stroke-width="1.8" aria-hidden="true" />
       {{ label }}
-      <ChevronDown
-        class="relay-event-link__chevron-down"
-        :class="open ? 'relay-event-link__chevron-down--variant-1' : ''"
-      />
+      <ChevronDown class="relay-link__chevron" :class="{ 'relay-link__chevron--open': open }" :stroke-width="1.9" aria-hidden="true" />
     </button>
     <button
       v-else
       type="button"
-      class="relay-event-link__button-2"
+      class="relay-link__inline"
       :aria-expanded="open"
       @click="toggle"
     >
-      <ExternalLink class="relay-event-link__external-link-2" />
+      <ExternalLink class="relay-link__icon" :stroke-width="1.9" aria-hidden="true" />
       <span>{{ label }}</span>
     </button>
 
     <div
       v-if="open"
-      class="relay-event-link__block-2"
-      :class="placement === 'top' ? 'relay-event-link__block--variant-1' : 'relay-event-link__block--variant-2'"
+      class="relay-link__pop"
+      :class="placement === 'top' ? 'relay-link__pop--top' : 'relay-link__pop--bottom'"
     >
-      <p class="relay-event-link__text-open-event">
-        Open event on relay
-      </p>
+      <p class="relay-link__pop-label">Open event on relay</p>
       <button
         v-for="relay in relays"
         :key="relay"
         type="button"
-        class="relay-event-link__button-3"
+        class="relay-link__row"
         @click="openOnRelay(relay)"
       >
-        <ExternalLink class="relay-event-link__external-link-3" />
-        <span class="relay-event-link__text">{{ relayHost(relay) }}</span>
+        <ExternalLink class="relay-link__row-icon" :stroke-width="1.8" aria-hidden="true" />
+        <span class="relay-link__row-host">{{ relayHost(relay) }}</span>
       </button>
     </div>
   </div>
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: an inline relay trigger with a hairline popover. */
 
-/* Light theme adjustments */
-
-@layer gupt-components {
-
-
-@media (hover:hover) {
-.relay-event-link__button:hover {
-  border-color: var(--ui-zinc-700);
-}
-}
-
-@media (hover:hover) {
-.relay-event-link__button:hover {
-  background-color: var(--ui-zinc-800);
-}
-}
-
-@media (hover:hover) {
-.relay-event-link__button-3:hover {
-  background-color: var(--ui-zinc-900);
-}
-}
-
-@media (hover:hover) {
-.relay-event-link__button:hover {
-  color: var(--color-white);
-}
-}
-
-@media (hover:hover) {
-.relay-event-link__button-3:hover {
-  color: var(--color-white);
-}
-}
-
-@media (hover:hover) {
-.relay-event-link__button-2:hover {
-  color: var(--ui-zinc-200);
-}
-}
-
-@layer gupt-components {
-.relay-event-link__block-2 {
-  position: absolute;
-}
-.relay-event-link__block {
+.relay-link {
   position: relative;
+  display: inline-flex;
+  max-width: 100%;
 }
-.relay-event-link__block--variant-2 {
-  top: 100%;
+
+.relay-link__inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+  cursor: pointer;
+  transition: color var(--app-dur-fast) var(--app-ease-standard);
 }
-.relay-event-link__block--variant-1 {
-  bottom: 100%;
-}
-.relay-event-link__block--variant-1 {
-  left: 0;
-}
-.relay-event-link__block--variant-2 {
-  left: 0;
-}
-.relay-event-link__block-2 {
-  z-index: 50;
-}
-.relay-event-link__block--variant-2 {
-  margin-top: calc(var(--spacing) * 1.5);
-}
-.relay-event-link__block--variant-1 {
-  margin-bottom: calc(var(--spacing) * 1.5);
-}
-.relay-event-link__button-3 {
+
+.relay-link__wide {
   display: flex;
-}
-.relay-event-link__block {
-  display: inline-flex;
-}
-.relay-event-link__button {
-  display: inline-flex;
-}
-.relay-event-link__button-2 {
-  display: inline-flex;
-}
-.relay-event-link__chevron-down {
-  height: calc(var(--spacing) * 3);
-}
-.relay-event-link__external-link-2 {
-  height: calc(var(--spacing) * 3);
-}
-.relay-event-link__external-link-3 {
-  height: calc(var(--spacing) * 3);
-}
-.relay-event-link__external-link {
-  height: calc(var(--spacing) * 3.5);
-}
-.relay-event-link__chevron-down {
-  width: calc(var(--spacing) * 3);
-}
-.relay-event-link__external-link-2 {
-  width: calc(var(--spacing) * 3);
-}
-.relay-event-link__external-link-3 {
-  width: calc(var(--spacing) * 3);
-}
-.relay-event-link__external-link {
-  width: calc(var(--spacing) * 3.5);
-}
-.relay-event-link__block-2 {
-  width: calc(var(--spacing) * 64);
-}
-.relay-event-link__button {
-  width: 100%;
-}
-.relay-event-link__button-3 {
-  width: 100%;
-}
-.relay-event-link__external-link-3 {
-  flex-shrink: 0;
-}
-.relay-event-link__chevron-down--variant-1 {
-  rotate: 180deg;
-}
-.relay-event-link__button {
-  cursor: pointer;
-}
-.relay-event-link__button-2 {
-  cursor: pointer;
-}
-.relay-event-link__button-3 {
-  cursor: pointer;
-}
-.relay-event-link__button {
   align-items: center;
-}
-.relay-event-link__button-2 {
-  align-items: center;
-}
-.relay-event-link__button-3 {
-  align-items: center;
-}
-.relay-event-link__button {
   justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 34px;
+  padding-inline: 11px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
+  cursor: pointer;
+  transition:
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard);
 }
-.relay-event-link__button-2 {
-  gap: var(--spacing);
+
+.relay-link__icon {
+  width: 10px;
+  height: 10px;
 }
-.relay-event-link__button {
-  gap: calc(var(--spacing) * 2);
+
+.relay-link__chevron {
+  width: 11px;
+  height: 11px;
+  transition: transform var(--app-dur-fast) var(--app-ease-standard);
 }
-.relay-event-link__button-3 {
-  gap: calc(var(--spacing) * 2);
+
+.relay-link__chevron--open {
+  transform: rotate(180deg);
 }
-.relay-event-link__text {
+
+/* ---- Popover ---- */
+
+.relay-link__pop {
+  position: absolute;
+  right: 0;
+  z-index: 40;
+  width: max-content;
+  min-width: 190px;
+  max-width: min(280px, calc(100vw - 2rem));
+  padding: 5px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface);
+  box-shadow: 0 18px 40px -24px rgba(0, 0, 0, 0.55);
+  animation: ledger-fade 160ms var(--app-ease-standard) both;
+}
+
+.relay-link__pop--bottom {
+  top: calc(100% + 6px);
+}
+
+.relay-link__pop--top {
+  bottom: calc(100% + 6px);
+}
+
+.relay-link__pop-label {
+  margin: 0;
+  padding: 5px 7px 7px;
+  border-bottom: 1px solid var(--app-border);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+}
+
+.relay-link__row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 7px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.relay-link__row + .relay-link__row {
+  border-top: 1px solid var(--app-border);
+  border-radius: 0 0 3px 3px;
+}
+
+.relay-link__row-icon {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  color: var(--app-muted-2);
+}
+
+.relay-link__row-host {
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--app-text-soft);
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  overflow: hidden;
-}
-.relay-event-link__block-2 {
-  overflow: hidden;
-}
-.relay-event-link__button {
-  border-radius: var(--radius-lg);
-}
-.relay-event-link__block-2 {
-  border-radius: var(--radius-lg);
-}
-.relay-event-link__button {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.relay-event-link__block-2 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.relay-event-link__button {
-  border-color: var(--ui-zinc-800);
-}
-.relay-event-link__block-2 {
-  border-color: var(--ui-zinc-800);
-}
-.relay-event-link__button {
-  background-color: var(--ui-zinc-900);
-}
-.relay-event-link__block-2 {
-  background-color: var(--ui-zinc-950);
-}
-.relay-event-link__button {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.relay-event-link__text-open-event {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.relay-event-link__button-3 {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.relay-event-link__button {
-  padding-block: calc(var(--spacing) * 2);
-}
-.relay-event-link__button-3 {
-  padding-block: calc(var(--spacing) * 2);
-}
-.relay-event-link__text-open-event {
-  padding-top: calc(var(--spacing) * 2);
-}
-.relay-event-link__text-open-event {
-  padding-bottom: var(--spacing);
-}
-.relay-event-link__button-3 {
-  text-align: left;
-}
-.relay-event-link__text-open-event {
-  font-family: var(--font-mono);
-}
-.relay-event-link__button {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.relay-event-link__button-3 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.relay-event-link__text-open-event {
-  font-size: 10px;
-}
-.relay-event-link__button-2 {
-  font-size: 11px;
-}
-.relay-event-link__button {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.relay-event-link__button-2 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.relay-event-link__text-open-event {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.relay-event-link__button {
-  color: var(--ui-zinc-200);
-}
-.relay-event-link__button-3 {
-  color: var(--ui-zinc-300);
-}
-.relay-event-link__chevron-down {
-  color: var(--ui-zinc-500);
-}
-.relay-event-link__button-2 {
-  color: var(--ui-zinc-500);
-}
-.relay-event-link__external-link-3 {
-  color: var(--ui-zinc-500);
-}
-.relay-event-link__text-open-event {
-  color: var(--ui-zinc-600);
-}
-.relay-event-link__text-open-event {
-  text-transform: uppercase;
-}
-.relay-event-link__block-2 {
-  --shadow: 0 20px 25px -5px var(--shadow-color,#0000001a), 0 8px 10px -6px var(--shadow-color,#0000001a);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 20px 25px -5px var(--shadow-color,#0000001a), 0 8px 10px -6px var(--shadow-color,#0000001a);
-}
-.relay-event-link__block-2 {
-  --shadow-color: var(--ui-black);
-}
-.relay-event-link__button {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.relay-event-link__chevron-down {
-  transition-property: transform,translate,scale,rotate;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.relay-event-link__chevron-down {
-  --duration: .15s;
-  transition-duration: .15s;
-}
-[data-theme="light"] .relay-event-link__button-3 {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .relay-event-link__chevron-down {
-  color: var(--app-muted);
-}
-[data-theme="light"] .relay-event-link__button-2 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .relay-event-link__external-link-3 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .relay-event-link__text-open-event {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .relay-event-link__button-2:hover {
-  color: var(--app-text) !important;
-}
-}
 }
 
-@layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.relay-event-link__block-2 {
-  --shadow-color: color-mix(in oklab, color-mix(in oklab, var(--ui-black) 50%, transparent) var(--shadow-alpha,100%), transparent);
+@media (hover: hover) {
+  .relay-link__inline:hover,
+  .relay-link__wide:hover {
+    color: var(--app-text);
+  }
+
+  .relay-link__wide:hover {
+    border-color: var(--app-border-strong);
+  }
+
+  .relay-link__row:hover {
+    background: var(--app-surface-soft);
+  }
 }
+
+@media (pointer: coarse) {
+  .relay-link__inline,
+  .relay-link__wide,
+  .relay-link__row {
+    min-height: var(--app-touch-h);
+  }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .relay-link__pop {
+    animation: none;
+  }
+
+  .relay-link__inline,
+  .relay-link__wide,
+  .relay-link__chevron,
+  .relay-link__row {
+    transition: none;
+  }
 }
 </style>
