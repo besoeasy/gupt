@@ -84,7 +84,12 @@ onMounted(() => {
       </div>
 
       <ul class="cache-panel__stores">
-        <li v-for="store in sortedStores" :key="store.table" class="cache-panel__store">
+        <li
+          v-for="(store, index) in sortedStores"
+          :key="store.table"
+          class="cache-panel__store"
+          :style="{ '--row-index': index }"
+        >
           <span
             class="cache-panel__dot"
             :class="`cache-panel__dot--${storeTone(store.table)}`"
@@ -111,10 +116,10 @@ onMounted(() => {
 .cache-panel {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--spacing) * 2);
+  gap: var(--app-space-4);
   min-width: 0;
-  padding-top: calc(var(--spacing) * 4);
-  border-top: 1px solid var(--app-border-faint);
+  padding-top: var(--app-space-6);
+  border-top: 1px solid var(--app-border);
 }
 
 .cache-panel__head {
@@ -122,15 +127,15 @@ onMounted(() => {
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--spacing);
+  gap: var(--app-space-2);
 }
 
 .cache-panel__label {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--app-text-label);
   font-weight: 500;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--app-tracking-label);
   text-transform: uppercase;
   color: var(--app-text-soft);
 }
@@ -138,9 +143,9 @@ onMounted(() => {
 .cache-panel__meta {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
   font-variant-numeric: tabular-nums;
-  color: var(--app-text-soft);
+  color: var(--app-muted-2);
 }
 
 .cache-panel__usage {
@@ -150,9 +155,9 @@ onMounted(() => {
 }
 
 .cache-panel__track {
-  height: 6px;
+  height: 2px;
   border-radius: 999px;
-  background-color: var(--app-surface-inset);
+  background-color: var(--app-border);
   overflow: hidden;
 }
 
@@ -160,13 +165,15 @@ onMounted(() => {
   height: 100%;
   border-radius: inherit;
   background-color: var(--app-primary);
+  box-shadow: var(--app-glow-primary);
+  transform-origin: left;
+  animation: ledger-draw 620ms var(--app-ease-emphasized) 120ms backwards;
   transition: width var(--app-dur-slow) var(--app-ease-standard);
 }
 
 .cache-panel__stores {
   display: flex;
   flex-direction: column;
-  gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -175,17 +182,23 @@ onMounted(() => {
 .cache-panel__store {
   display: flex;
   align-items: center;
-  gap: calc(var(--spacing) * 2);
-  min-height: 36px;
-  padding-inline: var(--spacing);
-  border-radius: var(--app-radius-sm);
+  gap: var(--app-space-3);
+  min-height: 40px;
   min-width: 0;
+  padding-inline: var(--app-space-2);
+  border-bottom: 1px solid var(--app-border);
   transition: background-color var(--app-dur-fast) var(--app-ease-standard);
+  animation: ledger-rise 360ms var(--app-ease-emphasized) backwards;
+  animation-delay: calc(var(--row-index, 0) * 30ms + 80ms);
+}
+
+.cache-panel__store:last-child {
+  border-bottom: 0;
 }
 
 .cache-panel__dot {
-  width: 8px;
-  height: 8px;
+  width: 5px;
+  height: 5px;
   border-radius: 999px;
   flex-shrink: 0;
 }
@@ -220,34 +233,36 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12.5px;
+  font-size: var(--app-text-meta);
   color: var(--app-text);
 }
 
 .cache-panel__store-value {
   flex-shrink: 0;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
   font-variant-numeric: tabular-nums;
-  color: var(--app-text-soft);
+  color: var(--app-muted);
 }
 
 .cache-panel__hint {
   margin: 0;
   font-size: 11.5px;
-  line-height: 1.55;
-  color: var(--app-text-soft);
+  line-height: var(--app-leading-body);
+  color: var(--app-muted);
 }
 
 @media (hover: hover) {
   .cache-panel__store:hover {
-    background-color: var(--app-surface-hover);
+    background-color: var(--app-surface-soft);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cache-panel__fill {
+  .cache-panel__fill,
+  .cache-panel__store {
     transition: none;
+    animation: none;
   }
 }
 </style>
