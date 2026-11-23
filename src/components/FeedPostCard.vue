@@ -1,24 +1,11 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import {
-  Clock,
-  Download,
-  FileHeadphone,
-  FileText,
-  Images,
-  MessageCircle,
-  RefreshCw,
-  Trash2,
-} from "@/icons";
+import { Clock, Images, MessageCircle, Trash2 } from "@/icons";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import FeedReactionBar from "@/components/FeedReactionBar.vue";
-import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
-import { useChatMedia } from "@/composables/useChatMedia";
+import FeedPostMedia from "@/components/FeedPostMedia.vue";
 import { useProfileStore } from "@/stores/profiles";
-import { MEDIA_PHASE } from "@/lib/mediaDecrypt";
-import { feedFilesToMediaMessages, formatBytes } from "@/lib/feed";
-import { isAudio, isImage, isVideo } from "@/lib/chatUtils";
 
 const props = defineProps({
   post: { type: Object, required: true },
@@ -34,38 +21,12 @@ const emit = defineEmits(["open", "delete", "react"]);
 const router = useRouter();
 const profiles = useProfileStore();
 const mediaList = computed(() => props.post?.media || []);
-const mediaMessages = computed(() => feedFilesToMediaMessages(mediaList.value));
-const messageAt = (idx) => mediaMessages.value[idx];
-
-const {
-  mediaBlobUrls,
-  mediaProgress,
-  decryptFailed,
-  preloadMedia,
-  downloadMedia,
-  retryMedia,
-  cleanup: cleanupMedia,
-} = useChatMedia();
 
 const expanded = ref(false);
 const copied = ref(false);
 
 const displayName = computed(() => profiles.displayName(props.post?.pubkey));
 const avatarSrc = computed(() => profiles.profilePicture(props.post?.pubkey));
-
-const visualMedia = computed(() =>
-  mediaList.value
-    .map((file, idx) => ({ file, idx }))
-    .filter(({ file }) => isImage(file.mime) || isVideo(file.mime)),
-);
-const audioMedia = computed(() =>
-  mediaList.value.map((file, idx) => ({ file, idx })).filter(({ file }) => isAudio(file.mime)),
-);
-const fileMedia = computed(() =>
-  mediaList.value
-    .map((file, idx) => ({ file, idx }))
-    .filter(({ file }) => !isImage(file.mime) && !isVideo(file.mime) && !isAudio(file.mime)),
-);
 
 const isLongText = computed(() => (props.post?.text || "").length > 420);
 const visibleText = computed(() => {
@@ -162,27 +123,8 @@ function openExternal(url, e) {
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
-async function download(idx, e) {
-  e?.stopPropagation();
-  await downloadMedia(messageAt(idx)).catch(() => {});
-}
-
-const blobAt = (idx) => mediaBlobUrls[messageAt(idx)?.id];
-const progressAt = (idx) => mediaProgress[messageAt(idx)?.id];
-const failedAt = (idx) => Boolean(decryptFailed[messageAt(idx)?.id]);
-
-function isLoading(idx) {
-  const phase = progressAt(idx)?.phase;
-  return phase === MEDIA_PHASE.FETCH || phase === MEDIA_PHASE.DECRYPT || phase === MEDIA_PHASE.QUEUED;
-}
-
-function retry(idx) {
-  retryMedia(messageAt(idx));
-}
-
 onMounted(() => {
   if (props.post.pubkey) void profiles.prefetch([props.post.pubkey]);
-  for (const message of mediaMessages.value) preloadMedia(message);
 });
 </script>
 
@@ -248,128 +190,7 @@ onMounted(() => {
       </button>
     </div>
 
-    <div v-if="mediaList.length" class="post-card__media" @click.stop>
-      <div
-        v-if="visualMedia.length"
-        class="post-card__visuals"
-        :class="visualMedia.length === 1 ? 'post-card__visuals--single' : 'post-card__visuals--grid'"
-      >
-        <div
-          v-for="{ file, idx } in visualMedia"
-          :key="`${post.eventId}:${idx}`"
-          class="post-card__visual"
-        >
-          <img
-            v-if="blobAt(idx) && isImage(file.mime)"
-            :src="blobAt(idx)"
-            :alt="file.name"
-            class="post-card__image"
-            loading="lazy"
-          />
-          <video
-            v-else-if="blobAt(idx) && isVideo(file.mime)"
-            :src="blobAt(idx)"
-            controls
-            preload="metadata"
-            class="post-card__video"
-          />
-          <div v-else class="post-card__visual-wait">
-            <template v-if="isLoading(idx) || failedAt(idx)">
-              <MediaDecryptStatus
-                :progress="progressAt(idx)"
-                :event-id="post.eventId"
-                :file-name="file.name"
-                :file-size="file.size"
-                compact
-                retryable
-                @retry="retry(idx)"
-              />
-            </template>
-            <template v-else>
-              <Images class="post-card__wait-icon" :stroke-width="1.6" aria-hidden="true" />
-              <p class="post-card__wait-name">{{ file.name }}</p>
-              <p class="post-card__wait-size">{{ formatBytes(file.size) }}</p>
-            </template>
-          </div>
-        </div>
-      </div>
-
-      <div v-if="audioMedia.length" class="post-card__audio-list">
-        <div
-          v-for="{ file, idx } in audioMedia"
-          :key="`${post.eventId}:${idx}`"
-          class="post-card__audio-row"
-        >
-          <div class="post-card__audio-head">
-            <FileHeadphone class="post-card__file-icon" :stroke-width="1.7" aria-hidden="true" />
-            <p class="post-card__file-name">{{ file.name }}</p>
-            <span class="post-card__file-size">{{ formatBytes(file.size) }}</span>
-          </div>
-          <audio
-            v-if="blobAt(idx)"
-            :src="blobAt(idx)"
-            controls
-            preload="metadata"
-            class="post-card__audio"
-          />
-          <MediaDecryptStatus
-            v-else-if="isLoading(idx) || failedAt(idx)"
-            :progress="progressAt(idx)"
-            :event-id="post.eventId"
-            :file-name="file.name"
-            :file-size="file.size"
-            retryable
-            compact
-            @retry="retry(idx)"
-          />
-          <div v-else class="post-card__decrypting">Decrypting…</div>
-        </div>
-      </div>
-
-      <div v-if="fileMedia.length" class="post-card__files">
-        <div
-          v-for="{ file, idx } in fileMedia"
-          :key="`${post.eventId}:${idx}`"
-          class="post-card__file"
-        >
-          <div class="post-card__file-tile">
-            <FileText class="post-card__file-icon" :stroke-width="1.7" aria-hidden="true" />
-          </div>
-          <div class="post-card__file-body">
-            <p class="post-card__file-name">{{ file.name }}</p>
-            <p class="post-card__file-size">
-              {{ formatBytes(file.size) }}
-              <span v-if="failedAt(idx)"> · decrypt failed</span>
-            </p>
-            <MediaDecryptStatus
-              v-if="isLoading(idx) || failedAt(idx)"
-              :progress="progressAt(idx)"
-              :event-id="post.eventId"
-              :file-name="file.name"
-              :file-size="file.size"
-              retryable
-              compact
-              @retry="retry(idx)"
-            />
-          </div>
-          <div class="post-card__file-actions">
-            <button
-              v-if="failedAt(idx)"
-              type="button"
-              class="post-card__file-action"
-              @click="retry(idx)"
-            >
-              <RefreshCw class="post-card__action-icon" :stroke-width="1.8" aria-hidden="true" />
-              <span>Retry</span>
-            </button>
-            <button type="button" class="post-card__file-action" @click="download(idx, $event)">
-              <Download class="post-card__action-icon" :stroke-width="1.8" aria-hidden="true" />
-              <span>Save</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <FeedPostMedia v-if="mediaList.length" :post="post" :media-list="mediaList" />
 
     <div class="post-card__reactions" @click.stop>
       <FeedReactionBar
@@ -594,205 +415,6 @@ onMounted(() => {
   transition: color var(--app-dur-fast) var(--app-ease-standard);
 }
 
-.post-card__media {
-  display: flex;
-  flex-direction: column;
-  gap: var(--app-space-2);
-}
-
-.post-card__visuals {
-  display: grid;
-  gap: 2px;
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-sm);
-  overflow: hidden;
-  background-color: var(--app-border);
-}
-
-.post-card__visuals--grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.post-card__visual {
-  display: grid;
-  place-items: center;
-  min-width: 0;
-  min-height: 120px;
-  background-color: var(--app-surface-inset);
-  overflow: hidden;
-}
-
-.post-card__image {
-  display: block;
-  width: 100%;
-  height: 100%;
-  max-height: 420px;
-  object-fit: cover;
-  transition: transform var(--app-dur-slow) var(--app-ease-swift);
-}
-
-.post-card__visuals--grid .post-card__image {
-  height: 200px;
-}
-
-.post-card__video {
-  display: block;
-  width: 100%;
-  max-height: 420px;
-}
-
-.post-card__visual-wait {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: var(--app-space-4);
-  text-align: center;
-}
-
-.post-card__wait-icon {
-  width: 18px;
-  height: 18px;
-  color: var(--app-muted-2);
-}
-
-.post-card__wait-name {
-  margin: 0;
-  font-size: 11.5px;
-  color: var(--app-muted);
-  overflow-wrap: anywhere;
-}
-
-.post-card__wait-size {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--app-muted-2);
-}
-
-.post-card__audio-list,
-.post-card__files {
-  display: flex;
-  flex-direction: column;
-  gap: var(--app-space-2);
-}
-
-.post-card__audio-row {
-  padding: var(--app-space-3);
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-sm);
-  background-color: var(--app-surface-soft);
-}
-
-.post-card__audio-head {
-  display: flex;
-  align-items: center;
-  gap: var(--app-space-2);
-  min-width: 0;
-}
-
-.post-card__file-icon {
-  width: 15px;
-  height: 15px;
-  flex-shrink: 0;
-  color: var(--app-muted);
-}
-
-.post-card__file-name {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12px;
-  color: var(--app-text);
-}
-
-.post-card__file-size {
-  flex-shrink: 0;
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-  color: var(--app-muted-2);
-}
-
-.post-card__audio {
-  width: 100%;
-  margin-top: var(--app-space-2);
-}
-
-.post-card__decrypting {
-  padding-top: var(--app-space-2);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--app-muted);
-}
-
-.post-card__file {
-  display: flex;
-  align-items: center;
-  gap: var(--app-space-3);
-  min-width: 0;
-  padding: var(--app-space-2) var(--app-space-3);
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-sm);
-  background-color: var(--app-surface-soft);
-  transition: border-color var(--app-dur-fast) var(--app-ease-standard);
-}
-
-.post-card__file-tile {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  border: 1px solid var(--app-border);
-  border-radius: 4px;
-  background-color: var(--app-surface);
-  color: var(--app-muted);
-}
-
-.post-card__file-body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.post-card__file-actions {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.post-card__file-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  min-height: 30px;
-  padding: 0 8px;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  background: transparent;
-  font-family: var(--font-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--app-muted);
-  cursor: pointer;
-  transition:
-    color var(--app-dur-fast) var(--app-ease-standard),
-    background-color var(--app-dur-fast) var(--app-ease-standard),
-    border-color var(--app-dur-fast) var(--app-ease-standard);
-}
-
 .post-card__reactions {
   padding-top: var(--app-space-3);
   border-top: 1px solid var(--app-border);
@@ -867,7 +489,6 @@ onMounted(() => {
 }
 
 .post-card__action:focus-visible,
-.post-card__file-action:focus-visible,
 .post-card__name:focus-visible,
 .post-card__pubkey:focus-visible,
 .post-card__more:focus-visible {
@@ -888,8 +509,7 @@ onMounted(() => {
   }
 
   .post-card__more:hover,
-  .post-card__action:hover,
-  .post-card__file-action:hover {
+  .post-card__action:hover {
     color: var(--app-text);
     background-color: var(--app-surface-soft);
   }
@@ -897,15 +517,10 @@ onMounted(() => {
   .post-card__link:hover {
     text-decoration-color: var(--app-primary);
   }
-
-  .post-card:hover .post-card__image {
-    transform: scale(1.012);
-  }
 }
 
 @media (pointer: coarse) {
-  .post-card__action,
-  .post-card__file-action {
+  .post-card__action {
     min-height: var(--app-control-h);
   }
 }
@@ -915,18 +530,13 @@ onMounted(() => {
     padding: var(--app-space-4);
   }
 
-  .post-card__visuals--grid {
-    grid-template-columns: 1fr;
-  }
-
   .post-card__expiry {
     display: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .post-card,
-  .post-card__image {
+  .post-card {
     animation: none;
     transition: none;
   }
