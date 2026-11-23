@@ -1675,7 +1675,7 @@ defineExpose({
   height: calc(var(--spacing) * 3);
 }
 .chat-compose-bar__send-horizontal-2 {
-  height: calc(var(--spacing) * 3);
+  height: 14px;
 }
 .chat-compose-bar__x-2 {
   height: calc(var(--spacing) * 3.5);
@@ -1723,22 +1723,28 @@ defineExpose({
   height: calc(var(--spacing) * 6);
 }
 .chat-compose-bar__button-attach-image {
-  height: calc(var(--spacing) * 7);
+  height: 28px;
+
 }
 .chat-compose-bar__button-format-message {
-  height: calc(var(--spacing) * 7);
+  height: 28px;
+
 }
 .chat-compose-bar__button-preview-formatting {
-  height: calc(var(--spacing) * 7);
+  height: 28px;
+
 }
 .chat-compose-bar__button-message-timer {
-  height: calc(var(--spacing) * 7);
+  height: 28px;
+
 }
 .chat-compose-bar__button-voice-note {
-  height: calc(var(--spacing) * 7);
+  height: 30px;
+
 }
 .chat-compose-bar__button-send-message {
-  height: calc(var(--spacing) * 7);
+  height: 30px;
+
 }
 .chat-compose-bar__button-4 {
   height: calc(var(--spacing) * 8);
@@ -1753,7 +1759,8 @@ defineExpose({
   max-height: calc(var(--spacing) * 40);
 }
 .chat-compose-bar__field-type-a {
-  min-height: 38px;
+  min-height: 40px;
+
 }
 .chat-compose-bar__text-7 {
   width: calc(var(--spacing) * .75);
@@ -1780,7 +1787,7 @@ defineExpose({
   width: calc(var(--spacing) * 3);
 }
 .chat-compose-bar__send-horizontal-2 {
-  width: calc(var(--spacing) * 3);
+  width: 14px;
 }
 .chat-compose-bar__x-2 {
   width: calc(var(--spacing) * 3.5);
@@ -1825,16 +1832,20 @@ defineExpose({
   width: calc(var(--spacing) * 5);
 }
 .chat-compose-bar__button-attach-image {
-  width: calc(var(--spacing) * 7);
+  width: 28px;
+
 }
 .chat-compose-bar__button-format-message {
-  width: calc(var(--spacing) * 7);
+  width: 28px;
+
 }
 .chat-compose-bar__button-preview-formatting {
-  width: calc(var(--spacing) * 7);
+  width: 28px;
+
 }
 .chat-compose-bar__button-voice-note {
-  width: calc(var(--spacing) * 7);
+  width: 30px;
+
 }
 .chat-compose-bar__block-4 {
   width: calc(var(--spacing) * 64);
@@ -2324,7 +2335,8 @@ defineExpose({
   border-radius: 3.40282e38px;
 }
 .chat-compose-bar__block-2 {
-  border-radius: var(--radius-lg);
+  border-radius: var(--app-radius-sm);
+
 }
 .chat-compose-bar__button-2 {
   border-radius: var(--radius-lg);
@@ -2354,25 +2366,31 @@ defineExpose({
   border-radius: var(--radius-lg);
 }
 .chat-compose-bar__button-attach-image {
-  border-radius: var(--radius-lg);
+  border-radius: var(--app-radius-sm);
+
 }
 .chat-compose-bar__block-33 {
   border-radius: var(--radius-lg);
 }
 .chat-compose-bar__button-format-message {
-  border-radius: var(--radius-lg);
+  border-radius: var(--app-radius-sm);
+
 }
 .chat-compose-bar__button-preview-formatting {
-  border-radius: var(--radius-lg);
+  border-radius: var(--app-radius-sm);
+
 }
 .chat-compose-bar__button-message-timer {
-  border-radius: var(--radius-lg);
+  border-radius: var(--app-radius-sm);
+
 }
 .chat-compose-bar__button-voice-note {
-  border-radius: var(--radius-lg);
+  border-radius: var(--app-radius-sm);
+
 }
 .chat-compose-bar__button-send-message {
-  border-radius: var(--radius-lg);
+  border-radius: var(--app-radius-sm);
+
 }
 .chat-compose-bar__button {
   border-radius: var(--radius-md);
@@ -2411,7 +2429,8 @@ defineExpose({
   border-radius: var(--radius-xl);
 }
 .chat-compose-bar__block-21 {
-  border-radius: var(--radius-xl);
+  border-radius: var(--app-radius-md);
+
 }
 .chat-compose-bar__block-22 {
   border-radius: var(--radius-xl);
@@ -2526,7 +2545,8 @@ defineExpose({
   border-color: var(--ui-zinc-700);
 }
 .chat-compose-bar__block-2 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border);
+
 }
 .chat-compose-bar__block-4 {
   border-color: var(--ui-zinc-800);
@@ -2547,7 +2567,8 @@ defineExpose({
   border-color: var(--ui-zinc-800);
 }
 .chat-compose-bar__block-21 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border);
+
 }
 .chat-compose-bar__block-22 {
   border-color: var(--ui-zinc-800);
@@ -2562,7 +2583,8 @@ defineExpose({
   border-color: var(--ui-zinc-800);
 }
 .chat-compose-bar__button-voice-note {
-  border-color: var(--ui-zinc-800);
+  border-color: transparent;
+
 }
 .chat-compose-bar__button-4 {
   border-color: var(--app-border-quiet);
@@ -2619,7 +2641,8 @@ defineExpose({
   background-color: var(--color-white);
 }
 .chat-compose-bar__button-send-message {
-  background-color: var(--color-white);
+  background-color: var(--app-text);
+
 }
 .chat-compose-bar__button--selected {
   background-color: var(--ui-zinc-800);
@@ -2658,7 +2681,8 @@ defineExpose({
   background-color: var(--ui-zinc-900);
 }
 .chat-compose-bar__block-2 {
-  background-color: var(--app-surface-tint);
+  background-color: var(--app-surface-soft);
+
 }
 .chat-compose-bar__button-4 {
   background-color: var(--app-surface-tint);
@@ -2679,7 +2703,8 @@ defineExpose({
   background-color: var(--app-surface-tint);
 }
 .chat-compose-bar__button-voice-note {
-  background-color: var(--app-surface-tint);
+  background-color: var(--app-text);
+
 }
 .chat-compose-bar__block-4 {
   background-color: var(--ui-zinc-950);
@@ -2703,7 +2728,8 @@ defineExpose({
   background-color: var(--ui-zinc-950);
 }
 .chat-compose-bar__block-21 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface);
+
 }
 .chat-compose-bar__square {
   fill: currentColor;
@@ -2778,7 +2804,8 @@ defineExpose({
   padding-inline: calc(var(--spacing) * 2);
 }
 .chat-compose-bar__field-type-a {
-  padding-inline: calc(var(--spacing) * 2);
+  padding-inline: 10px;
+
 }
 .chat-compose-bar__button-2 {
   padding-inline: calc(var(--spacing) * 2.5);
@@ -2805,7 +2832,8 @@ defineExpose({
   padding-inline: calc(var(--spacing) * 3);
 }
 .chat-compose-bar__button-send-message {
-  padding-inline: calc(var(--spacing) * 3);
+  padding-inline: 12px;
+
 }
 .chat-compose-bar__button-send {
   padding-inline: calc(var(--spacing) * 3.5);
@@ -2930,8 +2958,10 @@ defineExpose({
   line-height: var(--leading,var(--text-sm--line-height));
 }
 .chat-compose-bar__field-type-a {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
+  font-size: var(--app-text-body);
+  line-height: 1.55;
+
+
 }
 .chat-compose-bar__block-2 {
   font-size: var(--text-xs);
@@ -2986,8 +3016,9 @@ defineExpose({
   line-height: var(--leading,var(--text-xs--line-height));
 }
 .chat-compose-bar__button-send-message {
-  font-size: var(--text-xs);
+  font-size: 10px;
   line-height: var(--leading,var(--text-xs--line-height));
+
 }
 .chat-compose-bar__text-rendering {
   font-size: 9px;
@@ -3058,7 +3089,8 @@ defineExpose({
 }
 .chat-compose-bar__field-type-a {
   --leading: var(--leading-relaxed);
-  line-height: var(--leading-relaxed);
+  line-height: 1.55;
+
 }
 .chat-compose-bar__text-2 {
   --font-weight: var(--font-weight-medium);
@@ -3114,7 +3146,8 @@ defineExpose({
 }
 .chat-compose-bar__button-send-message {
   --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
+  font-weight: 500;
+
 }
 .chat-compose-bar__text-replying-to {
   --tracking: var(--tracking-wider);
@@ -3165,7 +3198,8 @@ defineExpose({
   color: var(--ui-black);
 }
 .chat-compose-bar__button-send-message {
-  color: var(--ui-black);
+  color: var(--app-bg);
+
 }
 .chat-compose-bar__button-message-timer--success {
   color: var(--color-emerald-300);
@@ -3201,7 +3235,8 @@ defineExpose({
   color: var(--color-white);
 }
 .chat-compose-bar__field-type-a {
-  color: var(--ui-zinc-100);
+  color: var(--app-text);
+
 }
 .chat-compose-bar__text-4 {
   color: var(--ui-zinc-200);
@@ -3267,7 +3302,8 @@ defineExpose({
   color: var(--ui-zinc-400);
 }
 .chat-compose-bar__button-voice-note {
-  color: var(--ui-zinc-400);
+  color: var(--app-bg);
+
 }
 .chat-compose-bar__button {
   color: var(--ui-zinc-500);
@@ -3318,7 +3354,7 @@ defineExpose({
   color: var(--ui-zinc-600);
 }
 .chat-compose-bar__text-17 {
-  color: var(--ui-zinc-600);
+  color: var(--app-muted-2);
 }
 .chat-compose-bar__text-replying-to {
   text-transform: uppercase;
@@ -3608,14 +3644,13 @@ defineExpose({
   user-select: none;
 }
 .chat-compose-bar__block-21:focus-within {
-  border-color: var(--ui-zinc-600);
+  border-color: var(--app-border-strong);
 }
 .chat-compose-bar__block-21:focus-within {
-  --ring-shadow: var(--ring-inset,) 0 0 0 calc(1px + var(--ring-offset-width,0px)) var(--ring-color,currentcolor);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-inset,) 0 0 0 calc(1px + var(--ring-offset-width,0px)) var(--ring-color,currentcolor), var(--shadow,0 0 #0000);
+  box-shadow: var(--app-focus-ring);
 }
 .chat-compose-bar__block-21:focus-within {
-  --ring-color: var(--ui-zinc-600);
+  --ring-color: color-mix(in srgb, var(--app-primary) 70%, transparent);
 }
 .chat-compose-bar__field-type-a:focus {
   --outline-style: none;
@@ -3712,7 +3747,7 @@ defineExpose({
   color: var(--app-muted);
 }
 [data-theme="light"] .chat-compose-bar__button-voice-note {
-  color: var(--app-muted);
+  color: var(--app-bg);
 }
 [data-theme="light"] .chat-compose-bar__button {
   color: var(--app-muted);
@@ -3834,14 +3869,79 @@ defineExpose({
 
 @supports (color:color-mix(in lab,red,red)) {
 .chat-compose-bar__block-21 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 80%,transparent);
+  background-color: var(--app-surface);
+
 }
 }
 
 @supports (color:color-mix(in lab,red,red)) {
 .chat-compose-bar__block-21:focus-within {
-  --ring-color: color-mix(in oklab, var(--ui-zinc-600) 40%, transparent);
+  --ring-color: color-mix(in srgb, var(--app-primary) 45%, transparent);
 }
 }
+}
+
+/* Ledger pass: square tool buttons, ink send, no glass. */
+
+.chat-compose-bar__button-attach-image:focus-visible,
+.chat-compose-bar__button-format-message:focus-visible,
+.chat-compose-bar__button-preview-formatting:focus-visible,
+.chat-compose-bar__button-message-timer:focus-visible,
+.chat-compose-bar__button-voice-note:focus-visible,
+.chat-compose-bar__button-send-message:focus-visible,
+.chat-compose-bar__button-cancel-upload:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--app-primary) 70%, transparent);
+  outline-offset: 2px;
+}
+
+.chat-compose-bar__button-send-message,
+.chat-compose-bar__button-voice-note {
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+}
+
+.chat-compose-bar__text-17 {
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@media (hover: hover) {
+  .chat-compose-bar__button-send-message:hover,
+  .chat-compose-bar__button-voice-note:hover {
+    background-color: color-mix(in oklab, var(--app-text) 86%, transparent);
+    color: var(--app-bg);
+  }
+
+  .chat-compose-bar__button-attach-image:hover,
+  .chat-compose-bar__button-format-message:hover,
+  .chat-compose-bar__button-preview-formatting:hover,
+  .chat-compose-bar__button-message-timer:hover {
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+  }
+}
+
+@media (pointer: coarse) {
+  .chat-compose-bar__button-attach-image,
+  .chat-compose-bar__button-format-message,
+  .chat-compose-bar__button-preview-formatting,
+  .chat-compose-bar__button-message-timer,
+  .chat-compose-bar__button-voice-note,
+  .chat-compose-bar__button-send-message {
+    min-height: var(--app-touch-h);
+  }
+
+  .chat-compose-bar__button-attach-image,
+  .chat-compose-bar__button-format-message,
+  .chat-compose-bar__button-preview-formatting,
+  .chat-compose-bar__button-voice-note {
+    min-width: var(--app-touch-h);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-compose-bar__block-21 {
+    transition: none;
+  }
 }
 </style>
