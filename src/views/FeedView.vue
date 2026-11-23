@@ -273,103 +273,87 @@ async function switchTab(next) {
 <template>
   <div class="feed-view__block">
     <main class="feed-view__main">
-      <div
-        class="feed-view__block-2"
-      >
-        <div>
-          <h1 class="feed-view__title-feed">
+      <header class="feed-head">
+        <div class="feed-head__identity">
+          <p class="feed-head__eyebrow">Public feed</p>
+          <h1 class="feed-head__title">
             Feed
             <span
               v-if="visiblePosts?.length"
-              class="feed-view__text"
+              class="feed-head__count"
             >
-              ({{ visiblePosts?.length || 0 }})
+              {{ visiblePosts?.length || 0 }}
             </span>
           </h1>
-          <p class="feed-view__text-2">
+          <p class="feed-head__lede">
             Public posts with auto-expiry. Media stays encrypted, keys ride in the event.
           </p>
         </div>
-        <div class="feed-view__block-3">
+        <div class="feed-head__actions">
           <button
             type="button"
             :disabled="isRefreshing"
-            class="feed-view__button"
+            class="feed-action"
             @click="refreshFeed"
           >
-            <RefreshCw class="feed-view__refresh-cw" :class="{ 'feed-view__refresh-cw--spin': isRefreshing }" />
+            <RefreshCw class="feed-action__icon" :class="{ 'feed-action__icon--spin': isRefreshing }" />
             <span>Sync</span>
           </button>
           <RouterLink
             to="/feed/new"
-            class="feed-view__router-link"
+            class="feed-action feed-action--ink"
           >
-            <Plus class="feed-view__plus" :stroke-width="2.2" />
-            <span>New Post</span>
+            <Plus class="feed-action__icon" :stroke-width="2.2" />
+            <span>New post</span>
           </RouterLink>
         </div>
-      </div>
+      </header>
 
       <AppAlertBanner v-if="error" :message="error" />
 
-      <div
-        class="feed-view__block-4"
-      >
+      <nav class="feed-tabs" aria-label="Feed scope">
         <button
           type="button"
-          class="feed-view__button-global"
-          :class="
-            tab === 'global'
-              ? 'feed-view__button-global--selected'
-              : 'feed-view__button-global--muted'
-          "
+          class="feed-tabs__tab"
+          :class="{ 'is-active': tab === 'global' }"
+          :aria-current="tab === 'global' ? 'page' : undefined"
           @click="switchTab('global')"
         >
           Global
-          <span class="feed-view__text-3"
-            >({{ posts?.length || 0 }})</span
-          >
+          <span class="feed-tabs__count">{{ posts?.length || 0 }}</span>
         </button>
         <button
           type="button"
-          class="feed-view__button-trusted"
-          :class="
-            tab === 'trusted'
-              ? 'feed-view__button-trusted--selected'
-              : 'feed-view__button-trusted--muted'
-          "
+          class="feed-tabs__tab"
+          :class="{ 'is-active': tab === 'trusted' }"
+          :aria-current="tab === 'trusted' ? 'page' : undefined"
           @click="switchTab('trusted')"
         >
           Trusted
         </button>
         <button
           type="button"
-          class="feed-view__button-mine"
-          :class="
-            tab === 'mine'
-              ? 'feed-view__button-mine--selected'
-              : 'feed-view__button-mine--muted'
-          "
+          class="feed-tabs__tab"
+          :class="{ 'is-active': tab === 'mine' }"
+          :aria-current="tab === 'mine' ? 'page' : undefined"
           @click="switchTab('mine')"
         >
           Mine
         </button>
-      </div>
+      </nav>
 
-      <div class="feed-view__block-5">
-        <Search
-          class="feed-view__search"
-        />
+      <label class="feed-search">
+        <Search class="feed-search__icon" aria-hidden="true" />
         <input
           v-model="searchQuery"
           type="text"
           placeholder="Search posts…"
-          class="feed-view__field-text"
+          class="feed-search__field"
         />
-      </div>
+      </label>
 
       <div v-if="isLoading" class="feed-view__status" role="status">
-        <span class="feed-view__text-4">Loading posts…</span>
+        <span class="feed-loading__label">Loading posts…</span>
         <div
           v-for="n in 3"
           :key="n"
@@ -384,9 +368,12 @@ async function switchTab(next) {
 
       <div
         v-else-if="!visiblePosts?.length"
-        class="feed-view__block-10"
+        class="feed-empty"
       >
-        <h2 class="feed-view__subtitle">
+        <p class="feed-empty__eyebrow">
+          {{ tab === "trusted" ? "Trusted circle" : tab === "mine" ? "Your archive" : "Empty ledger" }}
+        </p>
+        <h2 class="feed-empty__title">
           {{
             tab === "trusted"
               ? "No trusted posts yet"
@@ -395,7 +382,7 @@ async function switchTab(next) {
                 : "No posts yet"
           }}
         </h2>
-        <p class="feed-view__text-5">
+        <p class="feed-empty__lede">
           {{
             tab === "trusted"
               ? "Posts from contacts you have messaged will appear here."
@@ -405,9 +392,9 @@ async function switchTab(next) {
         <RouterLink
           v-if="tab !== 'trusted'"
           to="/feed/new"
-          class="feed-view__router-link-2"
+          class="feed-action feed-action--ink feed-empty__action"
         >
-          <Plus class="feed-view__plus-2" :stroke-width="2.2" />
+          <Plus class="feed-action__icon" :stroke-width="2.2" />
           <span>Create post</span>
         </RouterLink>
       </div>
@@ -1233,5 +1220,345 @@ async function switchTab(next) {
   color: var(--app-text) !important;
 }
 }
+}
+
+/* Ledger pass: the feed header is a title rule, the tabs an underline. */
+
+.feed-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-5);
+  padding-bottom: var(--app-space-6);
+  border-bottom: 1px solid var(--app-border);
+  animation: ledger-rise 480ms var(--app-ease-emphasized) both;
+}
+
+.feed-head__identity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+  min-width: 0;
+}
+
+.feed-head__eyebrow {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--app-text-label);
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  line-height: 1.4;
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+}
+
+.feed-head__title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--app-space-3);
+  margin: 0;
+  font-size: var(--app-text-display);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: var(--app-tracking-display);
+  color: var(--app-text);
+}
+
+.feed-head__count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--app-muted-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.feed-head__count::before {
+  content: "·";
+  margin-right: var(--app-space-2);
+  color: var(--app-border-strong);
+}
+
+.feed-head__lede {
+  max-width: 56ch;
+  margin: 0;
+  font-size: var(--app-text-meta);
+  line-height: 1.6;
+  color: var(--app-muted);
+}
+
+.feed-head__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2);
+}
+
+.feed-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 32px;
+  padding-inline: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.feed-action:active {
+  transform: translateY(1px);
+}
+
+.feed-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.feed-action--ink {
+  border-color: var(--app-text);
+  background: var(--app-text);
+  color: var(--app-bg);
+}
+
+.feed-action__icon {
+  width: 13px;
+  height: 13px;
+}
+
+.feed-action__icon--spin {
+  animation: var(--animate-spin);
+}
+
+.feed-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: var(--app-space-6);
+  border-bottom: 1px solid var(--app-border);
+}
+
+.feed-tabs__tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-mono);
+  font-size: var(--app-text-label);
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+  cursor: pointer;
+  transition: color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.feed-tabs__tab::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--app-dur) var(--app-ease-emphasized);
+}
+
+.feed-tabs__tab.is-active {
+  color: var(--app-text);
+}
+
+.feed-tabs__tab.is-active::after {
+  transform: scaleX(1);
+  animation: ledger-draw var(--app-dur-slow) var(--app-ease-emphasized) both;
+}
+
+.feed-tabs__count {
+  font-size: 10px;
+  color: var(--app-muted-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.feed-tabs__tab.is-active .feed-tabs__count {
+  color: var(--app-muted);
+}
+
+.feed-search {
+  position: relative;
+  display: block;
+}
+
+.feed-search__icon {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  width: 14px;
+  height: 14px;
+  transform: translateY(-50%);
+  color: var(--app-muted-2);
+  pointer-events: none;
+}
+
+.feed-search__field {
+  width: 100%;
+  height: 40px;
+  padding: 0 16px 0 38px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: transparent;
+  font-size: var(--app-text-body);
+  color: var(--app-text);
+  transition:
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    box-shadow var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.feed-search__field::placeholder {
+  color: var(--app-muted-2);
+}
+
+.feed-search__field:focus {
+  outline: none;
+  border-color: var(--app-border-strong);
+  box-shadow: var(--app-focus-ring);
+}
+
+.feed-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--app-space-3);
+  padding: var(--app-space-8) var(--app-space-5);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  text-align: center;
+  animation: ledger-rise 420ms var(--app-ease-emphasized) both;
+}
+
+.feed-empty__eyebrow {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--app-text-label);
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+}
+
+.feed-empty__title {
+  margin: 0;
+  font-size: var(--app-text-heading);
+  font-weight: 600;
+  letter-spacing: var(--app-tracking-heading);
+  color: var(--app-text);
+}
+
+.feed-empty__lede {
+  max-width: 36ch;
+  margin: 0;
+  font-size: var(--app-text-meta);
+  line-height: 1.6;
+  color: var(--app-muted);
+}
+
+.feed-empty__action {
+  margin-top: var(--app-space-3);
+}
+
+.feed-loading__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (min-width: 40rem) {
+  .feed-head {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--app-space-6);
+  }
+
+  .feed-head__actions {
+    flex-shrink: 0;
+    padding-bottom: 2px;
+  }
+}
+
+@media (max-width: 26rem) {
+  .feed-head {
+    padding-bottom: var(--app-space-5);
+  }
+
+  .feed-head__title {
+    font-size: 26px;
+  }
+
+  .feed-tabs {
+    gap: var(--app-space-5);
+  }
+}
+
+@media (hover: hover) {
+  .feed-action:hover {
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+  }
+
+  .feed-action--ink:hover {
+    border-color: var(--app-text);
+    background: color-mix(in oklab, var(--app-text) 86%, transparent);
+    color: var(--app-bg);
+  }
+
+  .feed-tabs__tab:hover {
+    color: var(--app-text);
+  }
+}
+
+@media (pointer: coarse) {
+  .feed-action {
+    min-height: var(--app-touch-h);
+  }
+
+  .feed-tabs__tab {
+    min-height: var(--app-touch-h);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feed-head,
+  .feed-empty,
+  .feed-tabs__tab.is-active::after {
+    animation: none;
+  }
+
+  .feed-action,
+  .feed-tabs__tab,
+  .feed-tabs__tab::after,
+  .feed-search__field {
+    transition: none;
+  }
 }
 </style>
