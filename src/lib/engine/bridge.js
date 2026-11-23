@@ -169,6 +169,8 @@ function ensureWorker() {
           for (const id of [report.id]) notifyRelayAck(id);
         }
       }
+    } else if (type === "trace") {
+      logSendStage(msg.data.eventId, msg.data.stage, msg.data.detail || null);
     } else if (type === "ingested") {
       const ids = freshIngestedIds(msg.data.ids);
       if (!ids.length) return;
@@ -193,6 +195,7 @@ function ensureWorker() {
     }
   };
   worker.onerror = (err) => {
+    console.warn("[gupt:send] replication worker error:", err?.message || err);
     debugLog(`[engine] worker error: ${err?.message || err}`);
   };
   return worker;

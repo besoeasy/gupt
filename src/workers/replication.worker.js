@@ -45,6 +45,14 @@ function log(msg) {
   post("log", { msg });
 }
 
+/** Same timeline as the main-thread [gupt:send] trace, for send stages that
+ * only the worker can see (queueing, cycle blocking, relay selection). */
+function trace(eventId, stage, detail = null) {
+  const key = String(eventId || "").toLowerCase();
+  if (!key) return;
+  post("trace", { eventId: key, stage, detail });
+}
+
 // Proves the worker event loop is alive even during a long sync cycle. The
 // main-thread watchdog uses this to distinguish a stuck cycle from a dead
 // worker (and must not kill a legitimate large-attachment download).
@@ -158,6 +166,7 @@ function enqueuePriority(id) {
   if (!key || priorityQueued.has(key)) return;
   priorityQueued.add(key);
   priorityQueue.push(key);
+  trace(key, "priority-queued", { queue: priorityQueue.length });
   if (priorityQueued.size > PRIORITY_QUEUE_MAX) {
     for (const old of priorityQueued) {
       if (priorityQueued.size <= PRIORITY_QUEUE_MAX) break;
@@ -176,7 +185,10 @@ async function pushPriorityEvent(id, event, store, readyRelays = null) {
     (relay) => String(config.relayModes?.[relay] || "").toLowerCase() !== "read_only",
   );
   const candidates = filterLiveRelays(writable);
-  if (!candidates.length) return;
+  if (!candidates.length) {
+    trace(id, "priority-no-live-relays", { writable: writable.length });
+    return;
+  }
   let scores = null;
   try {
     scores = await store.getRelayScores?.();
@@ -187,7 +199,14 @@ async function pushPriorityEvent(id, event, store, readyRelays = null) {
     relayModes: config.relayModes,
   });
   const available = readyRelays ? ordered.filter((relay) => readyRelays.has(relay)) : ordered;
-  if (!available.length) return;
+  if (!available.length) {
+    trace(id, "priority-no-ready-relay");
+    return;
+  }
+  trace(id, "priority-push-start", {
+    relays: available.length,
+    blobSend: isBlobSend,
+  });
   let entry = null;
   try {
     entry = await store.getOutboxEntry?.(id);
@@ -413,10 +432,22 @@ async function pushPriorityBlobs(event, store) {
 
 async function drainPriority() {
   if (priorityBusy || !priorityQueue.length) return;
-  if (!config.pubkeyHex || !config.relays.length) return;
+  if (!config.pubkeyHex || !config.relays.length) {
+    trace(priorityQueue[0], "worker-no-relays", {
+      queue: priorityQueue.length,
+      relays: config.relays.length,
+    });
+    return;
+  }
   // One sender at a time: a full cycle holds the store and the relay queues,
   // so a priority send waits for it instead of pushing the same event twice.
   if (busy) {
+    if (!pendingPriority) {
+      trace(priorityQueue[0], "priority-blocked-by-cycle", {
+        queue: priorityQueue.length,
+        cycleAgeMs: lastCycleStartedAt ? Date.now() - lastCycleStartedAt : null,
+      });
+    }
     pendingPriority = true;
     return;
   }
@@ -438,8 +469,12 @@ async function drainPriority() {
         if (blobs.ok) {
           await pushPriorityEvent(id, event, store, blobs.ready);
         } else {
+          trace(id, "priority-blob-deferred");
           log(`priority push ${id.slice(0, 12)} deferred: blob upload incomplete`);
         }
+      } else {
+        trace(id, "priority-event-missing");
+        log(`priority read ${id.slice(0, 12)} returned no event`);
       }
     }
   } finally {
