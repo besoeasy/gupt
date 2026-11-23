@@ -205,7 +205,7 @@ function startCall(kind) {
   align-items: center;
   justify-content: space-between;
   gap: var(--app-space-3);
-  padding: var(--app-space-2) var(--app-space-4);
+  padding: var(--app-space-4) var(--app-space-4) var(--app-space-3);
   border-bottom: 1px solid var(--app-border);
   background-color: var(--app-bg);
 }
