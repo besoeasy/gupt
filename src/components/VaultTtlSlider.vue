@@ -69,10 +69,12 @@ function onInput(event) {
 </template>
 
 <style scoped>
+/* Ledger pass: a mono readout over a hairline TTL rail. */
+
 .vault-ttl {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 8px;
   color: var(--app-text);
 }
 
@@ -80,26 +82,31 @@ function onInput(event) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: var(--app-space-3);
 }
 
 .vault-ttl__label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--app-text);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
 }
 
 .vault-ttl__value {
   flex-shrink: 0;
-  padding: 0.15rem 0.6rem;
+  padding: 2px 7px;
   border: 1px solid var(--app-border);
-  border-radius: 999px;
-  background-color: var(--app-surface-soft);
+  border-radius: 3px;
+  background: var(--app-surface-soft);
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
   color: var(--app-text);
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard);
 }
 
 .vault-ttl__range {
@@ -114,54 +121,56 @@ function onInput(event) {
 }
 
 .vault-ttl__range::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 999px;
+  height: 3px;
+  border-radius: 2px;
   background: linear-gradient(
     to right,
-    var(--app-primary) var(--fill, 0%),
-    var(--app-border) var(--fill, 0%)
+    var(--app-text) var(--fill, 0%),
+    var(--app-border-strong) var(--fill, 0%)
   );
 }
 
 .vault-ttl__range::-moz-range-track {
-  height: 4px;
-  border-radius: 999px;
+  height: 3px;
+  border-radius: 2px;
   background: linear-gradient(
     to right,
-    var(--app-primary) var(--fill, 0%),
-    var(--app-border) var(--fill, 0%)
+    var(--app-text) var(--fill, 0%),
+    var(--app-border-strong) var(--fill, 0%)
   );
 }
 
 .vault-ttl__range::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 24px;
-  height: 24px;
-  margin-top: -10px;
-  border: 3px solid var(--app-surface);
+  width: 16px;
+  height: 16px;
+  margin-top: -7px;
+  border: 2px solid var(--app-surface);
   border-radius: 50%;
-  background-color: var(--app-primary);
-  box-shadow: 0 1px 4px var(--shadow-color, rgb(0 0 0 / 25%));
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  background: var(--app-text);
+  transition:
+    transform var(--app-dur-fast) var(--app-ease-standard),
+    box-shadow var(--app-dur-fast) var(--app-ease-standard);
 }
 
 .vault-ttl__range::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border: 3px solid var(--app-surface);
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--app-surface);
   border-radius: 50%;
-  background-color: var(--app-primary);
-  box-shadow: 0 1px 4px var(--shadow-color, rgb(0 0 0 / 25%));
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  background: var(--app-text);
+  transition:
+    transform var(--app-dur-fast) var(--app-ease-standard),
+    box-shadow var(--app-dur-fast) var(--app-ease-standard);
 }
 
 .vault-ttl__range:active::-webkit-slider-thumb {
-  transform: scale(1.12);
+  transform: scale(1.15);
 }
 
 .vault-ttl__range:active::-moz-range-thumb {
-  transform: scale(1.12);
+  transform: scale(1.15);
 }
 
 .vault-ttl__range:focus-visible {
@@ -169,46 +178,43 @@ function onInput(event) {
 }
 
 .vault-ttl__range:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--app-primary) 35%, transparent);
+  box-shadow: var(--app-focus-ring);
 }
 
 .vault-ttl__range:focus-visible::-moz-range-thumb {
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--app-primary) 35%, transparent);
+  box-shadow: var(--app-focus-ring);
 }
 
 .vault-ttl__ticks {
   display: flex;
-  margin-top: -0.35rem;
+  gap: 2px;
+  margin-top: -4px;
 }
 
 .vault-ttl__tick {
   flex: 1 1 0;
   min-width: 0;
+  overflow: hidden;
   text-align: center;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 8px;
+  letter-spacing: 0.01em;
   color: var(--app-muted-2);
-  transition: color 0.15s ease;
+  transition: color var(--app-dur-fast) var(--app-ease-standard);
 }
 
 .vault-ttl__tick--on {
-  font-weight: 600;
-  color: var(--app-primary);
+  font-weight: 500;
+  color: var(--app-text);
 }
 
 .vault-ttl__hint {
   margin: 0;
-  font-size: 0.75rem;
-  line-height: 1.5;
-  color: var(--app-muted);
-}
-
-[data-theme="light"] .vault-ttl__value {
-  background-color: var(--app-surface-hover);
-}
-
-[data-theme="light"] .vault-ttl__tick {
-  color: var(--app-muted);
+  padding-top: var(--app-space-2);
+  border-top: 1px solid var(--app-border);
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--app-muted-2);
 }
 
 @media (prefers-reduced-motion: reduce) {

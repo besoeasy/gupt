@@ -24,101 +24,94 @@ function toneFor(bits) {
 <template>
   <div
     v-if="bits > 0"
-    class="pin-strength-meter__meter"
+    class="pin-meter"
+    :class="`pin-meter--${toneFor(bits)}`"
     role="meter"
     :aria-valuenow="bits"
     aria-valuemin="0"
     aria-valuemax="120"
     :aria-valuetext="`${TIERS[toneFor(bits) - 1].label}, approximately ${bits} bits`"
   >
-    <div class="pin-strength-meter__block" aria-hidden="true">
+    <div class="pin-meter__track" aria-hidden="true">
       <span
         v-for="i in 4"
         :key="i"
-        class="pin-strength-meter__text"
-        :class="i <= toneFor(bits) ? 'pin-strength-meter__text--variant-1' : 'pin-strength-meter__text--variant-2'"
+        class="pin-meter__seg"
+        :class="{ 'pin-meter__seg--on': i <= toneFor(bits) }"
       />
     </div>
-    <span class="pin-strength-meter__text-2">
+    <span class="pin-meter__readout">
       {{ TIERS[toneFor(bits) - 1].label }} · ≈{{ bits }} bits{{ suffix }}
     </span>
   </div>
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: four hairline segments with a tier tone. */
 
-@layer gupt-components {
-.pin-strength-meter__meter {
+.pin-meter {
   display: flex;
-}
-
-.pin-strength-meter__block {
-  display: flex;
-}
-
-.pin-strength-meter__text {
-  height: var(--spacing);
-}
-
-.pin-strength-meter__block {
-  flex: 1;
-}
-
-.pin-strength-meter__text {
-  flex: 1;
-}
-
-.pin-strength-meter__text-2 {
-  flex-shrink: 0;
-}
-
-.pin-strength-meter__meter {
   align-items: center;
+  gap: var(--app-space-3);
 }
 
-.pin-strength-meter__block {
-  gap: var(--spacing);
+.pin-meter__track {
+  display: flex;
+  flex: 1;
+  gap: 3px;
+  min-width: 0;
 }
 
-.pin-strength-meter__meter {
-  gap: calc(var(--spacing) * 3);
+.pin-meter__seg {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--app-surface-inset-strong);
+  transition: background-color var(--app-dur-slow) var(--app-ease-standard);
 }
 
-.pin-strength-meter__text {
-  border-radius: 3.40282e38px;
+.pin-meter__readout {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+  font-variant-numeric: tabular-nums;
+  transition: color var(--app-dur-slow) var(--app-ease-standard);
 }
 
-.pin-strength-meter__text--variant-2 {
-  background-color: var(--app-surface-hover);
+.pin-meter--1 .pin-meter__seg--on {
+  background: var(--app-danger);
 }
 
-.pin-strength-meter__text--variant-1 {
-  background-color: var(--accent);
+.pin-meter--1 .pin-meter__readout {
+  color: var(--app-danger);
 }
 
-.pin-strength-meter__text-2 {
-  font-size: 11px;
+.pin-meter--2 .pin-meter__seg--on {
+  background: var(--app-warning);
 }
 
-.pin-strength-meter__text-2 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
+.pin-meter--2 .pin-meter__readout {
+  color: var(--app-warning);
 }
 
-.pin-strength-meter__text-2 {
-  color: var(--app-muted);
+.pin-meter--3 .pin-meter__seg--on,
+.pin-meter--4 .pin-meter__seg--on {
+  background: var(--app-success);
 }
 
-.pin-strength-meter__text {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
+.pin-meter--3 .pin-meter__readout,
+.pin-meter--4 .pin-meter__readout {
+  color: var(--app-success);
 }
 
-.pin-strength-meter__text {
-  --duration: .3s;
-  transition-duration: .3s;
-}
+@media (prefers-reduced-motion: reduce) {
+  .pin-meter__seg,
+  .pin-meter__readout {
+    transition: none;
+  }
 }
 </style>
