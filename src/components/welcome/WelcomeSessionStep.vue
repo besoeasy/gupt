@@ -30,35 +30,41 @@ const ttlModel = computed({
 </template>
 
 <style scoped>
+/* Ledger pass: a short explanation above the device-trust slider. */
+
 .session-step {
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
+  gap: var(--app-space-4);
 }
 
 .session-step__lead {
   margin: 0;
-  font-size: 0.8rem;
-  line-height: 1.55;
+  font-size: 12px;
+  line-height: 1.65;
   color: var(--app-muted);
 }
 
 .session-step__fact {
   display: flex;
   align-items: flex-start;
-  gap: 0.5rem;
+  gap: 7px;
   margin: 0;
-  font-size: 0.72rem;
-  line-height: 1.5;
-  color: var(--app-muted);
+  padding-top: var(--app-space-3);
+  border-top: 1px solid var(--app-border);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  color: var(--app-muted-2);
 }
 
 .session-step__dot {
+  flex-shrink: 0;
   width: 5px;
   height: 5px;
-  margin-top: 0.42rem;
-  flex-shrink: 0;
-  border-radius: 999px;
-  background-color: var(--app-primary);
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--app-primary);
 }
 </style>

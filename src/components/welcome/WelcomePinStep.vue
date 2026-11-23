@@ -58,35 +58,45 @@ const pinReady = computed(() => props.pin.trim().length >= PIN_MIN_CHARS);
 </template>
 
 <style scoped>
+/* Ledger pass: a single monospace field with a strength ruler. */
+
 .pin-step {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 8px;
 }
 
 .pin-step__label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--app-text);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
 }
 
 .pin-step__hint {
   font-weight: 400;
-  color: var(--app-muted);
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--app-muted-2);
 }
 
 .pin-step__input {
   width: 100%;
-  padding: 0.75rem 1.125rem;
+  min-height: 44px;
+  padding: 10px 12px;
   border: 1px solid var(--app-border);
-  border-radius: 14px;
-  background-color: var(--app-surface-soft);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
   color: var(--app-text);
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
   transition:
-    border-color 0.2s ease,
-    background-color 0.2s ease;
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    box-shadow var(--app-dur-fast) var(--app-ease-standard);
 }
 
 .pin-step__input::placeholder {
@@ -95,19 +105,27 @@ const pinReady = computed(() => props.pin.trim().length >= PIN_MIN_CHARS);
 
 .pin-step__input:focus {
   outline: none;
-  border-color: var(--app-primary);
-  background-color: var(--app-surface-hover);
+  border-color: var(--app-border-strong);
+  background: var(--app-surface);
+  box-shadow: var(--app-focus-ring);
 }
 
 .pin-step__note {
   margin: 0;
-  font-size: 0.72rem;
-  line-height: 1.5;
-  color: var(--app-muted);
-  transition: color 0.2s ease;
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--app-muted-2);
+  transition: color var(--app-dur-fast) var(--app-ease-standard);
 }
 
 .pin-step__note--ready {
   color: var(--app-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pin-step__input,
+  .pin-step__note {
+    transition: none;
+  }
 }
 </style>
