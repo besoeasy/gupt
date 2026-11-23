@@ -61,368 +61,235 @@ function hangup() {
 </script>
 
 <template>
-  <audio v-if="visible" ref="remoteAudioEl" autoplay playsinline class="app-call-pi-p__audio" />
+  <audio v-if="visible" ref="remoteAudioEl" autoplay playsinline class="call-pip__audio" />
 
-  <Transition
-    enter-active-class="app-call-pi-p__enter-active-class"
-    enter-from-class="app-call-pi-p__enter-from-class"
-    enter-to-class="app-call-pi-p__enter-to-class"
-    leave-active-class="app-call-pi-p__leave-active-class"
-    leave-from-class="app-call-pi-p__leave-from-class"
-    leave-to-class="app-call-pi-p__leave-to-class"
-  >
-    <div
-      v-if="visible"
-      class="app-call-pi-p__block"
-    >
-      <div v-if="showVideo" class="app-call-pi-p__block-2">
-        <video
-          v-show="callStore.remoteHasVideo"
-          ref="remoteVideoEl"
-          autoplay
-          playsinline
-          class="app-call-pi-p__video"
-        />
-        <div
-          v-if="!callStore.remoteHasVideo"
-          class="app-call-pi-p__block-3"
-        >
-          Waiting for video…
-        </div>
-      </div>
-
-      <div class="app-call-pi-p__block-4">
-        <RoboAvatar
-          v-if="!showVideo"
-          :pubkey="peerPubkey"
-          :src="profilePicture(peerPubkey)"
-          size="sm"
-        />
-        <div class="app-call-pi-p__block-5">
-          <p class="app-call-pi-p__text">{{ displayName(peerPubkey) }}</p>
-          <p class="app-call-pi-p__text-2">{{ stateLabel }}</p>
-        </div>
-        <button
-          type="button"
-          class="app-call-pi-p__button-return-to"
-          title="Return to call"
-          @click="returnToCall"
-        >
-          <Maximize2 class="app-call-pi-p__maximize2" :stroke-width="2" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          class="app-call-pi-p__button-end-call"
-          title="End call"
-          @click="hangup"
-        >
-          <PhoneOff class="app-call-pi-p__phone-off" :stroke-width="2" aria-hidden="true" />
-        </button>
+  <div v-if="visible" class="call-pip">
+    <div v-if="showVideo" class="call-pip__stage">
+      <video
+        v-show="callStore.remoteHasVideo"
+        ref="remoteVideoEl"
+        autoplay
+        playsinline
+        class="call-pip__video"
+      />
+      <div v-if="!callStore.remoteHasVideo" class="call-pip__wait">
+        <span class="call-pip__wait-dot" aria-hidden="true" />
+        Waiting for video…
       </div>
     </div>
-  </Transition>
+
+    <div class="call-pip__bar">
+      <RoboAvatar
+        v-if="!showVideo"
+        :pubkey="peerPubkey"
+        :src="profilePicture(peerPubkey)"
+        size="sm"
+      />
+      <div class="call-pip__body">
+        <p class="call-pip__name">{{ displayName(peerPubkey) }}</p>
+        <p class="call-pip__state">{{ stateLabel }}</p>
+      </div>
+      <button
+        type="button"
+        class="call-pip__btn"
+        title="Return to call"
+        aria-label="Return to call"
+        @click="returnToCall"
+      >
+        <Maximize2 class="call-pip__icon" :stroke-width="1.9" aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        class="call-pip__btn call-pip__btn--end"
+        title="End call"
+        aria-label="End call"
+        @click="hangup"
+      >
+        <PhoneOff class="call-pip__icon" :stroke-width="1.9" aria-hidden="true" />
+      </button>
+    </div>
+  </div>
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: a floating call card, the one surface allowed a shadow. */
 
-@layer gupt-components {
-@media (hover:hover) {
-.app-call-pi-p__button-return-to:hover {
-  border-color: var(--app-border-strong);
-}
-}
-
-@media (hover:hover) {
-.app-call-pi-p__button-return-to:hover {
-  background-color: var(--app-surface-hover);
-}
-}
-
-@media (hover:hover) {
-.app-call-pi-p__button-end-call:hover {
-  background-color: var(--color-red-500);
-}
-}
-
-@media (hover:hover) {
-.app-call-pi-p__button-return-to:hover {
-  color: var(--app-text);
-}
-}
-
-@layer gupt-components {
-.app-call-pi-p__block {
+.call-pip {
   position: fixed;
-}
-.app-call-pi-p__block-2 {
-  position: relative;
-}
-.app-call-pi-p__block {
-  right: calc(var(--spacing) * 4);
-}
-.app-call-pi-p__block {
-  bottom: calc(var(--spacing) * 4);
-}
-.app-call-pi-p__block {
+  right: var(--app-space-4);
+  bottom: calc(var(--app-space-4) + env(safe-area-inset-bottom, 0px));
   z-index: 50;
+  width: min(288px, calc(100vw - 2 * var(--app-space-4)));
+  overflow: hidden;
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  box-shadow: 0 24px 56px -28px rgba(0, 0, 0, 0.65);
+  animation: call-pip-in 340ms var(--app-ease-emphasized) both;
 }
-.app-call-pi-p__block-3 {
-  display: flex;
+
+@keyframes call-pip-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
-.app-call-pi-p__block-4 {
-  display: flex;
-}
-.app-call-pi-p__audio {
+
+.call-pip__audio {
   display: none;
 }
-.app-call-pi-p__button-return-to {
-  display: inline-flex;
+
+/* ---- Video ---- */
+
+.call-pip__stage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--ui-black);
 }
-.app-call-pi-p__button-end-call {
-  display: inline-flex;
-}
-.app-call-pi-p__block-2 {
-  aspect-ratio: var(--aspect-video);
-}
-.app-call-pi-p__maximize2 {
-  height: calc(var(--spacing) * 4);
-}
-.app-call-pi-p__phone-off {
-  height: calc(var(--spacing) * 4);
-}
-.app-call-pi-p__button-return-to {
-  height: calc(var(--spacing) * 9);
-}
-.app-call-pi-p__button-end-call {
-  height: calc(var(--spacing) * 9);
-}
-.app-call-pi-p__video {
-  height: 100%;
-}
-.app-call-pi-p__block-3 {
-  height: 100%;
-}
-.app-call-pi-p__maximize2 {
-  width: calc(var(--spacing) * 4);
-}
-.app-call-pi-p__phone-off {
-  width: calc(var(--spacing) * 4);
-}
-.app-call-pi-p__button-return-to {
-  width: calc(var(--spacing) * 9);
-}
-.app-call-pi-p__button-end-call {
-  width: calc(var(--spacing) * 9);
-}
-.app-call-pi-p__block {
-  width: calc(var(--spacing) * 72);
-}
-.app-call-pi-p__video {
+
+.call-pip__video {
   width: 100%;
-}
-.app-call-pi-p__block-5 {
-  min-width: 0;
-}
-.app-call-pi-p__block-5 {
-  flex: 1;
-}
-.app-call-pi-p__enter-to-class {
-  --translate-y: 0;
-  translate: var(--translate-x,0) 0;
-}
-.app-call-pi-p__leave-from-class {
-  --translate-y: 0;
-  translate: var(--translate-x,0) 0;
-}
-.app-call-pi-p__leave-to-class {
-  --translate-y: calc(var(--spacing) * 4);
-  translate: var(--translate-x,0) calc(var(--spacing) * 4);
-}
-.app-call-pi-p__enter-from-class {
-  --translate-y: calc(var(--spacing) * 6);
-  translate: var(--translate-x,0) calc(var(--spacing) * 6);
-}
-.app-call-pi-p__enter-from-class {
-  --scale-x: 95%;
-  --scale-y: 95%;
-  --scale-z: 95%;
-  scale: 95% 95%;
-}
-.app-call-pi-p__leave-to-class {
-  --scale-x: 95%;
-  --scale-y: 95%;
-  --scale-z: 95%;
-  scale: 95% 95%;
-}
-.app-call-pi-p__enter-to-class {
-  --scale-x: 100%;
-  --scale-y: 100%;
-  --scale-z: 100%;
-  scale: 100% 100%;
-}
-.app-call-pi-p__leave-from-class {
-  --scale-x: 100%;
-  --scale-y: 100%;
-  --scale-z: 100%;
-  scale: 100% 100%;
-}
-.app-call-pi-p__block-3 {
-  align-items: center;
-}
-.app-call-pi-p__block-4 {
-  align-items: center;
-}
-.app-call-pi-p__button-return-to {
-  align-items: center;
-}
-.app-call-pi-p__button-end-call {
-  align-items: center;
-}
-.app-call-pi-p__block-3 {
-  justify-content: center;
-}
-.app-call-pi-p__button-return-to {
-  justify-content: center;
-}
-.app-call-pi-p__button-end-call {
-  justify-content: center;
-}
-.app-call-pi-p__block-4 {
-  gap: calc(var(--spacing) * 3);
-}
-.app-call-pi-p__text {
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.app-call-pi-p__block {
-  overflow: hidden;
-}
-.app-call-pi-p__block {
-  border-radius: var(--radius-2xl);
-}
-.app-call-pi-p__button-return-to {
-  border-radius: var(--radius-xl);
-}
-.app-call-pi-p__button-end-call {
-  border-radius: var(--radius-xl);
-}
-.app-call-pi-p__block {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.app-call-pi-p__button-return-to {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.app-call-pi-p__block {
-  border-color: var(--app-border);
-}
-.app-call-pi-p__button-return-to {
-  border-color: var(--app-border);
-}
-.app-call-pi-p__block {
-  background-color: var(--app-surface);
-}
-.app-call-pi-p__button-return-to {
-  background-color: var(--app-surface-soft);
-}
-.app-call-pi-p__block-2 {
-  background-color: var(--ui-black);
-}
-.app-call-pi-p__button-end-call {
-  background-color: var(--color-red-600);
-}
-.app-call-pi-p__video {
+  height: 100%;
   object-fit: cover;
 }
-.app-call-pi-p__block-4 {
-  padding-inline: calc(var(--spacing) * 3);
+
+.call-pip__wait {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--ui-white) 62%, transparent);
 }
-.app-call-pi-p__block-4 {
-  padding-block: calc(var(--spacing) * 2.5);
+
+.call-pip__wait-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--app-warning);
+  animation: ledger-dot-pulse 1.6s var(--app-ease-standard) infinite;
 }
-.app-call-pi-p__text {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
+
+/* ---- Bar ---- */
+
+.call-pip__bar {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border-top: 1px solid var(--app-border);
 }
-.app-call-pi-p__text-2 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
+
+.call-pip__body {
+  flex: 1;
+  min-width: 0;
 }
-.app-call-pi-p__block-3 {
-  font-size: 11px;
+
+.call-pip__name {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--app-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.app-call-pi-p__text {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
+
+.call-pip__state {
+  margin: 2px 0 0;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.02em;
+  color: var(--app-muted-2);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.app-call-pi-p__block-3 {
+
+.call-pip__btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: transparent;
   color: var(--app-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-standard);
 }
-.app-call-pi-p__text-2 {
-  color: var(--app-muted);
+
+.call-pip__btn:active {
+  transform: translateY(1px);
 }
-.app-call-pi-p__button-return-to {
-  color: var(--app-text-soft);
+
+.call-pip__btn--end {
+  border-color: color-mix(in oklab, var(--app-danger) 34%, var(--app-border));
+  background: var(--app-danger-soft);
+  color: var(--app-danger);
 }
-.app-call-pi-p__button-end-call {
-  color: var(--color-white);
+
+.call-pip__icon {
+  width: 13px;
+  height: 13px;
 }
-.app-call-pi-p__enter-from-class {
-  opacity: 0;
+
+.call-pip__btn:focus-visible {
+  outline: none;
+  box-shadow: var(--app-focus-ring);
 }
-.app-call-pi-p__leave-to-class {
-  opacity: 0;
+
+@media (hover: hover) {
+  .call-pip__btn:hover {
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+  }
+
+  .call-pip__btn--end:hover {
+    border-color: var(--app-danger);
+    background: color-mix(in oklab, var(--app-danger) 16%, var(--app-surface));
+    color: var(--app-danger);
+  }
+
+  .call-pip__stage:hover .call-pip__wait {
+    color: var(--ui-white);
+  }
 }
-.app-call-pi-p__enter-to-class {
-  opacity: 1;
+
+@media (pointer: coarse) {
+  .call-pip__btn {
+    width: var(--app-touch-h);
+    height: var(--app-touch-h);
+  }
 }
-.app-call-pi-p__leave-from-class {
-  opacity: 1;
-}
-.app-call-pi-p__block {
-  --shadow: 0 25px 50px -12px var(--shadow-color,#00000040);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 25px 50px -12px var(--shadow-color,#00000040);
-}
-.app-call-pi-p__enter-active-class {
-  transition-property: all;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.app-call-pi-p__leave-active-class {
-  transition-property: all;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.app-call-pi-p__button-end-call {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.app-call-pi-p__leave-active-class {
-  --duration: .2s;
-  transition-duration: .2s;
-}
-.app-call-pi-p__enter-active-class {
-  --duration: .34s;
-  transition-duration: .34s;
-}
-.app-call-pi-p__leave-active-class {
-  --ease: var(--app-ease-in);
-  transition-timing-function: var(--app-ease-in);
-}
-.app-call-pi-p__enter-active-class {
-  --ease: var(--app-ease-spring);
-  transition-timing-function: var(--app-ease-spring);
-}
-.app-call-pi-p__button-end-call:active {
-  --scale-x: 95%;
-  --scale-y: 95%;
-  --scale-z: 95%;
-  scale: 95% 95%;
-}
-}
+
+@media (prefers-reduced-motion: reduce) {
+  .call-pip,
+  .call-pip__wait-dot {
+    animation: none;
+  }
+
+  .call-pip__btn {
+    transition: none;
+  }
 }
 </style>
