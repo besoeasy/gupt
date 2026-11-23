@@ -1,7 +1,6 @@
 <script setup>
 import { computed, nextTick, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Settings as SettingsIcon } from "@/icons";
 
 import SettingsAccountPanel from "@/components/settings/SettingsAccountPanel.vue";
 import SettingsAppPanel from "@/components/settings/SettingsAppPanel.vue";
@@ -108,16 +107,12 @@ function onTabKeydown(event, index) {
   <div class="settings-view">
     <main class="settings-view__main">
       <header class="settings-view__header">
-        <div class="settings-view__tile">
-          <SettingsIcon :stroke-width="1.8" aria-hidden="true" />
-        </div>
-        <div class="settings-view__titles">
-          <h1 class="settings-view__title">Settings</h1>
-          <p class="settings-view__subtitle">
-            Signed in as <span class="settings-view__key">{{ identityLabel }}</span> · built
-            {{ buildDate }}
-          </p>
-        </div>
+        <p class="settings-view__eyebrow">Preferences</p>
+        <h1 class="settings-view__title">Settings</h1>
+        <p class="settings-view__subtitle">
+          Signed in as <span class="settings-view__key">{{ identityLabel }}</span> · built
+          {{ buildDate }}
+        </p>
       </header>
 
       <div ref="tablist" class="settings-tabs" role="tablist" aria-label="Settings sections">
@@ -214,75 +209,77 @@ function onTabKeydown(event, index) {
 
 .settings-view {
   min-height: 100%;
-  animation: settings-view-in var(--app-dur-base) var(--app-ease-out) both;
+  animation: ledger-fade var(--app-dur-base) var(--app-ease-standard) both;
 }
 
 .settings-view__main {
   width: 100%;
   max-width: 56rem;
   margin-inline: auto;
-  padding: calc(var(--spacing) * 6) calc(var(--spacing) * 4) calc(var(--spacing) * 12);
+  padding: var(--app-space-6) var(--app-space-4) var(--app-space-8);
   display: flex;
   flex-direction: column;
-  gap: calc(var(--spacing) * 5);
+  gap: var(--app-space-6);
 }
 
 .settings-view__header {
   display: flex;
-  align-items: center;
-  gap: calc(var(--spacing) * 3);
+  flex-direction: column;
+  gap: var(--app-space-2);
 }
 
-.settings-view__tile {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  flex-shrink: 0;
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-md);
-  background-color: var(--app-surface);
-  color: var(--app-text-soft);
-}
-
-.settings-view__tile svg {
-  width: 18px;
-  height: 18px;
-}
-
-.settings-view__titles {
-  min-width: 0;
+.settings-view__eyebrow {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--app-text-label);
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+  animation: ledger-rise 480ms var(--app-ease-emphasized) 40ms backwards;
 }
 
 .settings-view__title {
   margin: 0;
-  font-size: 20px;
-  line-height: 1.2;
-  font-weight: 650;
-  letter-spacing: -0.015em;
+  font-size: var(--app-text-display);
+  line-height: 1.05;
+  font-weight: 600;
+  letter-spacing: var(--app-tracking-display);
   color: var(--app-text);
+  animation: ledger-rise 520ms var(--app-ease-emphasized) 90ms backwards;
 }
 
 .settings-view__subtitle {
-  margin: 3px 0 0;
-  font-size: 12px;
+  margin: 0;
+  max-width: 60ch;
+  font-size: var(--app-text-body);
+  line-height: var(--app-leading-body);
   color: var(--app-text-soft);
+  animation: ledger-rise 520ms var(--app-ease-emphasized) 150ms backwards;
 }
 
 .settings-view__key {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--app-text);
 }
 
 .settings-tabs {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 4px;
-  padding: 4px;
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-md);
-  background-color: var(--app-bg-soft);
+  display: flex;
+  align-items: stretch;
+  gap: var(--app-space-5);
+  padding: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border: 0;
+  border-bottom: 1px solid var(--app-border);
+  border-radius: 0;
+  background-color: transparent;
+  animation: ledger-fade 520ms var(--app-ease-standard) 200ms backwards;
+}
+
+.settings-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .settings-tabs__tab {
@@ -291,41 +288,59 @@ function onTabKeydown(event, index) {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 44px;
-  padding-inline: calc(var(--spacing) * 2);
-  border: 1px solid transparent;
-  border-radius: var(--app-radius-sm);
+  min-height: var(--app-touch-h);
+  flex-shrink: 0;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 0;
   background-color: transparent;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 500;
-  letter-spacing: 0.04em;
-  color: var(--app-text-soft);
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
   cursor: pointer;
-  transition:
-    color var(--app-dur-fast) var(--app-ease-standard),
-    background-color var(--app-dur-fast) var(--app-ease-standard),
-    border-color var(--app-dur-fast) var(--app-ease-standard);
+  transition: color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+/* The active tab is a rule that draws from the centre, never a box. */
+
+.settings-tabs__tab::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background-color: var(--app-text);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform var(--app-dur-slow) var(--app-ease-emphasized);
 }
 
 .settings-tabs__tab--active {
-  border-color: var(--app-border);
-  background-color: var(--app-surface);
   color: var(--app-text);
-  font-weight: 600;
+}
+
+.settings-tabs__tab--active::after {
+  transform: scaleX(1);
 }
 
 .settings-tabs__tab:focus-visible {
-  outline: 2px solid var(--app-primary);
-  outline-offset: 2px;
+  outline: 2px solid color-mix(in srgb, var(--app-primary) 70%, transparent);
+  outline-offset: -4px;
+  border-radius: 4px;
 }
 
 .settings-tabs__dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 999px;
   background-color: var(--app-warning);
+  color: var(--app-warning);
   flex-shrink: 0;
+  animation: ledger-dot-pulse 2.4s var(--app-ease-standard) infinite;
 }
 
 .settings-tabs__sr {
@@ -341,103 +356,106 @@ function onTabKeydown(event, index) {
 }
 
 .settings-pane {
-  padding: calc(var(--spacing) * 5);
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-lg);
-  background-color: var(--app-bg-soft);
   min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
 }
 
 .settings-pane:focus-visible {
-  outline: 2px solid var(--app-primary);
-  outline-offset: 2px;
+  outline: 2px solid color-mix(in srgb, var(--app-primary) 70%, transparent);
+  outline-offset: 8px;
+  border-radius: var(--app-radius-md);
 }
 
 .settings-pane__body {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--spacing) * 4);
+  gap: var(--app-space-6);
   min-width: 0;
-  animation: settings-pane-in var(--app-dur-base) var(--app-ease-out) both;
+  animation: ledger-fade var(--app-dur-base) var(--app-ease-standard) both;
+}
+
+/* Each block settles in turn, so switching a tab feels like a page arriving
+   rather than a swap. */
+
+.settings-pane__body > * {
+  animation: ledger-rise 460ms var(--app-ease-emphasized) backwards;
+}
+
+.settings-pane__body > *:nth-child(1) {
+  animation-delay: 40ms;
+}
+
+.settings-pane__body > *:nth-child(2) {
+  animation-delay: 90ms;
+}
+
+.settings-pane__body > *:nth-child(3) {
+  animation-delay: 140ms;
+}
+
+.settings-pane__body > *:nth-child(4) {
+  animation-delay: 190ms;
 }
 
 .settings-pane__head {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--app-space-2);
+  padding-bottom: var(--app-space-5);
+  border-bottom: 1px solid var(--app-border);
 }
 
 .settings-pane__title {
   margin: 0;
-  font-size: 15px;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  font-size: var(--app-text-title);
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   color: var(--app-text);
 }
 
 .settings-pane__desc {
   margin: 0;
-  max-width: 60ch;
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--app-text-soft);
+  max-width: 52ch;
+  font-size: var(--app-text-body);
+  line-height: var(--app-leading-body);
+  color: var(--app-muted);
 }
 
 @media (hover: hover) {
   .settings-tabs__tab:not(.settings-tabs__tab--active):hover {
     color: var(--app-text);
-    background-color: var(--app-surface-tint-soft);
   }
 }
 
 @media (min-width: 40rem) {
   .settings-view__main {
-    padding-inline: calc(var(--spacing) * 6);
-  }
-
-  .settings-pane {
-    padding: calc(var(--spacing) * 6);
+    padding-inline: var(--app-space-6);
   }
 }
 
 @media (max-width: 26rem) {
   .settings-view__main {
-    padding-inline: calc(var(--spacing) * 3);
+    padding: var(--app-space-6) var(--app-space-4) var(--app-space-7);
   }
 
-  .settings-tabs__tab {
-    font-size: 10.5px;
-    letter-spacing: 0.02em;
-  }
-
-  .settings-pane {
-    padding: calc(var(--spacing) * 3.5);
-  }
-}
-
-@keyframes settings-pane-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes settings-view-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
+  .settings-tabs {
+    gap: var(--app-space-4);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .settings-view,
-  .settings-pane__body {
+  .settings-view__eyebrow,
+  .settings-view__title,
+  .settings-view__subtitle,
+  .settings-tabs,
+  .settings-tabs__dot,
+  .settings-pane__body,
+  .settings-pane__body > * {
     animation: none;
   }
 }
