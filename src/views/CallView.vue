@@ -889,14 +889,14 @@ onBeforeUnmount(() => {
 .call__action--answer {
   border: 1px solid color-mix(in oklab, var(--app-success) 44%, transparent);
   background: var(--app-success);
-  color: #04120c;
+  color: #000;
 }
 
 .call__action--decline,
 .call__hangup {
   border: 1px solid color-mix(in oklab, var(--app-danger) 50%, transparent);
   background: var(--app-danger);
-  color: #fff;
+  color: var(--color-white);
 }
 
 .call__action:active,

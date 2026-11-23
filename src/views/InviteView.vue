@@ -3118,7 +3118,7 @@ onUnmounted(() => {
 .invite-view__qr .qr-code {
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-sm);
-  background: #ffffff;
+  background: var(--app-qr-paper);
   padding: 8px;
 }
 
