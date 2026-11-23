@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
 
-import { clearRelayCircuit, filterLiveRelays, isRelayDead } from "../src/lib/relay/circuit.js";
 import { pullMonotonicStream, pushOutboxBatch, syncCycle } from "../src/lib/engine/core.js";
 
 // Reliability contract: one relay of several being down must never stall or
@@ -13,10 +12,6 @@ import { pullMonotonicStream, pushOutboxBatch, syncCycle } from "../src/lib/engi
 const SELF = "c".repeat(64);
 const SENT_ID = "a".repeat(64);
 const PULLED_ID = "b".repeat(64);
-
-test.beforeEach(() => {
-  clearRelayCircuit();
-});
 
 function listen(handler) {
   const requests = [];
@@ -250,7 +245,7 @@ test("an inbound message arrives while one relay is down", async () => {
   }
 });
 
-test("a refused relay is skipped on the next pull instead of costing a budget", async () => {
+test("a refused relay near a healthy one never blocks the pull", async () => {
   // Port 9 is the discard port: a connection there is refused, like a node
   // that is not listening at all.
   const refused = "http://127.0.0.1:9";
@@ -271,8 +266,6 @@ test("a refused relay is skipped on the next pull instead of costing a budget", 
       relays: [refused, live.url],
     });
     assert.deepEqual(first.pulledIds, [PULLED_ID]);
-    assert.equal(isRelayDead(refused), true, "refused transport trips the breaker");
-    assert.deepEqual(filterLiveRelays([refused, live.url]), [live.url]);
 
     const before = live.requests.length;
     const second = await pullMonotonicStream({

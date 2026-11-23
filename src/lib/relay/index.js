@@ -22,18 +22,6 @@ export {
 } from "./constants.js";
 
 export {
-  RELAY_DEAD_TTL_MS,
-  isRelayDead,
-  getRelayDeadUntil,
-  markRelayDead,
-  markRelayAlive,
-  filterLiveRelays,
-  isTransportError,
-  noteRelayOutcome,
-  clearRelayCircuit,
-} from "./circuit.js";
-
-export {
   RELAY_ATTEMPT_BASE_MS,
   RELAY_ATTEMPT_MAX_MS,
   relayAttemptTimeoutMs,

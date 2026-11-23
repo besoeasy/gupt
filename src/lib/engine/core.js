@@ -46,7 +46,6 @@ export const ENGINE_REQUEST_RETRIES = 3;
 export const ENGINE_PARTIAL_RETRY_MS = 5 * 60 * 1000;
 export const ENGINE_PARTIAL_RETRY_BASE_MS = 3000;
 export const ENGINE_PARTIAL_RETRY_FACTOR = 4;
-export const ENGINE_SEND_ROUNDS = 3;
 
 import { RETENTION_DAYS } from "../../config/retention.js";
 import { outboxRetryDelayMs } from "../../config/outbox.js";
@@ -61,7 +60,7 @@ import {
 export { relayAttemptTimeoutMs, RELAY_ATTEMPT_BASE_MS, RELAY_ATTEMPT_MAX_MS };
 import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
-import { filterLiveRelays, isRelayDead, noteRelayOutcome } from "../relay/circuit.js";
+import { dedupeRelays } from "../relay/selection.js";
 
 const HEX_RE = /^[0-9a-f]{64}$/i;
 
@@ -180,17 +179,6 @@ export function nextRetryMs(attempt) {
   return ENGINE_RETRY_BASE_MS * 2 ** Math.max(0, attempt) + Math.random() * 400;
 }
 
-/** Extract the relay origin from a full request URL for circuit checks. */
-export function relayOriginOf(url) {
-  const raw = String(url || "");
-  try {
-    return new URL(raw).origin;
-  } catch {
-    const match = raw.match(/^https?:\/\/[^/]+/i);
-    return (match ? match[0] : raw).replace(/\/+$/, "");
-  }
-}
-
 /** Parse Retry-After (seconds or HTTP date) into a bounded millisecond wait. */
 export function parseRetryAfterMs(value) {
   if (!value) return 0;
@@ -206,34 +194,17 @@ export async function relayRequest(url, opts = {}, log = () => {}) {
     Math.min(ENGINE_REQUEST_RETRIES, Math.floor(Number(opts.retries)) || ENGINE_REQUEST_RETRIES),
   );
   const signal = opts.signal || null;
-  const origin = relayOriginOf(url);
-  if (origin && isRelayDead(origin)) {
-    const err = new Error(`Relay dead for ${origin}`);
-    err.relayDead = true;
-    err.relay = origin;
-    throw err;
-  }
-  const startedAt = Date.now();
-  // A response of any status proves the relay answered; only a transport
-  // failure trips the breaker. Slowness never does.
-  const noteResponse = (ok, error = null) => {
-    if (!origin) return;
-    noteRelayOutcome(origin, { ok, latencyMs: Date.now() - startedAt, error });
-  };
   let lastErr = null;
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
       const res = await fetchWithTimeout(url, opts);
       if (res.ok) {
-        noteResponse(true);
         return { res };
       }
       if (res.status === 304) {
-        noteResponse(true);
         return { res, notModified: true };
       }
       if (res.status === 404) {
-        noteResponse(true);
         return { res, notFound: true };
       }
       if (res.status === 429) {
@@ -254,7 +225,6 @@ export async function relayRequest(url, opts = {}, log = () => {}) {
     } catch (err) {
       if (signal?.aborted) throw err;
       if (err?.status >= 400 && err.status < 500 && err.status !== 408) {
-        noteResponse(false, err);
         throw err;
       }
       lastErr = err;
@@ -264,9 +234,6 @@ export async function relayRequest(url, opts = {}, log = () => {}) {
       await sleep(delay, signal);
       if (signal?.aborted) throw lastErr || new Error(`request aborted: ${url}`);
     }
-  }
-  if (origin) {
-    noteRelayOutcome(origin, { ok: false, latencyMs: Date.now() - startedAt, error: lastErr });
   }
   throw lastErr || new Error(`request failed: ${url}`);
 }
@@ -284,33 +251,14 @@ export async function postEventToRelay(relay, event) {
 
 export async function postEventOnce(relay, event, { timeoutMs = RELAY_ATTEMPT_BASE_MS } = {}) {
   const target = String(relay || "").replace(/\/+$/, "");
-  if (target && isRelayDead(target)) {
-    const err = new Error(`Relay dead for ${target}`);
-    err.relayDead = true;
-    err.relay = target;
-    throw err;
-  }
-  const startedAt = Date.now();
-  try {
-    const res = await fetchWithTimeout(`${target}/api/v1/events`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(event),
-      timeoutMs: Math.min(Number(timeoutMs) || RELAY_ATTEMPT_BASE_MS, RELAY_ATTEMPT_MAX_MS),
-    });
-    noteRelayOutcome(target, { ok: res.ok, latencyMs: Date.now() - startedAt });
-    if (res.ok) return true; // 201 stored, 200 duplicate
-    throw new Error(`HTTP ${res.status} for ${target}/api/v1/events`);
-  } catch (err) {
-    if (!err?.status) {
-      noteRelayOutcome(target, {
-        ok: false,
-        latencyMs: Date.now() - startedAt,
-        error: err,
-      });
-    }
-    throw err;
-  }
+  const res = await fetchWithTimeout(`${target}/api/v1/events`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(event),
+    timeoutMs: Math.min(Number(timeoutMs) || RELAY_ATTEMPT_BASE_MS, RELAY_ATTEMPT_MAX_MS),
+  });
+  if (res.ok) return true; // 201 stored, 200 duplicate
+  throw new Error(`HTTP ${res.status} for ${target}/api/v1/events`);
 }
 
 export async function relayHasBlob(relay, hash) {
@@ -419,13 +367,7 @@ export function getBlobFromRelays(
   hash,
   { hedgeMs = ENGINE_BLOB_HEDGE_MS, signal = null, timeoutMs, retries, onProgress = null } = {},
 ) {
-  const list = filterLiveRelays([
-    ...new Set(
-      (Array.isArray(relays) ? relays : [])
-        .map((relay) => String(relay || "").replace(/\/+$/, ""))
-        .filter(Boolean),
-    ),
-  ]);
+  const list = dedupeRelays((Array.isArray(relays) ? relays : []).filter(Boolean));
   const key = String(hash || "").toLowerCase();
   if (!list.length || !HEX_RE.test(key) || signal?.aborted) {
     return Promise.resolve(null);
@@ -682,9 +624,7 @@ export async function pullMonotonicStream({
   const self = String(pubkeyHex || "")
     .toLowerCase()
     .replace(/^ed25519:/, "");
-  // Dead relays stay out of the pull until their breaker expires; when all
-  // are dead the filter falls back to the full list.
-  const relayList = filterLiveRelays((Array.isArray(relays) ? relays : []).filter(Boolean));
+  const relayList = dedupeRelays((Array.isArray(relays) ? relays : []).filter(Boolean));
   if (!self || !relayList.length) return summary;
 
   const seenIds = new Set();
@@ -763,6 +703,9 @@ export async function pullMonotonicStream({
         const msg = `pull ${spec.name} from ${relay} failed: ${err?.message || err}`;
         task.errors.push(msg);
         log(msg);
+        // Same node, same transport failure: the second channel would fail the
+        // same way, so stop asking it this cycle. The next cycle tries again.
+        break;
       }
     }
 
@@ -942,7 +885,7 @@ export async function pushOutboxBatch({
     capabilityStale: false,
   };
 
-  const relayList = filterLiveRelays((Array.isArray(relays) ? relays : []).filter(Boolean));
+  const relayList = dedupeRelays((Array.isArray(relays) ? relays : []).filter(Boolean));
   if (!relayList.length) return summary;
 
   // Read-only nodes refuse every write (429 battery_empty). Keep them for
@@ -1264,7 +1207,7 @@ export async function syncCycle({
   fullReconcile = false,
   pushOutbox = true,
 }) {
-  const relayList = filterLiveRelays((Array.isArray(relays) ? relays : []).filter(Boolean));
+  const relayList = dedupeRelays((Array.isArray(relays) ? relays : []).filter(Boolean));
   const self = String(pubkeyHex || "")
     .toLowerCase()
     .replace(/^ed25519:/, "");

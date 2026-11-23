@@ -1,12 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { clearRelayCircuit } from "../src/lib/relay/circuit.js";
 import { pullMonotonicStream } from "../src/lib/engine/core.js";
-
-test.beforeEach(() => {
-  clearRelayCircuit();
-});
 
 function mockStore() {
   const watermarks = new Map();

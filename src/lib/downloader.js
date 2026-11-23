@@ -7,7 +7,7 @@ import { openSinglePart, openBlob, RABTA_EVENT_ID_RE } from "./rabta/index.js";
 import { base64ToBytes } from "./chatUtils.js";
 import { getDecCached, putDecCached, getEngineBlob, putEngineBlob, clearDecCached } from "./idb.js";
 import { sha256HexOfBytes } from "./engine/core.js";
-import { filterLiveRelays, markRelayAlive, noteRelayOutcome } from "./relay/circuit.js";
+import { dedupeRelays } from "./relay/selection.js";
 import { capRelayTimeoutMs } from "./relay/timeouts.js";
 import { isPlainSizeMismatch, verifyPlainMedia } from "./mediaVerify.js";
 import { globalMediaDownloadQueue } from "./mediaDownloadQueue.js";
@@ -39,13 +39,10 @@ export class DownloaderError extends Error {
  */
 export function getActiveRelays(customRelays = null) {
   if (Array.isArray(customRelays) && customRelays.length) {
-    return filterLiveRelays(
-      customRelays.map((r) => String(r || "").replace(/\/+$/, "")).filter(Boolean),
-    );
+    return dedupeRelays(customRelays);
   }
   const configured = readConfiguredRelays();
-  const list = configured.length ? configured : DEFAULT_RELAYS;
-  return filterLiveRelays(list.map((r) => String(r || "").replace(/\/+$/, "")).filter(Boolean));
+  return dedupeRelays(configured.length ? configured : DEFAULT_RELAYS);
 }
 
 /**
@@ -88,7 +85,6 @@ export async function probePartsAvailability(parts, { relays = null, timeoutMs =
 
       // 2. Probe remote relays in parallel
       const probePromises = targetRelays.map(async (relay) => {
-        const startedAt = Date.now();
         try {
           const controller = new AbortController();
           const timer = setTimeout(() => controller.abort(), capRelayTimeoutMs(timeoutMs));
@@ -97,14 +93,12 @@ export async function probePartsAvailability(parts, { relays = null, timeoutMs =
             signal: controller.signal,
           });
           clearTimeout(timer);
-          // Any answer proves the relay is up; only transport failures trip it.
-          markRelayAlive(relay);
           if (res.ok) {
             const size = Number(res.headers.get("Content-Length")) || 0;
             return { ok: true, relay, size };
           }
         } catch (err) {
-          noteRelayOutcome(relay, { ok: false, latencyMs: Date.now() - startedAt, error: err });
+          // transport failure: try the next relay
         }
         return { ok: false, relay, size: 0 };
       });

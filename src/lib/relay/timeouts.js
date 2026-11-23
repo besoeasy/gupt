@@ -1,9 +1,8 @@
 // Adaptive per-relay budgets. There is no fixed response window anywhere in
 // the app: a relay that proved itself slow earns a bigger budget, an unknown
 // relay gets the base, and each retry round doubles it up to the ceiling.
-// Slowness never marks a relay dead — that is what the scores are for. Only a
-// transport failure (refused, unreachable, aborted) trips the breaker, and a
-// single success revives the relay immediately.
+// Slowness is never a verdict on its own; the persisted scores rank a slow
+// relay down and the next request gives it the larger budget.
 export const RELAY_ATTEMPT_BASE_MS = 2000;
 export const RELAY_ATTEMPT_MAX_MS = 8000;
 

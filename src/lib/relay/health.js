@@ -36,9 +36,7 @@ export async function probeRelayConnections(relays, { timeoutMs = 5000, detailed
 
   const outcomes = await Promise.all(
     targets.map(async (relay) => {
-      // Explicit probes bypass the breaker: a manual or startup probe is how
-      // a dead relay proves itself alive again before its 300s expire.
-      const res = await checkRelayHealth(relay, { timeoutMs, detailed, force: true });
+      const res = await checkRelayHealth(relay, { timeoutMs, detailed });
       const status = Number(res.status) || 0;
       const ok =
         Boolean(res.reachable) && status > 0 && status < 500 && status !== 408 && status !== 429;
