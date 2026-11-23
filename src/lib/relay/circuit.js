@@ -1,18 +1,18 @@
-// Relay circuit breaker: a relay that does not answer within
-// RELAY_RESPONSE_TIMEOUT_MS (3s) is considered dead for RELAY_DEAD_TTL_MS
-// (300s). Every fan-out filters dead relays first, so one stalled node can
-// never hold back a pull, push, query or publish aimed at the healthy ones.
+// Relay circuit breaker: a relay with a recent transport failure (refused,
+// unreachable, aborted) is skipped until its TTL expires, so one hard-down
+// node never costs a full attempt budget on every cycle. When every relay is
+// down the filter falls back to the full list: trying beats giving up, and a
+// success revives the relay immediately.
 //
 // State is an in-memory Map (per realm: main thread and worker each track
 // their own observations). Relay stats in IndexedDB stay the long-term memory;
 // this is only the fast "stop hitting it" switch.
 //
 // Rule for noteRelayOutcome():
-// - any HTTP response (even 5xx/429) proves the relay is up -> alive,
-//   unless it took longer than the response window -> dead anyway;
-// - transport failures (timeout, abort, network error) -> dead;
-// - successes within the window -> alive.
-export const RELAY_RESPONSE_TIMEOUT_MS = 3_000;
+// - success (any HTTP response, even 5xx/429) -> alive;
+// - transport failure (or an empty failure with no detail) -> dead.
+// Slowness is never a signal: a slow relay keeps its score-derived budget and
+// is ranked down, not cut off.
 export const RELAY_DEAD_TTL_MS = 300_000;
 
 const deadUntil = new Map();
@@ -59,7 +59,7 @@ export function markRelayAlive(relay) {
 
 /**
  * Drop dead relays from a fan-out. When every relay is dead, return the full
- * list: trying (with a 3s cap each) beats giving up entirely, and a success
+ * list: trying beats giving up entirely, and a success
  * revives the relay immediately.
  */
 export function filterLiveRelays(relays, now) {
@@ -84,17 +84,9 @@ export function isTransportError(error) {
  * Feed one relay result into the breaker. `ok` follows the caller's scoring
  * (an HTTP 500 is !ok but still proves the relay answered).
  */
-export function noteRelayOutcome(relay, { ok = false, latencyMs = 0, error = null } = {}, now) {
+export function noteRelayOutcome(relay, { ok = false, error = null } = {}, now) {
   const key = normalizeCircuitRelay(relay);
   if (!key) return false;
-  const latency = Math.max(0, Number(latencyMs) || 0);
-
-  // Slow is dead: a relay that needs longer than the response window holds
-  // back every pull/push cycle even when it eventually answers.
-  if (latency > RELAY_RESPONSE_TIMEOUT_MS) {
-    markRelayDead(key, RELAY_DEAD_TTL_MS, now);
-    return true;
-  }
   if (ok) {
     markRelayAlive(key);
     return false;
@@ -106,13 +98,6 @@ export function noteRelayOutcome(relay, { ok = false, latencyMs = 0, error = nul
   // An HTTP error status is still a response: the relay is up.
   markRelayAlive(key);
   return false;
-}
-
-/** Clamp a control-plane timeout to the response window. */
-export function clampRelayTimeoutMs(timeoutMs, fallback = RELAY_RESPONSE_TIMEOUT_MS) {
-  const value = Number(timeoutMs);
-  const base = Number.isFinite(value) && value > 0 ? value : fallback;
-  return Math.min(base, RELAY_RESPONSE_TIMEOUT_MS);
 }
 
 export function clearRelayCircuit() {

@@ -1,8 +1,3 @@
-export const CONNECT_TIMEOUT_MS = 3_000;
-export const QUERY_TIMEOUT_MS = 5_000;
-export const PUBLISH_TIMEOUT_MS = 6_000;
-export const SUBSCRIBE_EOSE_MS = 5_000;
-
 export const RelayTier = Object.freeze({
   CHAMPION: "champion",
   GOOD: "good",

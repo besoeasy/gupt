@@ -8,6 +8,7 @@ import { base64ToBytes } from "./chatUtils.js";
 import { getDecCached, putDecCached, getEngineBlob, putEngineBlob, clearDecCached } from "./idb.js";
 import { sha256HexOfBytes } from "./engine/core.js";
 import { filterLiveRelays, markRelayAlive, noteRelayOutcome } from "./relay/circuit.js";
+import { capRelayTimeoutMs } from "./relay/timeouts.js";
 import { isPlainSizeMismatch, verifyPlainMedia } from "./mediaVerify.js";
 import { globalMediaDownloadQueue } from "./mediaDownloadQueue.js";
 
@@ -90,10 +91,7 @@ export async function probePartsAvailability(parts, { relays = null, timeoutMs =
         const startedAt = Date.now();
         try {
           const controller = new AbortController();
-          const timer = setTimeout(
-            () => controller.abort(),
-            Math.min(Number(timeoutMs) || 4000, 3000),
-          );
+          const timer = setTimeout(() => controller.abort(), capRelayTimeoutMs(timeoutMs));
           const res = await fetch(`${relay}/api/v1/blobs/${hash}`, {
             method: "HEAD",
             signal: controller.signal,

@@ -1,13 +1,8 @@
 import { readConfiguredRelays, DEFAULT_RELAYS } from "../../config/servers.js";
 import { buildEventListParams, checkRelayHealth, publishEventToRelay } from "./index.js";
 import { fetchBlobBytes } from "../blobFetch.js";
-import {
-  RELAY_RESPONSE_TIMEOUT_MS,
-  clampRelayTimeoutMs,
-  filterLiveRelays,
-  markRelayAlive,
-  noteRelayOutcome,
-} from "../relay/circuit.js";
+import { filterLiveRelays, markRelayAlive, noteRelayOutcome } from "../relay/circuit.js";
+import { capRelayTimeoutMs } from "../relay/timeouts.js";
 
 export const RABTA_SYNC_MAX_BUDGET_PER_RUN = 50;
 export const RABTA_SYNC_EVENT_BASE_WEIGHT = 1;
@@ -54,7 +49,7 @@ export function getRandomRabtaSyncWaitMs(
 
 /**
  * Returns clean list of relay URLs, skipping relays the breaker holds dead.
- * Falls back to the full list when every relay is dead (3s cap each).
+ * Falls back to the full list when every relay is dead.
  */
 export function getPoolRelays(relays) {
   const list = Array.isArray(relays) && relays.length ? relays : readConfiguredRelays();
@@ -81,7 +76,7 @@ export async function queryRabtaPool(
   relays,
   { timeoutMs = 6000 } = {},
 ) {
-  const effectiveTimeout = clampRelayTimeoutMs(timeoutMs);
+  const effectiveTimeout = capRelayTimeoutMs(timeoutMs);
   const targets = getPoolRelays(relays);
   const params = buildEventListParams({
     collection,
@@ -166,7 +161,7 @@ export async function fetchEventFromPool(id, relays, { timeoutMs = 5000 } = {}) 
   if (!id) return null;
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), clampRelayTimeoutMs(timeoutMs));
+  const timer = setTimeout(() => controller.abort(), capRelayTimeoutMs(timeoutMs));
 
   try {
     const promises = targets.map(async (relay) => {
@@ -367,7 +362,7 @@ export async function enquireServerStorageLimits(url, { timeoutMs = 6000 } = {})
   const startedAt = Date.now();
   try {
     const res = await fetch(`${base}/api/v1/node`, {
-      signal: AbortSignal.timeout(clampRelayTimeoutMs(timeoutMs)),
+      signal: AbortSignal.timeout(capRelayTimeoutMs(timeoutMs)),
     });
     if (!res.ok) {
       noteRelayOutcome(base, { ok: false, latencyMs: Date.now() - startedAt });

@@ -25,7 +25,6 @@ import {
   probeRelayConnections,
   subscribe as relaySubscribe,
   publish as relayPublish,
-  CONNECT_TIMEOUT_MS,
 } from "./relay/index.js";
 const DM_KIND = 4;
 const EPHEMERAL_DM_KIND = 20004;

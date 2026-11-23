@@ -47,23 +47,22 @@ export const ENGINE_PARTIAL_RETRY_FACTOR = 4;
 export const ENGINE_STUCK_RETRY_MS = 60 * 1000;
 export const ENGINE_FAILED_AFTER_ATTEMPTS = 5;
 export const ENGINE_SEND_ROUNDS = 3;
-export const ENGINE_RELAY_ATTEMPT_BASE_MS = 2000;
-export const ENGINE_RELAY_ATTEMPT_MAX_MS = 8000;
 export const ENGINE_DONE_AT = Number.MAX_SAFE_INTEGER;
 
 import { RETENTION_DAYS } from "../../config/retention.js";
 import { OUTBOX_TERMINAL_ATTEMPTS, outboxRetryDelayMs } from "../../config/outbox.js";
 import { asyncPool } from "../asyncPool.js";
 import { rankRelays } from "../relay/score.js";
+import {
+  RELAY_ATTEMPT_BASE_MS,
+  RELAY_ATTEMPT_MAX_MS,
+  capRelayTimeoutMs,
+  relayAttemptTimeoutMs,
+} from "../relay/timeouts.js";
+export { relayAttemptTimeoutMs, RELAY_ATTEMPT_BASE_MS, RELAY_ATTEMPT_MAX_MS };
 import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
-import {
-  RELAY_RESPONSE_TIMEOUT_MS,
-  filterLiveRelays,
-  isRelayDead,
-  markRelayAlive,
-  noteRelayOutcome,
-} from "../relay/circuit.js";
+import { filterLiveRelays, isRelayDead, noteRelayOutcome } from "../relay/circuit.js";
 
 const HEX_RE = /^[0-9a-f]{64}$/i;
 
@@ -117,24 +116,6 @@ function clearPartialRetry(eventId) {
 export function putBlobTimeoutMs(bytes) {
   const size = Number(bytes?.byteLength) || 0;
   return Math.min(120000, Math.max(10000, 5000 + Math.ceil(size / (128 * 1024)) * 2000));
-}
-
-/**
- * One relay attempt gets more time as its observed latency grows, then doubles
- * per round. A flat 1s first try is wrong in both directions: it gives the
- * best relay the least time and it trips the 5-minute dead-relay breaker on a
- * node that is merely slow.
- */
-export function relayAttemptTimeoutMs(latencyMs = 0, round = 0) {
-  const observed = Math.max(0, Number(latencyMs) || 0);
-  const adaptive = Math.max(
-    ENGINE_RELAY_ATTEMPT_BASE_MS,
-    Math.min(ENGINE_RELAY_ATTEMPT_MAX_MS, observed > 0 ? observed * 3 : 0),
-  );
-  return Math.min(
-    ENGINE_RELAY_ATTEMPT_MAX_MS,
-    adaptive * 2 ** Math.max(0, Math.floor(Number(round) || 0)),
-  );
 }
 
 function maxBlobBytesOf(bytesByHash) {
@@ -226,9 +207,6 @@ export async function relayRequest(url, opts = {}, log = () => {}) {
     Math.min(ENGINE_REQUEST_RETRIES, Math.floor(Number(opts.retries)) || ENGINE_REQUEST_RETRIES),
   );
   const signal = opts.signal || null;
-  // Bulk blob transfers legitimately take longer than the response window;
-  // they feed transport failures into the breaker but never slow-marks.
-  const slowMarksDead = opts.slowMarksDead !== false;
   const origin = relayOriginOf(url);
   if (origin && isRelayDead(origin)) {
     const err = new Error(`Relay dead for ${origin}`);
@@ -237,16 +215,11 @@ export async function relayRequest(url, opts = {}, log = () => {}) {
     throw err;
   }
   const startedAt = Date.now();
-  // A response of any status proves the relay answered; only a slow
-  // control-plane response trips the breaker.
+  // A response of any status proves the relay answered; only a transport
+  // failure trips the breaker. Slowness never does.
   const noteResponse = (ok, error = null) => {
     if (!origin) return;
-    const latencyMs = Date.now() - startedAt;
-    if (latencyMs > RELAY_RESPONSE_TIMEOUT_MS && !slowMarksDead) {
-      markRelayAlive(origin);
-      return;
-    }
-    noteRelayOutcome(origin, { ok, latencyMs, error });
+    noteRelayOutcome(origin, { ok, latencyMs: Date.now() - startedAt, error });
   };
   let lastErr = null;
   for (let attempt = 0; attempt < retries; attempt++) {
@@ -294,19 +267,14 @@ export async function relayRequest(url, opts = {}, log = () => {}) {
     }
   }
   if (origin) {
-    const latencyMs = Date.now() - startedAt;
-    if (latencyMs > RELAY_RESPONSE_TIMEOUT_MS && !slowMarksDead) {
-      markRelayAlive(origin);
-    } else {
-      noteRelayOutcome(origin, { ok: false, latencyMs, error: lastErr });
-    }
+    noteRelayOutcome(origin, { ok: false, latencyMs: Date.now() - startedAt, error: lastErr });
   }
   throw lastErr || new Error(`request failed: ${url}`);
 }
 
 export async function relayHasEvent(relay, eventId) {
   const { notFound } = await relayRequest(`${relay}/api/v1/events/${eventId}`, {
-    timeoutMs: RELAY_RESPONSE_TIMEOUT_MS,
+    timeoutMs: RELAY_ATTEMPT_BASE_MS,
     retries: 1,
   });
   return !notFound;
@@ -317,13 +285,13 @@ export async function postEventToRelay(relay, event) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(event),
-    timeoutMs: RELAY_RESPONSE_TIMEOUT_MS,
+    timeoutMs: RELAY_ATTEMPT_BASE_MS,
     retries: 1,
   });
   return res.ok; // 201 stored, 200 duplicate
 }
 
-export async function postEventOnce(relay, event, { timeoutMs = RELAY_RESPONSE_TIMEOUT_MS } = {}) {
+export async function postEventOnce(relay, event, { timeoutMs = RELAY_ATTEMPT_BASE_MS } = {}) {
   const target = String(relay || "").replace(/\/+$/, "");
   if (target && isRelayDead(target)) {
     const err = new Error(`Relay dead for ${target}`);
@@ -337,7 +305,7 @@ export async function postEventOnce(relay, event, { timeoutMs = RELAY_RESPONSE_T
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(event),
-      timeoutMs: Math.min(Number(timeoutMs) || RELAY_RESPONSE_TIMEOUT_MS, 10_000),
+      timeoutMs: Math.min(Number(timeoutMs) || RELAY_ATTEMPT_BASE_MS, RELAY_ATTEMPT_MAX_MS),
     });
     noteRelayOutcome(target, { ok: res.ok, latencyMs: Date.now() - startedAt });
     if (res.ok) return true; // 201 stored, 200 duplicate
@@ -357,7 +325,7 @@ export async function postEventOnce(relay, event, { timeoutMs = RELAY_RESPONSE_T
 export async function relayHasBlob(relay, hash) {
   const { res, notFound } = await relayRequest(`${relay}/api/v1/blobs/${hash}`, {
     method: "HEAD",
-    timeoutMs: RELAY_RESPONSE_TIMEOUT_MS,
+    timeoutMs: RELAY_ATTEMPT_BASE_MS,
     retries: 1,
   });
   return !notFound && res.ok;
@@ -387,7 +355,6 @@ export async function getBlobVerified(
         timeoutMs,
         signal,
         retries: 1,
-        slowMarksDead: false,
       });
       if (notFound) return null;
 
@@ -567,7 +534,6 @@ export async function putBlobToRelay(
         body: bytes,
         timeoutMs,
         retries,
-        slowMarksDead: false,
       });
       if (res.ok) rememberBlobRelay(base, key);
       return res.ok;
@@ -642,11 +608,11 @@ function rememberPageEtag(url, etag, events, nextCursor) {
 export async function queryCountOnce(
   relay,
   queryBody,
-  { timeoutMs = RELAY_RESPONSE_TIMEOUT_MS, signal = null, retries = 1 } = {},
+  { timeoutMs = RELAY_ATTEMPT_BASE_MS, signal = null, retries = 1 } = {},
 ) {
   const params = buildRabtaQuery(queryBody);
   const { res } = await relayRequest(`${relay}/api/v1/events/count?${params}`, {
-    timeoutMs: Math.min(Number(timeoutMs) || RELAY_RESPONSE_TIMEOUT_MS, RELAY_RESPONSE_TIMEOUT_MS),
+    timeoutMs: capRelayTimeoutMs(timeoutMs),
     signal,
     retries: 1,
   });
@@ -660,7 +626,7 @@ async function queryPage(relay, queryBody, cursor = null, limit = ENGINE_PULL_PA
   const cached = pageEtagCache.get(url);
   const { res } = await relayRequest(url, {
     headers: cached?.etag ? { "If-None-Match": cached.etag } : undefined,
-    timeoutMs: RELAY_RESPONSE_TIMEOUT_MS,
+    timeoutMs: RELAY_ATTEMPT_BASE_MS,
     retries: 1,
   });
   if (res.status === 304 && cached) {
@@ -725,8 +691,8 @@ export async function pullMonotonicStream({
   const self = String(pubkeyHex || "")
     .toLowerCase()
     .replace(/^ed25519:/, "");
-  // Dead relays stay out of the pull until their 300s breaker expires; when
-  // all are dead the filter falls back to the full list (3s cap each).
+  // Dead relays stay out of the pull until their breaker expires; when all
+  // are dead the filter falls back to the full list.
   const relayList = filterLiveRelays((Array.isArray(relays) ? relays : []).filter(Boolean));
   if (!self || !relayList.length) return summary;
 
@@ -734,8 +700,7 @@ export async function pullMonotonicStream({
   const specs = getUmbrellaSpecs(self);
 
   // Pull every live relay concurrently: a single slow relay used to hold the
-  // whole cycle behind it, so worst case was 3s x relays. Now it is one 3s
-  // window. Per-relay watermarks keep the streams independent; the
+  // whole cycle behind it. Per-relay watermarks keep the streams independent; the
   // synchronous seenIds check-and-add makes the first relay to observe an
   // event its sole importer, so concurrent relays never double-store.
   const relayTasks = relayList.map(async (relay) => {

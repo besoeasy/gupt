@@ -2,23 +2,26 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  RELAY_RESPONSE_TIMEOUT_MS,
   RELAY_DEAD_TTL_MS,
   isRelayDead,
   markRelayDead,
   markRelayAlive,
   filterLiveRelays,
   noteRelayOutcome,
-  clampRelayTimeoutMs,
   clearRelayCircuit,
 } from "../src/lib/relay/circuit.js";
+import {
+  RELAY_ATTEMPT_BASE_MS,
+  RELAY_ATTEMPT_MAX_MS,
+  relayAttemptTimeoutMs,
+  capRelayTimeoutMs,
+} from "../src/lib/relay/timeouts.js";
 
 test.beforeEach(() => {
   clearRelayCircuit();
 });
 
-test("a relay that times out is dead for 300s", () => {
-  assert.equal(RELAY_RESPONSE_TIMEOUT_MS, 3_000);
+test("a relay that fails transport is dead for 300s", () => {
   assert.equal(RELAY_DEAD_TTL_MS, 300_000);
 
   const now = Date.now();
@@ -34,10 +37,10 @@ test("a relay that times out is dead for 300s", () => {
   assert.equal(isRelayDead("https://rabta.gupt.app", now + RELAY_DEAD_TTL_MS), false);
 });
 
-test("a slow success still trips the breaker", () => {
+test("a slow success never trips the breaker", () => {
   const now = Date.now();
-  noteRelayOutcome("https://slow.example", { ok: true, latencyMs: 3_001 }, now);
-  assert.equal(isRelayDead("https://slow.example", now), true);
+  noteRelayOutcome("https://slow.example", { ok: true, latencyMs: 30_000 }, now);
+  assert.equal(isRelayDead("https://slow.example", now), false);
 });
 
 test("a fast success revives the relay", () => {
@@ -73,7 +76,7 @@ test("filterLiveRelays skips dead relays and falls back when all are dead", () =
   markRelayDead("https://a.example/", RELAY_DEAD_TTL_MS, now);
   assert.deepEqual(filterLiveRelays(relays, now), ["https://b.example"]);
   markRelayDead("https://b.example", RELAY_DEAD_TTL_MS, now);
-  // All dead: trying (3s cap each) beats giving up.
+  // All dead: trying beats giving up.
   assert.deepEqual(filterLiveRelays(relays, now), relays);
 });
 
@@ -85,11 +88,19 @@ test("relay URLs normalize trailing slashes", () => {
   assert.equal(isRelayDead("https://norm.example", now), false);
 });
 
-test("control-plane timeouts clamp to the 3s window", () => {
-  assert.equal(clampRelayTimeoutMs(5000), 3000);
-  assert.equal(clampRelayTimeoutMs(30_000), 3000);
-  assert.equal(clampRelayTimeoutMs(1000), 1000);
-  assert.equal(clampRelayTimeoutMs(undefined), 3000);
+test("caller timeouts cap at the adaptive ceiling, never a fixed window", () => {
+  assert.equal(capRelayTimeoutMs(5000), 5000);
+  assert.equal(capRelayTimeoutMs(30_000), RELAY_ATTEMPT_MAX_MS);
+  assert.equal(capRelayTimeoutMs(1000), 1000);
+  assert.equal(capRelayTimeoutMs(undefined), RELAY_ATTEMPT_BASE_MS);
+});
+
+test("attempt budgets adapt to observed latency and double per round", () => {
+  assert.equal(relayAttemptTimeoutMs(0, 0), RELAY_ATTEMPT_BASE_MS);
+  assert.equal(relayAttemptTimeoutMs(1000, 0), 3000);
+  assert.equal(relayAttemptTimeoutMs(1000, 1), 6000);
+  assert.equal(relayAttemptTimeoutMs(1000, 2), RELAY_ATTEMPT_MAX_MS);
+  assert.equal(relayAttemptTimeoutMs(60_000, 0), RELAY_ATTEMPT_MAX_MS);
 });
 
 test("engine relayRequest fails fast for a dead relay without fetching", async () => {

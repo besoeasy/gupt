@@ -300,13 +300,12 @@ export function createDecryptedPartsStream(
 // ─── Network / API Client ───────────────────────────────────────────────────
 
 import {
-  RELAY_RESPONSE_TIMEOUT_MS,
-  clampRelayTimeoutMs,
   filterLiveRelays,
   isRelayDead,
   markRelayAlive,
   noteRelayOutcome,
 } from "../relay/circuit.js";
+import { RELAY_ATTEMPT_BASE_MS, capRelayTimeoutMs } from "../relay/timeouts.js";
 
 function getRelayEndpoints(relays, { includeDead = false } = {}) {
   const list = Array.isArray(relays) && relays.length ? relays : readConfiguredRelays();
@@ -317,7 +316,7 @@ function getRelayEndpoints(relays, { includeDead = false } = {}) {
 
 /**
  * Publish an event to all configured Rabta relays in parallel.
- * Dead relays are skipped; each attempt is capped at the response window so
+ * Dead relays are skipped; each attempt carries the base adaptive budget so
  * one stalled node can never hold the publish back.
  */
 export async function publishEvent(event, relays) {
@@ -333,7 +332,7 @@ export async function publishEvent(event, relays) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body,
-          signal: AbortSignal.timeout(RELAY_RESPONSE_TIMEOUT_MS),
+          signal: AbortSignal.timeout(RELAY_ATTEMPT_BASE_MS),
         });
         const data = await res.json().catch(() => ({}));
         noteRelayOutcome(relay, { ok: res.ok, latencyMs: Date.now() - startedAt });
@@ -368,7 +367,11 @@ export async function publishEvent(event, relays) {
  * Sends If-None-Match so a live copy answers 304 without transferring the body.
  * Returns true if status is 200/304, false if 404, or null on network error.
  */
-export async function checkRelayHasEvent(relay, eventId, { timeoutMs = 3000 } = {}) {
+export async function checkRelayHasEvent(
+  relay,
+  eventId,
+  { timeoutMs = RELAY_ATTEMPT_BASE_MS } = {},
+) {
   const base = relay.replace(/\/+$/, "");
   // A dead relay is "unknown" without spending a request on it.
   if (isRelayDead(base)) return null;
@@ -376,7 +379,7 @@ export async function checkRelayHasEvent(relay, eventId, { timeoutMs = 3000 } = 
   try {
     const res = await fetch(`${base}/api/v1/events/${eventId}`, {
       headers: { "If-None-Match": `"${String(eventId).toLowerCase()}"` },
-      signal: AbortSignal.timeout(clampRelayTimeoutMs(timeoutMs)),
+      signal: AbortSignal.timeout(capRelayTimeoutMs(timeoutMs)),
     });
     if (res.status === 200 || res.status === 304) {
       noteRelayOutcome(base, { ok: true, latencyMs: Date.now() - startedAt });
@@ -396,7 +399,7 @@ export async function checkRelayHasEvent(relay, eventId, { timeoutMs = 3000 } = 
 }
 
 /**
- * Publish an event to a single Rabta relay. Capped at the response window so
+ * Publish an event to a single Rabta relay. Budgeted by the caller so
  * a stalled node fails fast instead of holding the caller back.
  */
 export async function publishEventToRelay(relay, event, { timeoutMs = 5000 } = {}) {
@@ -407,7 +410,7 @@ export async function publishEventToRelay(relay, event, { timeoutMs = 5000 } = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(event),
-      signal: AbortSignal.timeout(clampRelayTimeoutMs(timeoutMs)),
+      signal: AbortSignal.timeout(capRelayTimeoutMs(timeoutMs)),
     });
     const data = await res.json().catch(() => ({}));
     noteRelayOutcome(base, { ok: res.ok, latencyMs: Date.now() - startedAt });
@@ -555,9 +558,9 @@ export async function queryEvents(
   relays,
   timeoutMs = 5000,
 ) {
-  // Dead relays are skipped; every attempt is capped at the response window
-  // so one stalled node can never hold the query back.
-  const effectiveTimeout = clampRelayTimeoutMs(timeoutMs);
+  // Dead relays are skipped; every attempt is budgeted by the caller so
+  // one stalled node can never hold the query back.
+  const effectiveTimeout = capRelayTimeoutMs(timeoutMs);
   const targets = getRelayEndpoints(relays);
   const params = buildEventListParams({
     collection,
@@ -661,7 +664,7 @@ export async function countEvents(
 
   const relayResults = [];
   let count = 0;
-  const effectiveTimeout = clampRelayTimeoutMs(timeoutMs);
+  const effectiveTimeout = capRelayTimeoutMs(timeoutMs);
 
   await Promise.allSettled(
     targets.map(async (relay) => {
@@ -713,7 +716,7 @@ function rememberEventBody(event) {
  */
 export async function fetchEventDetailed(id, relays, timeoutMs = 5000) {
   const targets = getRelayEndpoints(relays);
-  const effectiveTimeout = clampRelayTimeoutMs(timeoutMs);
+  const effectiveTimeout = capRelayTimeoutMs(timeoutMs);
   const outcomes = [];
   const key = String(id || "").toLowerCase();
   const cached = eventBodyCache.get(key) || null;
@@ -774,7 +777,7 @@ export async function fetchEventSize(id, relays, timeoutMs = 5000) {
     const startedAt = Date.now();
     try {
       const res = await fetch(`${relay}/api/v1/events/${key}/size`, {
-        signal: AbortSignal.timeout(clampRelayTimeoutMs(timeoutMs)),
+        signal: AbortSignal.timeout(capRelayTimeoutMs(timeoutMs)),
       });
       noteRelayOutcome(relay, { ok: res.ok, latencyMs: Date.now() - startedAt });
       if (res.ok) {
@@ -806,7 +809,7 @@ export async function fetchBlobMetadata(hash, relays, timeoutMs = 5000) {
     try {
       const res = await fetch(`${relay}/api/v1/blobs/${h}`, {
         method: "HEAD",
-        signal: AbortSignal.timeout(clampRelayTimeoutMs(timeoutMs)),
+        signal: AbortSignal.timeout(capRelayTimeoutMs(timeoutMs)),
       });
       // A HEAD proves the relay answered even when the blob is missing; only
       // transport failures feed the breaker, never a slow bulk-plane reply.
@@ -946,7 +949,7 @@ export async function checkRelayHealth(
   const endpoint = detailed ? `${base}/api/v1/node` : `${base}/api/v1/health`;
   try {
     const res = await fetch(endpoint, {
-      signal: AbortSignal.timeout(clampRelayTimeoutMs(timeoutMs)),
+      signal: AbortSignal.timeout(capRelayTimeoutMs(timeoutMs)),
     });
     const latency = Date.now() - started;
     noteRelayOutcome(base, { ok: res.ok, latencyMs: latency });

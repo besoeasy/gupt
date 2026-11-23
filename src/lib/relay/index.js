@@ -15,10 +15,6 @@ export { getHealthSummary, getUnhealthyConfiguredRelays, probeRelayConnections }
 
 export {
   RelayTier,
-  CONNECT_TIMEOUT_MS,
-  QUERY_TIMEOUT_MS,
-  PUBLISH_TIMEOUT_MS,
-  SUBSCRIBE_EOSE_MS,
   classifyTraffic,
   tierBadgeClass,
   tierDotClass,
@@ -26,7 +22,6 @@ export {
 } from "./constants.js";
 
 export {
-  RELAY_RESPONSE_TIMEOUT_MS,
   RELAY_DEAD_TTL_MS,
   isRelayDead,
   getRelayDeadUntil,
@@ -35,6 +30,12 @@ export {
   filterLiveRelays,
   isTransportError,
   noteRelayOutcome,
-  clampRelayTimeoutMs,
   clearRelayCircuit,
 } from "./circuit.js";
+
+export {
+  RELAY_ATTEMPT_BASE_MS,
+  RELAY_ATTEMPT_MAX_MS,
+  relayAttemptTimeoutMs,
+  capRelayTimeoutMs,
+} from "./timeouts.js";
