@@ -43,166 +43,96 @@ defineProps({
 <style scoped>
 @layer base, gupt-components;
 
-@layer gupt-components {
+/* Ledger primary action: one filled control, six-pixel corners, a lift. */
 
-
-@media (hover:hover) {
-.primary-button__button:hover {
-  background-color: var(--app-primary-strong);
-}
-}
-
-
-
-@layer gupt-components {
-.primary-button__text {
-  pointer-events: none;
-}
-.primary-button__text {
-  position: absolute;
-}
 .primary-button__button {
   position: relative;
-}
-.primary-button__text {
-  inset: 0;
-}
-.primary-button__text {
-  display: flex;
-}
-.primary-button__button {
   display: inline-flex;
-}
-.primary-button__text-2 {
-  display: inline-flex;
-}
-.primary-button__icon {
-  height: calc(var(--spacing) * 4);
-}
-.primary-button__icon {
-  width: calc(var(--spacing) * 4);
-}
-.primary-button__button {
+  align-items: center;
+  justify-content: center;
+  gap: var(--app-space-2);
   width: 100%;
-}
-.primary-button__icon {
-  animation: var(--animate-spin);
-}
-.primary-button__button {
-  align-items: center;
-}
-.primary-button__text {
-  align-items: center;
-}
-.primary-button__text-2 {
-  align-items: center;
-}
-.primary-button__button {
-  justify-content: center;
-}
-.primary-button__text {
-  justify-content: center;
-}
-.primary-button__button {
-  gap: calc(var(--spacing) * 2);
-}
-.primary-button__text-2 {
-  gap: calc(var(--spacing) * 2);
-}
-.primary-button__button {
-  border-radius: var(--radius-2xl);
-}
-.primary-button__button {
+  min-height: var(--app-touch-h);
+  padding: 0 var(--app-space-5);
+  border: 0;
+  border-radius: var(--app-radius-sm);
   background-color: var(--app-primary);
+  color: var(--app-bg);
+  font-size: var(--app-text-body);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  transition:
+    background-color var(--app-dur-base) var(--app-ease-swift),
+    box-shadow var(--app-dur-base) var(--app-ease-swift),
+    transform var(--app-dur-base) var(--app-ease-swift);
 }
-.primary-button__button {
-  padding-block: calc(var(--spacing) * 3.5);
+
+.primary-button__button:hover {
+  background-color: var(--app-primary-strong);
+  box-shadow: var(--app-glow-primary);
+  transform: translateY(-1px);
 }
-.primary-button__button {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
+
+.primary-button__button:active {
+  transform: scale(0.98);
 }
-.primary-button__button {
-  --font-weight: var(--font-weight-bold);
-  font-weight: var(--font-weight-bold);
+
+.primary-button__button:focus-visible {
+  outline: none;
+  box-shadow: var(--app-focus-ring);
 }
-.primary-button__button {
-  color: #fff;
+
+.primary-button__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
-.primary-button__icon {
-  color: #fffc;
+
+.primary-button__text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
 }
+
+.primary-button__text-2 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--app-space-2);
+  transition: opacity var(--app-dur-fast) var(--app-ease-standard);
+}
+
 .primary-button__text--hidden {
   opacity: 0;
 }
-.primary-button__icon-shape {
-  opacity: .25;
-}
-.primary-button__icon-path {
-  opacity: .75;
-}
+
 .primary-button__text--visible {
   opacity: 1;
 }
-.primary-button__button {
-  transition-property: all;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.primary-button__text-2 {
-  transition-property: opacity;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.primary-button__text-2 {
-  --duration: .15s;
-  transition-duration: .15s;
-}
-.primary-button__button {
-  --duration: .2s;
-  transition-duration: .2s;
-}
-.primary-button__button:focus-visible {
-  --ring-shadow: var(--ring-inset,) 0 0 0 calc(2px + var(--ring-offset-width,0px)) var(--ring-color,currentcolor);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-inset,) 0 0 0 calc(2px + var(--ring-offset-width,0px)) var(--ring-color,currentcolor), var(--shadow,0 0 #0000);
-}
-.primary-button__button:focus-visible {
-  --ring-color: var(--app-primary);
-}
-.primary-button__button:focus-visible {
-  --ring-offset-width: 2px;
-  --ring-offset-shadow: var(--ring-inset,) 0 0 0 2px var(--ring-offset-color,#fff);
-}
-.primary-button__button:focus-visible {
-  --ring-offset-color: var(--app-bg);
-}
-.primary-button__button:focus-visible {
-  --outline-style: none;
-  outline-style: none;
-}
-.primary-button__button:active {
-  scale: .97;
-}
-.primary-button__button:disabled {
-  cursor: not-allowed;
-}
-.primary-button__button:disabled {
-  opacity: .5;
-}
-}
-}
 
-@layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
 .primary-button__icon {
-  color: color-mix(in oklab,var(--color-white) 80%,transparent);
-}
+  width: var(--app-space-4);
+  height: var(--app-space-4);
+  color: color-mix(in oklab, var(--app-bg) 80%, transparent);
+  animation: var(--animate-spin);
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.primary-button__button:focus-visible {
-  --ring-color: color-mix(in oklab, var(--app-primary) 45%, transparent);
+.primary-button__icon-shape {
+  opacity: 0.25;
 }
+
+.primary-button__icon-path {
+  opacity: 0.75;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .primary-button__button {
+    transition: none;
+  }
 }
 </style>
