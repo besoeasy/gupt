@@ -82,7 +82,7 @@ const rawEventId = computed(() => {
 </script>
 
 <template>
-  <div v-if="normalizedProgress" class="media-decrypt-status__block">
+  <div v-if="normalizedProgress" class="media-decrypt">
     <DownloaderGraphic
       :progress="normalizedProgress"
       :compact="compact"
@@ -98,22 +98,16 @@ const rawEventId = computed(() => {
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: a plain block that fades in with the downloader. */
 
-@layer gupt-components {
-.media-decrypt-status__block {
+.media-decrypt {
   width: 100%;
+  animation: ledger-fade 300ms var(--app-ease-standard) both;
 }
 
-.media-decrypt-status__block {
-  transition-property: opacity;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-
-.media-decrypt-status__block {
-  --duration: .3s;
-  transition-duration: .3s;
-}
+@media (prefers-reduced-motion: reduce) {
+  .media-decrypt {
+    animation: none;
+  }
 }
 </style>

@@ -61,12 +61,8 @@ const roundedClass = computed(
   <img
     :src="imgSrc"
     :alt="alt"
-    :class="[
-      sizeClass,
-      roundedClass,
-      hoverable ? 'robo-avatar__image--variant-1' : '',
-    ]"
-    class="avatar-img robo-avatar__image"
+    :class="[sizeClass, roundedClass, hoverable ? 'robo-avatar--hoverable' : '']"
+    class="avatar-img robo-avatar"
     loading="lazy"
     referrerpolicy="no-referrer"
     @error="onImgError"
@@ -74,89 +70,74 @@ const roundedClass = computed(
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: generated faces keep their own rounding, not the card radius. */
 
-@layer gupt-components {
-@media (hover:hover) {
-.robo-avatar__image--variant-1:hover {
-  --scale-x: 105%;
-  --scale-y: 105%;
-  --scale-z: 105%;
-  scale: 105% 105%;
-}
-}
-
-@layer gupt-components {
-.robo-avatar__variant-1 {
-  height: calc(var(--spacing) * 7);
-}
-.robo-avatar__variant-2 {
-  height: calc(var(--spacing) * 10);
-}
-.robo-avatar__variant-3 {
-  height: calc(var(--spacing) * 12);
-}
-.robo-avatar__variant-4 {
-  height: calc(var(--spacing) * 16);
-}
-.robo-avatar__variant-5 {
-  height: calc(var(--spacing) * 20);
-}
-.robo-avatar__variant-6 {
-  height: calc(var(--spacing) * 32);
-}
-.robo-avatar__variant-1 {
-  width: calc(var(--spacing) * 7);
-}
-.robo-avatar__variant-2 {
-  width: calc(var(--spacing) * 10);
-}
-.robo-avatar__variant-3 {
-  width: calc(var(--spacing) * 12);
-}
-.robo-avatar__variant-4 {
-  width: calc(var(--spacing) * 16);
-}
-.robo-avatar__variant-5 {
-  width: calc(var(--spacing) * 20);
-}
-.robo-avatar__variant-6 {
-  width: calc(var(--spacing) * 32);
-}
-.robo-avatar__image {
+.robo-avatar {
   flex-shrink: 0;
-}
-.robo-avatar__image--variant-1 {
-  cursor: pointer;
-}
-.robo-avatar__variant-8 {
-  border-radius: var(--radius-2xl);
-}
-.robo-avatar__variant-9 {
-  border-radius: var(--radius-3xl);
-}
-.robo-avatar__variant-7 {
-  border-radius: var(--radius-xl);
-}
-.robo-avatar__image {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.robo-avatar__image {
-  border-color: var(--app-border);
-}
-.robo-avatar__image {
+  border: 1px solid var(--app-border);
   object-fit: cover;
+  background: var(--app-surface-soft);
 }
-.robo-avatar__image--variant-1 {
-  transition-property: transform,translate,scale,rotate;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
+
+.robo-avatar--sm {
+  width: 28px;
+  height: 28px;
 }
-.robo-avatar__image--variant-1 {
-  --duration: .2s;
-  transition-duration: .2s;
+
+.robo-avatar--md {
+  width: 40px;
+  height: 40px;
 }
+
+.robo-avatar--lg {
+  width: 48px;
+  height: 48px;
 }
+
+.robo-avatar--xl {
+  width: 64px;
+  height: 64px;
+}
+
+.robo-avatar--xxl {
+  width: 80px;
+  height: 80px;
+}
+
+.robo-avatar--hero {
+  width: 128px;
+  height: 128px;
+}
+
+.robo-avatar--round-sm {
+  border-radius: 6px;
+}
+
+.robo-avatar--round-md {
+  border-radius: 10px;
+}
+
+.robo-avatar--round-lg {
+  border-radius: 14px;
+}
+
+.robo-avatar--hoverable {
+  cursor: pointer;
+  transition:
+    transform var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+@media (hover: hover) {
+  .robo-avatar--hoverable:hover {
+    border-color: var(--app-border-strong);
+    transform: scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .robo-avatar--hoverable {
+    transition: none;
+  }
 }
 </style>

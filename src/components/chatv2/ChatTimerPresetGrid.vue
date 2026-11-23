@@ -9,21 +9,19 @@ const props = defineProps({
 
 const emit = defineEmits(["select"]);
 
-const gridClass = computed(() => (props.columns >= 4 ? "chat-timer-preset-grid__variant-1" : "chat-timer-preset-grid__variant-2"));
+const gridClass = computed(() =>
+  props.columns >= 4 ? "timer-grid--four" : "timer-grid--three",
+);
 </script>
 
 <template>
-  <div class="chat-timer-preset-grid__block" :class="gridClass">
+  <div class="timer-grid" :class="gridClass">
     <button
       v-for="preset in CHAT_TIMER_PRESETS"
       :key="preset.sec"
       type="button"
-      class="chat-timer-preset-grid__button"
-      :class="
-        preset.sec === modelValue
-          ? 'chat-timer-preset-grid__button--success'
-          : 'chat-timer-preset-grid__button--muted'
-      "
+      class="timer-grid__btn"
+      :class="{ 'timer-grid__btn--on': preset.sec === modelValue }"
       :aria-pressed="preset.sec === modelValue"
       :title="'Messages expire after ' + preset.label"
       @click="emit('select', preset.sec)"
@@ -34,110 +32,66 @@ const gridClass = computed(() => (props.columns >= 4 ? "chat-timer-preset-grid__
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: preset chips read as small ink stamps. */
 
-/* Light theme adjustments */
-
-@layer gupt-components {
-
-@media (hover:hover) {
-.chat-timer-preset-grid__button--muted:hover {
-  border-color: var(--ui-zinc-700);
-}
-}
-
-@media (hover:hover) {
-.chat-timer-preset-grid__button--muted:hover {
-  color: var(--color-white);
-}
-}
-
-@layer gupt-components {
-.chat-timer-preset-grid__block {
+.timer-grid {
   display: grid;
+  gap: 4px;
 }
-.chat-timer-preset-grid__button {
+
+.timer-grid--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.timer-grid--four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.timer-grid__btn {
+  min-width: 0;
   min-height: 44px;
-}
-.chat-timer-preset-grid__button {
-  cursor: pointer;
-}
-.chat-timer-preset-grid__variant-2 {
-  grid-template-columns: repeat(3,minmax(0,1fr));
-}
-.chat-timer-preset-grid__variant-1 {
-  grid-template-columns: repeat(4,minmax(0,1fr));
-}
-.chat-timer-preset-grid__block {
-  gap: calc(var(--spacing) * 1.5);
-}
-.chat-timer-preset-grid__button {
-  border-radius: var(--radius-lg);
-}
-.chat-timer-preset-grid__button {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.chat-timer-preset-grid__button--success {
-  border-color: #00bb7f66;
-}
-.chat-timer-preset-grid__button--muted {
-  border-color: var(--ui-zinc-800);
-}
-.chat-timer-preset-grid__button--success {
-  background-color: #00bb7f26;
-}
-.chat-timer-preset-grid__button--muted {
-  background-color: var(--app-surface-inset-strong);
-}
-.chat-timer-preset-grid__button {
-  padding-inline: calc(var(--spacing) * 1.5);
-}
-.chat-timer-preset-grid__button {
+  padding-inline: 6px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: transparent;
   font-family: var(--font-mono);
-}
-.chat-timer-preset-grid__button {
-  font-size: 11px;
-}
-.chat-timer-preset-grid__button--success {
-  color: var(--color-emerald-300);
-}
-.chat-timer-preset-grid__button--muted {
-  color: var(--ui-zinc-400);
-}
-.chat-timer-preset-grid__button {
-  transition-property: all;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.chat-timer-preset-grid__button {
-  --duration: .15s;
-  transition-duration: .15s;
-}
-.chat-timer-preset-grid__button:active {
-  scale: .97;
-}
-[data-theme="light"] .chat-timer-preset-grid__button--success {
-  color: var(--app-success);
-}
-[data-theme="light"] .chat-timer-preset-grid__button--muted {
-  color: var(--app-muted);
-}
-}
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--app-muted-2);
+  cursor: pointer;
+  transition:
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-standard);
 }
 
-@layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.chat-timer-preset-grid__button--success {
-  border-color: color-mix(in oklab,var(--color-emerald-500) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.chat-timer-preset-grid__button--success {
-  background-color: color-mix(in oklab,var(--color-emerald-500) 15%,transparent);
-}
+.timer-grid__btn--on {
+  border-color: var(--app-text);
+  background: var(--app-text);
+  color: var(--app-bg);
 }
 
+.timer-grid__btn:active {
+  transform: translateY(1px);
+}
+
+.timer-grid__btn:focus-visible {
+  outline: none;
+  box-shadow: var(--app-focus-ring);
+}
+
+@media (hover: hover) {
+  .timer-grid__btn:not(.timer-grid__btn--on):hover {
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timer-grid__btn {
+    transition: none;
+  }
 }
 </style>

@@ -6,156 +6,98 @@ defineEmits(["click"]);
 </script>
 
 <template>
-  <div class="load-older-button__block">
-    <button
-      :disabled="loading"
-      class="load-older-button__button"
-      @click="$emit('click')"
-    >
+  <div class="load-older">
+    <button type="button" :disabled="loading" class="load-older__btn" @click="$emit('click')">
       <LoaderCircle
         v-if="loading"
-        class="load-older-button__loader-circle"
+        class="load-older__icon load-older__icon--spin"
         :stroke-width="2"
         aria-hidden="true"
       />
-      <ChevronUp
-        v-else
-        class="load-older-button__chevron-up"
-        :stroke-width="2.5"
-        aria-hidden="true"
-      />
-      {{ loading ? "Loading…" : "Load older messages" }}
+      <ChevronUp v-else class="load-older__icon" :stroke-width="2.2" aria-hidden="true" />
+      <span>{{ loading ? "Loading…" : "Load older messages" }}</span>
     </button>
   </div>
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: a quiet mono link on a hairline rule. */
 
-@layer gupt-components {
-@media (hover:hover) {
-.load-older-button__chevron-up:is(:where(.load-older-button__button):hover *) {
-  --translate-y: calc(var(--spacing) * -.5);
-  translate: var(--translate-x,0) calc(var(--spacing) * -.5);
-}
-}
-
-@media (hover:hover) {
-.load-older-button__button:hover {
-  --translate-y: calc(var(--spacing) * -.5);
-  translate: var(--translate-x,0) calc(var(--spacing) * -.5);
-}
-}
-
-@media (hover:hover) {
-.load-older-button__button:hover {
-  border-color: var(--app-border-strong);
-}
-}
-
-@media (hover:hover) {
-.load-older-button__button:hover {
-  background-color: var(--app-surface-hover);
-}
-}
-
-@media (hover:hover) {
-.load-older-button__button:hover {
-  color: var(--app-text);
-}
-}
-
-@layer gupt-components {
-.load-older-button__block {
+.load-older {
   display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: var(--app-space-3) 0;
 }
-.load-older-button__button {
+
+.load-older__btn {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding-inline: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: var(--app-surface);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-standard);
 }
-.load-older-button__loader-circle {
-  height: calc(var(--spacing) * 3.5);
+
+.load-older__btn:active {
+  transform: translateY(1px);
 }
-.load-older-button__chevron-up {
-  height: calc(var(--spacing) * 3.5);
+
+.load-older__btn:disabled {
+  cursor: default;
 }
-.load-older-button__loader-circle {
-  width: calc(var(--spacing) * 3.5);
+
+.load-older__icon {
+  width: 12px;
+  height: 12px;
+  transition: transform var(--app-dur-fast) var(--app-ease-standard);
 }
-.load-older-button__chevron-up {
-  width: calc(var(--spacing) * 3.5);
-}
-.load-older-button__loader-circle {
+
+.load-older__icon--spin {
   animation: var(--animate-spin);
 }
-.load-older-button__button {
-  align-items: center;
+
+.load-older__btn:focus-visible {
+  outline: none;
+  box-shadow: var(--app-focus-ring);
 }
-.load-older-button__block {
-  justify-content: center;
+
+@media (hover: hover) {
+  .load-older__btn:hover {
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+  }
+
+  .load-older__btn:hover .load-older__icon {
+    transform: translateY(-2px);
+  }
 }
-.load-older-button__button {
-  gap: calc(var(--spacing) * 2);
+
+@media (pointer: coarse) {
+  .load-older__btn {
+    min-height: var(--app-touch-h);
+  }
 }
-.load-older-button__button {
-  border-radius: 3.40282e38px;
-}
-.load-older-button__button {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.load-older-button__button {
-  border-color: var(--app-border);
-}
-.load-older-button__button {
-  background-color: var(--app-surface-soft);
-}
-.load-older-button__button {
-  padding-inline: calc(var(--spacing) * 5);
-}
-.load-older-button__button {
-  padding-block: calc(var(--spacing) * 2.5);
-}
-.load-older-button__block {
-  padding-block: calc(var(--spacing) * 4);
-}
-.load-older-button__button {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.load-older-button__button {
-  color: var(--app-text-soft);
-}
-.load-older-button__button {
-  transition-property: all;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.load-older-button__chevron-up {
-  transition-property: transform,translate,scale,rotate;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.load-older-button__button {
-  --duration: .2s;
-  transition-duration: .2s;
-}
-.load-older-button__chevron-up {
-  --duration: .2s;
-  transition-duration: .2s;
-}
-.load-older-button__button:active {
-  --translate-y: 0;
-  translate: var(--translate-x,0) 0;
-}
-.load-older-button__button:active {
-  scale: .97;
-}
-.load-older-button__button:disabled {
-  cursor: not-allowed;
-}
-.load-older-button__button:disabled {
-  opacity: .5;
-}
-}
+
+@media (prefers-reduced-motion: reduce) {
+  .load-older__btn,
+  .load-older__icon {
+    transition: none;
+  }
 }
 </style>
