@@ -1321,6 +1321,7 @@ onBeforeUnmount(() => {
 }
 .chat-conversation__text-2 {
   max-width: var(--container-sm);
+
 }
 .chat-conversation__block-2 {
   min-width: 0;
@@ -1394,7 +1395,15 @@ onBeforeUnmount(() => {
   border-radius: 3.40282e38px;
 }
 .chat-conversation__text-4 {
-  border-radius: 3.40282e38px;
+  border-radius: 0;
+
+
+
+
+
+
+
+
 }
 .chat-conversation__block-4 {
   border-radius: var(--radius-xl);
@@ -1417,19 +1426,43 @@ onBeforeUnmount(() => {
 }
 .chat-conversation__text-4 {
   border-style: var(--border-style,solid);
-  border-width: 1px;
+  border-width: 0;
+
+
+
+
+
+
+
+
 }
 .chat-conversation__block-4 {
   border-color: var(--ui-zinc-800);
 }
 .chat-conversation__text-4 {
   border-color: var(--ui-zinc-800);
+
+
+
+
+
+
+
+
 }
 .chat-conversation__block {
   background-color: var(--app-bg);
 }
 .chat-conversation__text-4 {
-  background-color: var(--ui-zinc-900);
+  background-color: transparent;
+
+
+
+
+
+
+
+
 }
 .chat-conversation__status {
   padding-inline: var(--spacing);
@@ -1438,78 +1471,158 @@ onBeforeUnmount(() => {
   padding-inline: var(--spacing);
 }
 .chat-conversation__text-4 {
-  padding-inline: calc(var(--spacing) * 2.5);
+  padding-inline: 0;
+
+
+
+
+
+
+
+
 }
 .chat-conversation__text-4 {
-  padding-block: calc(var(--spacing) * .5);
+  padding-block: 0;
+
+
+
+
+
+
+
+
 }
 .chat-conversation__block-3 {
   padding-block: calc(var(--spacing) * 6);
 }
 .chat-conversation__block-10 {
   padding-block: calc(var(--spacing) * 12);
+
+
 }
 .chat-conversation__block-3 {
   text-align: center;
 }
 .chat-conversation__block-10 {
   text-align: center;
+
+
 }
 .chat-conversation__block-10 {
   font-family: var(--font-mono);
+
+
 }
 .chat-conversation__text-4 {
   font-family: var(--font-mono);
+
+
+
+
+
+
+
+
 }
 .chat-conversation__text {
   font-size: var(--text-base);
   line-height: var(--leading,var(--text-base--line-height));
+
 }
 .chat-conversation__text-2 {
   font-size: var(--text-xs);
   line-height: var(--leading,var(--text-xs--line-height));
+
 }
 .chat-conversation__block-10 {
-  font-size: var(--text-xs);
+  font-size: 10.5px;
   line-height: var(--leading,var(--text-xs--line-height));
+
+
 }
 .chat-conversation__text-4 {
-  font-size: 10px;
+  font-size: 9.5px;
+
+
+
+
+
+
+
+
 }
 .chat-conversation__text {
   --font-weight: var(--font-weight-medium);
   font-weight: var(--font-weight-medium);
+
 }
 .chat-conversation__text {
   --tracking: var(--tracking-tight);
   letter-spacing: var(--tracking-tight);
+
 }
 .chat-conversation__text-4 {
   --tracking: var(--tracking-tight);
   letter-spacing: var(--tracking-tight);
+
+
+
+
+
+
+
+
 }
 .chat-conversation__block {
   color: var(--app-text);
 }
 .chat-conversation__text {
-  color: var(--color-white);
+  color: var(--app-text);
+
 }
 .chat-conversation__text-2 {
-  color: var(--ui-zinc-400);
+  color: var(--app-muted);
+
 }
 .chat-conversation__text-4 {
-  color: var(--ui-zinc-400);
+  color: var(--app-muted-2);
+
+
+
+
+
+
+
+
 }
 .chat-conversation__block-10 {
-  color: var(--ui-zinc-500);
+  color: var(--app-muted-2);
+
+
 }
 .chat-conversation__text-4 {
   --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+  box-shadow: none;
+
+
+
+
+
+
+
+
 }
 .chat-conversation__text-4 {
   -webkit-user-select: none;
   user-select: none;
+
+
+
+
+
+
+
+
 }
 [data-theme="light"] .chat-conversation__text-2 {
   color: var(--app-muted);
@@ -1526,8 +1639,42 @@ onBeforeUnmount(() => {
 @layer gupt-components {
 @supports (color:color-mix(in lab,red,red)) {
 .chat-conversation__text-4 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 90%,transparent);
+  background-color: transparent;
+
+
+
+
+
+
+
+
 }
 }
+}
+
+/* Ledger pass: a date is a rule with a label, not a pill. */
+
+.chat-conversation__block-11 {
+  gap: var(--app-space-3);
+  margin-block: var(--app-space-6);
+}
+
+.chat-conversation__block-11::before,
+.chat-conversation__block-11::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background-color: var(--app-border);
+}
+
+.chat-conversation__text-4 {
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.chat-conversation__block-10 {
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 </style>
