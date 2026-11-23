@@ -375,6 +375,24 @@ async function confirmDelete() {
 
 /* Ledger pass: notes are ruled rows under one sheet, not floating cards. */
 
+.notes-view__block {
+  min-height: 100vh;
+  padding-bottom: var(--app-space-8);
+  background: var(--app-bg);
+  color: var(--app-text);
+  animation: ledger-fade 260ms var(--app-ease-standard) both;
+}
+
+.notes-view__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-5);
+  width: 100%;
+  max-width: var(--container-6xl);
+  margin-inline: auto;
+  padding: var(--app-space-6) var(--app-space-4);
+}
+
 .notes-view__lede {
   max-width: 56ch;
   margin: 0;
@@ -823,6 +841,7 @@ async function confirmDelete() {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .notes-view__block,
   .notes-list,
   .notes-empty {
     animation: none;

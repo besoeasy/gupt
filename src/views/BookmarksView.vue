@@ -391,6 +391,24 @@ function navigateToDetail(item) {
 
 /* Ledger pass: bookmarks are one ruled register with a favicon column. */
 
+.bookmarks-view__block {
+  min-height: 100vh;
+  padding-bottom: var(--app-space-8);
+  background: var(--app-bg);
+  color: var(--app-text);
+  animation: ledger-fade 260ms var(--app-ease-standard) both;
+}
+
+.bookmarks-view__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-5);
+  width: 100%;
+  max-width: var(--container-6xl);
+  margin-inline: auto;
+  padding: var(--app-space-6) var(--app-space-4);
+}
+
 .bookmarks-view__lede {
   max-width: 56ch;
   margin: 0;
@@ -848,6 +866,7 @@ function navigateToDetail(item) {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .bookmarks-view__block,
   .bookmarks-list,
   .bookmarks-empty,
   .bookmarks-import {
