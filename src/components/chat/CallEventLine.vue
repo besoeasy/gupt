@@ -25,150 +25,60 @@ const isMissed = computed(() =>
 </script>
 
 <template>
-  <div class="call-event-line__block">
-    <div
-      class="call-event-line__block-2"
-      :class="isMissed && !message.mine ? 'call-event-line__block--danger' : ''"
-    >
-      <Video
-        v-if="isVideo"
-        class="call-event-line__video"
-        :stroke-width="1.8"
-        aria-hidden="true"
-      />
+  <div class="call-line">
+    <span class="call-line__chip" :class="{ 'call-line__chip--missed': isMissed && !message.mine }">
+      <Video v-if="isVideo" class="call-line__icon" :stroke-width="1.8" aria-hidden="true" />
       <PhoneMissed
         v-else-if="isMissed"
-        class="call-event-line__phone-missed"
+        class="call-line__icon call-line__icon--danger"
         :stroke-width="1.8"
         aria-hidden="true"
       />
-      <Phone v-else class="call-event-line__phone" :stroke-width="1.8" aria-hidden="true" />
+      <Phone v-else class="call-line__icon" :stroke-width="1.8" aria-hidden="true" />
       <span>{{ label }}</span>
-    </div>
+    </span>
   </div>
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: a call is a stamped note between message rows. */
 
-/* Light theme adjustments */
-
-@layer gupt-components {
-.call-event-line__block {
+.call-line {
   display: flex;
-}
-.call-event-line__block-2 {
-  display: inline-flex;
-}
-.call-event-line__video {
-  height: calc(var(--spacing) * 3);
-}
-.call-event-line__phone-missed {
-  height: calc(var(--spacing) * 3);
-}
-.call-event-line__phone {
-  height: calc(var(--spacing) * 3);
-}
-.call-event-line__video {
-  width: calc(var(--spacing) * 3);
-}
-.call-event-line__phone-missed {
-  width: calc(var(--spacing) * 3);
-}
-.call-event-line__phone {
-  width: calc(var(--spacing) * 3);
-}
-.call-event-line__video {
-  flex-shrink: 0;
-}
-.call-event-line__phone-missed {
-  flex-shrink: 0;
-}
-.call-event-line__phone {
-  flex-shrink: 0;
-}
-.call-event-line__block-2 {
-  align-items: center;
-}
-.call-event-line__block {
   justify-content: center;
+  padding: var(--app-space-2) var(--app-space-4);
 }
-.call-event-line__block-2 {
-  gap: calc(var(--spacing) * 2);
-}
-.call-event-line__block-2 {
-  border-radius: var(--radius-lg);
-}
-.call-event-line__block-2 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.call-event-line__block--danger {
-  border-color: #fb2c364d;
-}
-.call-event-line__block-2 {
-  border-color: var(--ui-zinc-800);
-}
-.call-event-line__block--danger {
-  background-color: var(--app-danger-soft);
-}
-.call-event-line__block-2 {
-  background-color: var(--app-surface-tint);
-}
-.call-event-line__block-2 {
-  padding-inline: calc(var(--spacing) * 2.5);
-}
-.call-event-line__block {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.call-event-line__block-2 {
-  padding-block: var(--spacing);
-}
-.call-event-line__block {
-  padding-block: calc(var(--spacing) * 2);
-}
-.call-event-line__block-2 {
+
+.call-line__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: var(--app-surface);
   font-family: var(--font-mono);
-}
-.call-event-line__block-2 {
-  font-size: 11px;
-}
-.call-event-line__block--danger {
-  color: var(--color-red-400);
-}
-.call-event-line__phone-missed {
-  color: var(--color-red-400);
-}
-.call-event-line__block-2 {
-  color: var(--ui-zinc-400);
-}
-.call-event-line__video {
-  opacity: .7;
-}
-.call-event-line__phone {
-  opacity: .7;
-}
-.call-event-line__block-2 {
-  -webkit-user-select: none;
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  color: var(--app-muted);
   user-select: none;
 }
-[data-theme="light"] .call-event-line__block--danger {
+
+.call-line__chip--missed {
+  border-color: color-mix(in oklab, var(--app-danger) 32%, var(--app-border));
+  background: var(--app-danger-soft);
   color: var(--app-danger);
 }
-[data-theme="light"] .call-event-line__phone-missed {
+
+.call-line__icon {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  opacity: 0.8;
+}
+
+.call-line__icon--danger {
   color: var(--app-danger);
-}
-[data-theme="light"] .call-event-line__block-2 {
-  color: var(--app-muted);
-}
-}
-
-@layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.call-event-line__block--danger {
-  border-color: color-mix(in oklab,var(--color-red-500) 30%,transparent);
-}
-}
-
+  opacity: 1;
 }
 </style>

@@ -70,32 +70,28 @@ defineExpose({
 </script>
 
 <template>
-  <div
-    ref="parentRef"
-    class="chat-message-list__block"
-    @scroll="handleScroll"
-  >
+  <div ref="parentRef" class="msg-list" @scroll="handleScroll">
     <slot name="header" />
 
     <slot name="before-list" />
 
-    <div v-if="!items.length" class="chat-message-list__block-2">
+    <div v-if="!items.length" class="msg-list__empty">
       <slot name="empty" />
     </div>
 
     <div v-else ref="containerRef">
       <TransitionGroup
-        enter-active-class="chat-message-list__enter-active-class"
-        enter-from-class="chat-message-list__enter-from-class"
-        leave-active-class="chat-message-list__leave-active-class"
-        leave-to-class="chat-message-list__leave-to-class"
-        move-class="chat-message-list__move-class"
+        enter-active-class="msg-enter-active"
+        enter-from-class="msg-enter-from"
+        leave-active-class="msg-leave-active"
+        leave-to-class="msg-leave-to"
+        move-class="msg-move"
         tag="div"
       >
         <div
           v-for="(item, index) in items"
           :key="item.id"
-          class="chat-message-list__block-3"
+          class="msg-list__row"
           v-memo="rowMemoDeps(item, index)"
         >
           <slot
@@ -114,98 +110,64 @@ defineExpose({
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: the transcript column owns no chrome, only spacing. */
 
-@layer gupt-components {
-@media (min-width:40rem) {
-.chat-message-list__block {
-  padding-inline: calc(var(--spacing) * 5);
-}
-}
-
-@media (min-width:64rem) {
-.chat-message-list__block {
-  padding-inline: calc(var(--spacing) * 8);
-}
+.msg-list {
+  flex: 1;
+  padding: var(--app-space-5) var(--app-space-3);
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--app-bg);
 }
 
-@layer gupt-components {
-.chat-message-list__block-3 {
+.msg-list__empty {
+  padding-block: var(--app-space-4);
+}
+
+.msg-list__row {
+  min-width: 0;
   max-width: 100%;
 }
-.chat-message-list__block-3 {
-  min-width: 0;
+
+.msg-enter-active {
+  transition:
+    opacity 220ms var(--app-ease-swift),
+    transform 220ms var(--app-ease-swift);
 }
-.chat-message-list__block {
-  flex: 1;
+
+.msg-leave-active {
+  transition:
+    opacity 150ms var(--app-ease-in),
+    transform 150ms var(--app-ease-in);
 }
-.chat-message-list__enter-from-class {
-  --translate-y: calc(var(--spacing) * 2);
-  translate: var(--translate-x,0) calc(var(--spacing) * 2);
+
+.msg-move {
+  transition: transform 200ms var(--app-ease-swift);
 }
-.chat-message-list__block {
-  overflow-x: hidden;
-}
-.chat-message-list__block {
-  overflow-y: auto;
-}
-.chat-message-list__block {
-  background-color: var(--app-bg);
-}
-.chat-message-list__block {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.chat-message-list__block-2 {
-  padding-block: calc(var(--spacing) * 4);
-}
-.chat-message-list__block {
-  padding-block: calc(var(--spacing) * 5);
-}
-.chat-message-list__enter-from-class {
+
+.msg-enter-from,
+.msg-leave-to {
   opacity: 0;
+  transform: translateY(6px);
 }
-.chat-message-list__leave-to-class {
-  opacity: 0;
+
+@media (min-width: 40rem) {
+  .msg-list {
+    padding-inline: var(--app-space-5);
+  }
 }
-.chat-message-list__enter-active-class {
-  transition-property: opacity,transform;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
+
+@media (min-width: 64rem) {
+  .msg-list {
+    padding-inline: var(--app-space-8);
+  }
 }
-.chat-message-list__leave-active-class {
-  transition-property: opacity,transform;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.chat-message-list__move-class {
-  transition-property: transform,translate,scale,rotate;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.chat-message-list__leave-active-class {
-  --duration: .15s;
-  transition-duration: .15s;
-}
-.chat-message-list__enter-active-class {
-  --duration: .2s;
-  transition-duration: .2s;
-}
-.chat-message-list__move-class {
-  --duration: .2s;
-  transition-duration: .2s;
-}
-.chat-message-list__leave-active-class {
-  --ease: var(--app-ease-in);
-  transition-timing-function: var(--app-ease-in);
-}
-.chat-message-list__enter-active-class {
-  --ease: var(--app-ease-swift);
-  transition-timing-function: var(--app-ease-swift);
-}
-.chat-message-list__move-class {
-  --ease: var(--app-ease-swift);
-  transition-timing-function: var(--app-ease-swift);
-}
-}
+
+@media (prefers-reduced-motion: reduce) {
+  .msg-enter-active,
+  .msg-leave-active,
+  .msg-move {
+    transition: none;
+  }
 }
 </style>

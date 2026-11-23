@@ -72,19 +72,14 @@ const label = computed(() =>
 const urgency = computed(() => expiryUrgency(remainingMs.value));
 const urgencyClass = computed(() =>
   warning.value
-    ? "message-expiry-countdown__danger"
+    ? "expiry--danger"
     : {
-        calm: "message-expiry-countdown__muted",
-        soon: "message-expiry-countdown__warning",
-        critical: "message-expiry-countdown__danger-2",
+        calm: "expiry--calm",
+        soon: "expiry--soon",
+        critical: "expiry--critical",
       }[urgency.value],
 );
-const pillClass = computed(() => {
-  if (!props.framed) return "";
-  return warning.value
-    ? "message-expiry-countdown__danger-3"
-    : "message-expiry-countdown__variant-6";
-});
+const pillClass = computed(() => (props.framed ? "expiry--framed" : ""));
 const progress = computed(() =>
   expiryProgress({
     expiresAt: props.expiresAt,
@@ -102,16 +97,12 @@ const dashOffset = computed(() => CIRCUMFERENCE * (1 - progress.value));
   <span
     v-if="visible"
     data-expiry
-    class="message-expiry-countdown__text"
-    :class="[
-      urgencyClass,
-      pillClass,
-      warning ? 'message-expiry-countdown__text--pulse' : '',
-    ]"
+    class="expiry"
+    :class="[urgencyClass, pillClass, warning ? 'expiry--pulse' : '']"
     :title="`Disappears in ${warning ? `${secondsLeft}s` : label}`"
     :aria-label="`Disappears in ${warning ? `${secondsLeft}s` : label}`"
   >
-    <svg class="message-expiry-countdown__icon" viewBox="0 0 12 12" aria-hidden="true">
+    <svg class="expiry__dial" viewBox="0 0 12 12" aria-hidden="true">
       <circle
         cx="6"
         cy="6"
@@ -131,194 +122,97 @@ const dashOffset = computed(() => CIRCUMFERENCE * (1 - progress.value));
         stroke-linecap="round"
         :stroke-dasharray="CIRCUMFERENCE"
         :stroke-dashoffset="dashOffset"
-        class="message-expiry-countdown__icon-shape"
+        class="expiry__arc"
       />
     </svg>
-    <span class="message-expiry-countdown__text-2">{{ label }}</span>
+    <span class="expiry__label">{{ label }}</span>
   </span>
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: a tiny dial and a mono countdown that only colours at the end. */
 
-/* Light theme adjustments */
-
-@layer gupt-components {
-
-
-
-
-
-
-
-
-@media (prefers-reduced-motion:reduce) {
-.message-expiry-countdown__text--pulse {
-  animation: none;
-}
-}
-
-@layer gupt-components {
-.message-expiry-countdown__text {
+.expiry {
   display: inline-flex;
-}
-.message-expiry-countdown__icon {
-  height: calc(var(--spacing) * 3);
-}
-.message-expiry-countdown__icon {
-  width: calc(var(--spacing) * 3);
-}
-.message-expiry-countdown__icon {
-  flex-shrink: 0;
-}
-.message-expiry-countdown__icon {
-  rotate: -90deg;
-}
-.message-expiry-countdown__text--pulse {
-  animation: var(--animate-pulse);
-}
-.message-expiry-countdown__text {
   align-items: center;
-}
-.message-expiry-countdown__text {
-  gap: var(--spacing);
-}
-.message-expiry-countdown__danger-3 {
-  border-radius: 3.40282e38px;
-}
-.message-expiry-countdown__variant-6 {
-  border-radius: 3.40282e38px;
-}
-.message-expiry-countdown__danger-3 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.message-expiry-countdown__variant-6 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.message-expiry-countdown__danger-3 {
-  border-color: #fb2c3680;
-}
-.message-expiry-countdown__variant-6 {
-  border-color: var(--ui-zinc-700);
-}
-.message-expiry-countdown__danger-3 {
-  background-color: #460809d9;
-}
-.message-expiry-countdown__variant-6 {
-  background-color: var(--ui-zinc-950);
-}
-.message-expiry-countdown__danger-3 {
-  padding-inline: calc(var(--spacing) * 2);
-}
-.message-expiry-countdown__variant-6 {
-  padding-inline: calc(var(--spacing) * 2);
-}
-.message-expiry-countdown__danger-3 {
-  padding-block: calc(var(--spacing) * .5);
-}
-.message-expiry-countdown__variant-6 {
-  padding-block: calc(var(--spacing) * .5);
-}
-.message-expiry-countdown__text-2 {
+  gap: 4px;
   font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--app-muted-2);
+  transition: color var(--app-dur-fast) var(--app-ease-standard);
 }
-.message-expiry-countdown__text-2 {
-  font-size: 10px;
+
+.expiry__dial {
+  flex-shrink: 0;
+  width: 11px;
+  height: 11px;
+  transition: transform var(--app-dur-slow) var(--app-ease-standard);
 }
-.message-expiry-countdown__text-2 {
-  white-space: nowrap;
+
+.expiry__arc {
+  transition: stroke-dashoffset 1s linear;
 }
-.message-expiry-countdown__warning {
-  color: var(--color-amber-400);
-}
-.message-expiry-countdown__danger {
-  color: var(--color-red-300);
-}
-.message-expiry-countdown__danger-2 {
-  color: var(--color-red-400);
-}
-.message-expiry-countdown__muted {
-  color: var(--ui-zinc-500);
-}
-.message-expiry-countdown__text-2 {
-  --numeric-spacing: tabular-nums;
-  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
-}
-.message-expiry-countdown__danger-3 {
-  --shadow: 0 0 14px -3px var(--shadow-color,#f8717199);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 0 14px -3px var(--shadow-color,#f8717199);
-}
-.message-expiry-countdown__variant-6 {
-  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
-}
-.message-expiry-countdown__danger-3 {
-  --backdrop-blur: blur(var(--blur-md));
-  -webkit-backdrop-filter: blur(var(--blur-md)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
-  backdrop-filter: blur(var(--blur-md)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
-}
-.message-expiry-countdown__variant-6 {
-  --backdrop-blur: blur(var(--blur-md));
-  -webkit-backdrop-filter: blur(var(--blur-md)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
-  backdrop-filter: blur(var(--blur-md)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
-}
-.message-expiry-countdown__icon-shape {
-  transition-property: all;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.message-expiry-countdown__icon-shape {
-  --duration: .7s;
-  transition-duration: .7s;
-}
-.message-expiry-countdown__icon-shape {
-  --ease: linear;
-  transition-timing-function: linear;
-}
-.message-expiry-countdown__text {
-  -webkit-user-select: none;
-  user-select: none;
-}
-[data-theme="light"] .message-expiry-countdown__warning {
+
+.expiry--soon {
   color: var(--app-warning);
 }
-[data-theme="light"] .message-expiry-countdown__danger {
+
+.expiry--critical,
+.expiry--danger {
   color: var(--app-danger);
 }
-[data-theme="light"] .message-expiry-countdown__danger-2 {
-  color: var(--app-danger);
-}
-[data-theme="light"] .message-expiry-countdown__muted {
-  color: var(--app-muted);
-}
-}
+
+.expiry--danger {
+  font-weight: 500;
 }
 
-@layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.message-expiry-countdown__danger-3 {
-  border-color: color-mix(in oklab,var(--color-red-500) 50%,transparent);
-}
+.expiry--pulse {
+  animation: expiry-pulse 1s var(--app-ease-standard) infinite;
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.message-expiry-countdown__variant-6 {
-  border-color: color-mix(in oklab,var(--ui-zinc-700) 70%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.message-expiry-countdown__danger-3 {
-  background-color: color-mix(in oklab,var(--color-red-950) 85%,transparent);
-}
+@keyframes expiry-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.message-expiry-countdown__variant-6 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 85%,transparent);
+/* Sits on top of a picture: needs its own plate. */
+
+.expiry--framed {
+  padding: 2px 6px;
+  border: 1px solid color-mix(in oklab, var(--color-white) 22%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklab, #000 58%, transparent);
+  color: color-mix(in oklab, var(--color-white) 86%, transparent);
 }
+
+.expiry--framed.expiry--soon {
+  border-color: color-mix(in oklab, var(--app-warning) 60%, transparent);
+  color: var(--app-warning);
 }
+
+.expiry--framed.expiry--critical,
+.expiry--framed.expiry--danger {
+  border-color: color-mix(in oklab, var(--app-danger) 60%, transparent);
+  background: color-mix(in oklab, var(--app-danger) 22%, #000);
+  color: var(--color-white);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .expiry,
+  .expiry__dial,
+  .expiry__arc {
+    transition: none;
+  }
+
+  .expiry--pulse {
+    animation: none;
+  }
 }
 </style>
