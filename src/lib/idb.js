@@ -5,13 +5,13 @@ import { decCachedKey, usableDecCachedRow } from "./mediaDecCache.js";
 import {
   READ_SCORE_NEUTRAL,
   WRITE_SCORE_NEUTRAL,
+  decayRelayScore,
   scoreForLatency,
   updateLatencyEwma,
   updateOkEwma,
   updateRelayScore,
 } from "./relay/score.js";
 import { classifyTraffic } from "./relay/constants.js";
-import { OUTBOX_TERMINAL_ATTEMPTS, outboxRetryDelayMs } from "../config/outbox.js";
 
 // The cache is disposable: relays are the source of truth. The database name is
 // derived from STORE_SPECS (see below), so a layout change opens a brand-new
@@ -32,6 +32,7 @@ const CACHE_BUDGET_BYTES = 300 * 1024 * 1024; // 300 MB
 const STAGED_UPLOAD_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 export const PROFILE_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
 const RELAY_STATS_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+const CAPABILITIES_TTL_MS = 30 * 60 * 1000;
 const OUTBOX_DONE_AT = Number.MAX_SAFE_INTEGER;
 const OUTBOX_FAILED_IDS_MAX = 20;
 
@@ -978,6 +979,15 @@ function outboxEntryOf(row, existing = null, stampedAt = now()) {
     nextDue: Number(existing?.nextDue) || 0,
     createdAt: Number(existing?.createdAt) || stampedAt,
     sizeBytes: estimateValueBytes(row.event),
+    // Per-relay delivery truth survives reloads and worker restarts. A relay
+    // that already stored the event is never asked to store it again.
+    relayStates:
+      existing?.relayStates && typeof existing.relayStates === "object" ? existing.relayStates : {},
+    firstAckAt: Number(existing?.firstAckAt) || 0,
+    lastAckRelay: existing?.lastAckRelay || null,
+    lastSyncError: existing?.lastSyncError || null,
+    lastAttemptAt: Number(existing?.lastAttemptAt) || 0,
+    failedAt: Number(existing?.failedAt) || 0,
     updatedAt: now(),
   };
 }
@@ -1055,6 +1065,12 @@ export async function listOutboxEvents(limit = 25, { origins = null } = {}) {
     groupId: row.groupId,
     type: row.type,
     syncAttempts: Number(row.attempts) || 0,
+    nextDue: Number(row.nextDue) || 0,
+    relayStates: row.relayStates && typeof row.relayStates === "object" ? row.relayStates : {},
+    firstAckAt: Number(row.firstAckAt) || 0,
+    lastAckRelay: row.lastAckRelay || null,
+    lastSyncError: row.lastSyncError || null,
+    failedAt: Number(row.failedAt) || 0,
   }));
 }
 
@@ -1074,7 +1090,18 @@ export async function getOutboxEntry(id) {
     lastSyncError: row.lastSyncError || null,
     lastAttemptAt: Number(row.lastAttemptAt) || 0,
     createdAt: Number(row.createdAt) || 0,
+    relayStates: row.relayStates && typeof row.relayStates === "object" ? row.relayStates : {},
+    firstAckAt: Number(row.firstAckAt) || 0,
+    lastAckRelay: row.lastAckRelay || null,
+    failedAt: Number(row.failedAt) || 0,
   };
+}
+
+export async function isEventReplicated(id) {
+  const key = String(id || "");
+  if (!key) return false;
+  const row = await db.rawEvents.get(key).catch(() => null);
+  return Number(row?.lastReplicatedAt) >= OUTBOX_DONE_AT;
 }
 
 export async function listOutboxEntries() {
@@ -1086,31 +1113,131 @@ export async function listOutboxEntries() {
     lastSyncError: row.lastSyncError || null,
     lastAttemptAt: Number(row.lastAttemptAt) || 0,
     createdAt: Number(row.createdAt) || 0,
+    relayStates: row.relayStates && typeof row.relayStates === "object" ? row.relayStates : {},
+    firstAckAt: Number(row.firstAckAt) || 0,
+    lastAckRelay: row.lastAckRelay || null,
+    failedAt: Number(row.failedAt) || 0,
   }));
 }
 
+function relayStateEntry(previous, patch, ts) {
+  const prev = previous || {};
+  const next = {
+    relay: prev.relay || patch.relay || null,
+    state: String(patch.state || prev.state || "pending"),
+    attempts: Math.max(0, toNumber(patch.attempts ?? prev.attempts, 0)),
+    latencyMs: Math.max(0, toNumber(patch.latencyMs ?? prev.latencyMs, 0)),
+    blobsOk: patch.blobsOk === undefined ? prev.blobsOk !== false : Boolean(patch.blobsOk),
+    error:
+      patch.error === undefined
+        ? prev.error || null
+        : patch.error
+          ? String(patch.error).slice(0, 240)
+          : null,
+    at: toNumber(patch.at, ts),
+  };
+  return next;
+}
+
 /**
- * Advance queued rows after a push pass. Fully-acked rows leave the queue and
- * land on the history row once; anything else just gets a new due time.
+ * Persist one relay's outcome for one event. This is the truth the sender
+ * reads on the next pass and the UI reads in Message Info, so a restart never
+ * re-asks a relay that already stored the event.
  */
-export async function markOutboxSynced(ids, ts = now()) {
-  const list = uniqueIds(ids);
-  if (!list.length) return;
-  if (toNumber(ts, 0) >= OUTBOX_DONE_AT) {
-    await db.outbox.bulkDelete(list).catch(() => {});
-    await db.rawEvents
-      .bulkUpdate(
-        list.map((id) => ({
-          key: id,
-          changes: { lastReplicatedAt: OUTBOX_DONE_AT, syncAttempts: 0, lastAckedAt: now() },
-        })),
-      )
-      .catch(() => {});
-    return;
+export async function recordOutboxRelayState(eventId, relay, patch = {}) {
+  const key = String(eventId || "");
+  const url = normalizeRelay(relay);
+  if (!key || !url) return null;
+  const ts = now();
+  const row = await db.outbox.get(key).catch(() => null);
+  if (!row) return null;
+  const states = { ...(row.relayStates || {}) };
+  const next = relayStateEntry(states[url], { ...patch, relay: url }, ts);
+  states[url] = next;
+  const changes = { relayStates: states, updatedAt: ts };
+  if (next.state === "ok" && !row.firstAckAt) {
+    changes.firstAckAt = ts;
+    changes.lastAckRelay = url;
   }
+  await db.outbox.update(key, changes).catch(() => {});
+  return next;
+}
+
+/**
+ * Schedule the next pass and bump the attempt counter in one write. Expired
+ * events become terminal here; nothing else is allowed to stop retrying early.
+ */
+export async function scheduleOutboxRetry(
+  eventId,
+  { nextDue = now(), error = null, partial = false } = {},
+) {
+  const key = String(eventId || "");
+  if (!key) return null;
+  const ts = now();
+  const row = await db.outbox.get(key).catch(() => null);
+  if (!row) return null;
+  const createdSec = Number(row.event?.created_at) || 0;
+  const retentionAt = createdSec > 0 ? createdSec * 1000 + readConfiguredRetentionMs() : 0;
+  const declaredExpiry = (Number(row.event?.expires_at) || 0) * 1000;
+  const deadline = declaredExpiry > 0 ? declaredExpiry : retentionAt;
+  const expired = deadline > 0 && deadline <= ts;
+  const attempts = Math.max(0, Number(row.attempts) || 0) + 1;
+  const due = expired ? OUTBOX_DONE_AT : Math.max(ts, Number(nextDue) || ts);
   await db.outbox
-    .bulkUpdate(list.map((id) => ({ key: id, changes: { nextDue: ts, updatedAt: now() } })))
+    .update(key, {
+      attempts,
+      nextDue: due,
+      lastSyncError: error ? String(error).slice(0, 240) : row.lastSyncError || null,
+      lastAttemptAt: ts,
+      failedAt: expired ? ts : 0,
+      updatedAt: ts,
+    })
     .catch(() => {});
+  return { eventId: key, attempts, nextDue: due, expired, partial: Boolean(partial) };
+}
+
+/** All eligible relays have it: leave the queue and stamp the history row. */
+export async function completeOutboxEvent(eventId) {
+  const key = String(eventId || "");
+  if (!key) return false;
+  const row = await db.outbox.get(key).catch(() => null);
+  if (!row) return false;
+  await db.outbox.delete(key).catch(() => {});
+  await db.rawEvents
+    .update(key, {
+      lastReplicatedAt: OUTBOX_DONE_AT,
+      syncAttempts: 0,
+      lastAckedAt: now(),
+    })
+    .catch(() => {});
+  return true;
+}
+
+/** Manual retry from Message Info; keeps relays that already acked. */
+export async function retryOutboxEvent(eventId) {
+  const key = String(eventId || "");
+  if (!key) return false;
+  const ts = now();
+  const row = await db.outbox.get(key).catch(() => null);
+  if (!row) return false;
+  await db.outbox
+    .update(key, {
+      attempts: 0,
+      nextDue: ts,
+      failedAt: 0,
+      lastSyncError: null,
+      updatedAt: ts,
+    })
+    .catch(() => {});
+  return true;
+}
+
+export async function getOutboxAckRelays(eventId) {
+  const row = await getOutboxEntry(eventId);
+  if (!row) return [];
+  return Object.entries(row.relayStates || {})
+    .filter(([, state]) => state?.state === "ok")
+    .map(([relay]) => relay);
 }
 
 function resolveDbOwner() {
@@ -1965,6 +2092,10 @@ export async function recordRelayOutcomes(operation, outcomes) {
       readScore: null,
       blobScore: null,
       connectScore: null,
+      writeUpdatedAt: 0,
+      readUpdatedAt: 0,
+      blobUpdatedAt: 0,
+      connectUpdatedAt: 0,
       maxSingleBytes: null,
       remainingBytes: null,
       writable: true,
@@ -1983,6 +2114,7 @@ export async function recordRelayOutcomes(operation, outcomes) {
         existing.writeScore,
         isOk ? scoreForLatency(latency) : 0,
       );
+      existing.writeUpdatedAt = currentTs;
     } else if (operation === "query") {
       existing.queryTotal = (existing.queryTotal || 0) + 1;
       if (isOk) existing.queryOk = (existing.queryOk || 0) + 1;
@@ -1990,11 +2122,13 @@ export async function recordRelayOutcomes(operation, outcomes) {
         max: 1,
         neutral: READ_SCORE_NEUTRAL,
       });
+      existing.readUpdatedAt = currentTs;
     } else if (operation === "blob") {
       existing.blobScore = updateRelayScore(
         existing.blobScore,
         isOk ? scoreForLatency(latency) : 0,
       );
+      existing.blobUpdatedAt = currentTs;
     } else if (operation === "connect") {
       existing.connectTotal = (existing.connectTotal || 0) + 1;
       if (isOk) existing.connectOk = (existing.connectOk || 0) + 1;
@@ -2002,6 +2136,7 @@ export async function recordRelayOutcomes(operation, outcomes) {
         max: 1,
         neutral: READ_SCORE_NEUTRAL,
       });
+      existing.connectUpdatedAt = currentTs;
     }
 
     if (outcome.error && !isOk) {
@@ -2096,29 +2231,48 @@ export async function getRelayScores() {
     if (!relay) continue;
     const maxSingle = Number(row?.maxSingleBytes);
     const remaining = Number(row?.remainingBytes);
+    const updatedAt = Number(row?.updatedAt) || 0;
+    const writeAt = Number(row?.writeUpdatedAt) || updatedAt;
+    const readAt = Number(row?.readUpdatedAt) || updatedAt;
+    const blobAt = Number(row?.blobUpdatedAt) || updatedAt;
+    const connectAt = Number(row?.connectUpdatedAt) || updatedAt;
+    const writeScore = Number.isFinite(Number(row?.writeScore))
+      ? Number(row.writeScore)
+      : WRITE_SCORE_NEUTRAL;
+    const readScore = Number.isFinite(Number(row?.readScore))
+      ? Number(row.readScore)
+      : READ_SCORE_NEUTRAL;
+    const blobScore = Number.isFinite(Number(row?.blobScore))
+      ? Number(row.blobScore)
+      : WRITE_SCORE_NEUTRAL;
+    const connectScore = Number.isFinite(Number(row?.connectScore))
+      ? Number(row.connectScore)
+      : READ_SCORE_NEUTRAL;
+    const capabilitiesAt = Number(row?.capabilitiesAt) || 0;
+    const capsFresh = capabilitiesAt > 0 && currentTime - capabilitiesAt < CAPABILITIES_TTL_MS;
     scores[relay] = {
       relay,
-      writeScore: Number.isFinite(Number(row?.writeScore))
-        ? Number(row.writeScore)
-        : WRITE_SCORE_NEUTRAL,
-      readScore: Number.isFinite(Number(row?.readScore))
-        ? Number(row.readScore)
-        : READ_SCORE_NEUTRAL,
-      blobScore: Number.isFinite(Number(row?.blobScore))
-        ? Number(row.blobScore)
-        : WRITE_SCORE_NEUTRAL,
-      connectScore: Number.isFinite(Number(row?.connectScore))
-        ? Number(row.connectScore)
-        : READ_SCORE_NEUTRAL,
+      writeScore: decayRelayScore(writeScore, writeAt, currentTime, {
+        neutral: WRITE_SCORE_NEUTRAL,
+      }),
+      readScore: decayRelayScore(readScore, readAt, currentTime, {
+        neutral: READ_SCORE_NEUTRAL,
+      }),
+      blobScore: decayRelayScore(blobScore, blobAt, currentTime, {
+        neutral: WRITE_SCORE_NEUTRAL,
+      }),
+      connectScore: decayRelayScore(connectScore, connectAt, currentTime, {
+        neutral: READ_SCORE_NEUTRAL,
+      }),
       latencyMs: Number(row?.ewmaLatencyMs) || 0,
       writeSamples: Number(row?.publishTotal) || 0,
       readSamples: Number(row?.queryTotal) || 0,
       batteryMode: row?.batteryMode || null,
       writable: row?.writable !== false,
-      maxSingleBytes: Number.isFinite(maxSingle) && maxSingle > 0 ? maxSingle : null,
-      remainingBytes: Number.isFinite(remaining) ? remaining : null,
-      capabilitiesAt: Number(row?.capabilitiesAt) || 0,
-      updatedAt: Number(row?.updatedAt) || 0,
+      maxSingleBytes: capsFresh && Number.isFinite(maxSingle) && maxSingle > 0 ? maxSingle : null,
+      remainingBytes: capsFresh && Number.isFinite(remaining) ? remaining : null,
+      capabilitiesAt,
+      updatedAt,
     };
   }
   return scores;
@@ -2298,60 +2452,6 @@ function uniqueIds(ids) {
   return [...new Set((Array.isArray(ids) ? ids : []).filter(Boolean))];
 }
 
-/** Retry state after a push pass: attempts live on the queue row only. */
-export async function recordOutboxResult({
-  ackedIds = [],
-  unackedIds = [],
-  failedAfter = OUTBOX_TERMINAL_ATTEMPTS,
-  error = "no relay ack",
-  errorsById = null,
-} = {}) {
-  const ts = now();
-  const terminalAfter = Math.max(1, Math.floor(Number(failedAfter) || OUTBOX_TERMINAL_ATTEMPTS));
-  const acked = uniqueIds(ackedIds);
-  const unacked = uniqueIds(unackedIds).filter((id) => !acked.includes(id));
-  const failedIds = [];
-
-  if (acked.length) {
-    await markOutboxSynced(acked, OUTBOX_DONE_AT).catch(() => {});
-  }
-
-  if (unacked.length) {
-    const rows = await db.outbox.bulkGet(unacked).catch(() => []);
-    const updates = [];
-    for (const row of rows) {
-      if (!row) continue;
-      const attempts = (Number(row.attempts) || 0) + 1;
-      const isFailed = attempts >= terminalAfter;
-      if (isFailed) failedIds.push(row.id);
-      // markOutboxSynced may already have deferred this row past now (e.g. a
-      // 429 Retry-After); never pull that deadline forward here.
-      const keepDue = (Number(row.nextDue) || 0) > ts;
-      const rowError = String((errorsById && errorsById[row.id]) || error || "no relay ack").slice(
-        0,
-        240,
-      );
-      updates.push({
-        key: row.id,
-        changes: {
-          attempts,
-          lastSyncError: rowError,
-          lastAttemptAt: ts,
-          updatedAt: ts,
-          ...(isFailed
-            ? { nextDue: OUTBOX_DONE_AT }
-            : keepDue
-              ? {}
-              : { nextDue: ts + outboxRetryDelayMs(attempts) }),
-        },
-      });
-    }
-    if (updates.length) await db.outbox.bulkUpdate(updates).catch(() => {});
-  }
-
-  return { failedIds };
-}
-
 /** Queue-only status: reads ≤200 small rows, never the mailbox. A row is
  * terminal only when its nextDue is OUTBOX_DONE_AT; the attempt count just
  * says how long it has been retrying. */
@@ -2368,14 +2468,17 @@ export async function getOutboxSnapshot({ origins = null, filter = null } = {}) 
   for (const row of rows) {
     if (include && !include.has(row.origin)) continue;
     if (typeof filter === "function" && !filter(row)) continue;
-    const expiresAt = Number(row?.event?.expires_at) || 0;
-    if (expiresAt > 0 && expiresAt * 1000 <= nowMs) continue;
-
     const attempts = Number(row.attempts) || 0;
     if (row.nextDue === OUTBOX_DONE_AT) {
+      // Terminal rows stay visible even after the event's own expiry: that is
+      // the state Message Info needs to explain why it stopped retrying.
       failed++;
       if (failedIds.length < OUTBOX_FAILED_IDS_MAX) failedIds.push(row.id);
-    } else if (attempts > 0) {
+      continue;
+    }
+    const expiresAt = Number(row?.event?.expires_at) || 0;
+    if (expiresAt > 0 && expiresAt * 1000 <= nowMs) continue;
+    if (attempts > 0) {
       retryPending++;
     } else {
       inFlight++;

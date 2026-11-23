@@ -66,6 +66,7 @@ const props = defineProps({
 const emit = defineEmits([
   "download",
   "retry",
+  "retry-send",
   "reply",
   "react",
   "edit",
@@ -199,7 +200,7 @@ const sendAttempts = computed(() => relayAttemptsOf(sendReport.value));
 const sendError = computed(() => String(sendReport.value?.error || ""));
 const nextRetryLabel = computed(() => {
   const at = Number(sendReport.value?.nextRetryAt) || 0;
-  if (!at) return "";
+  if (!at || at >= Number.MAX_SAFE_INTEGER) return "";
   const delta = Math.max(0, at - Date.now());
   if (delta <= 0) return "retrying now";
   const seconds = Math.ceil(delta / 1000);
@@ -1435,7 +1436,10 @@ const linkifyText = computed(() => {
                 Status
               </p>
               <p :class="statusColorClass" class="chat-message-bubble__text-27">{{ statusLabel }}</p>
-              <p v-if="sendError && props.mine" class="chat-message-bubble__text-send-detail">
+              <p
+                v-if="sendError && props.mine && props.message.status !== 'sent'"
+                class="chat-message-bubble__text-send-detail"
+              >
                 {{ sendError }}<span v-if="nextRetryLabel"> · {{ nextRetryLabel }}</span>
               </p>
             </div>
@@ -1500,6 +1504,18 @@ const linkifyText = computed(() => {
           </div>
 
           <div class="chat-message-bubble__block-36">
+            <button
+              v-if="props.mine && props.message.status === 'failed'"
+              type="button"
+              @click="
+                emit('retry-send', message);
+                closeMessageInfo();
+              "
+              class="chat-message-bubble__button-10"
+            >
+              Retry sending
+            </button>
+
             <button
               v-if="copyableMessageText"
               type="button"
@@ -2073,6 +2089,7 @@ const linkifyText = computed(() => {
 .chat-message-bubble__text-29 {
   margin-top: var(--spacing);
 }
+.chat-message-bubble__media-decrypt-status {
   margin-top: calc(var(--spacing) * 1.5);
 }
 .chat-message-bubble__block--variant-4 {

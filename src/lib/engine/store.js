@@ -1,6 +1,7 @@
 // Engine-backed store. Works identically on the main thread and in the
 // replication worker — IndexedDB supports concurrent connections.
 import {
+  completeOutboxEvent,
   countLocalRawEvents,
   evictEngineBlobs,
   getEngineBlob,
@@ -8,15 +9,17 @@ import {
   getEngineWatermark,
   getLatestRawEventCreatedAt,
   getOutboxSnapshot,
+  getOutboxEntry,
   getRawEventsByIds,
   getRelayScores,
   hasEngineBlob,
   listOutboxEvents,
-  markOutboxSynced,
   putEngineBlob,
   putEngineCursor,
   putRawEvent,
-  recordOutboxResult as recordRawOutboxResult,
+  recordOutboxRelayState,
+  retryOutboxEvent,
+  scheduleOutboxRetry,
   setEngineWatermark,
 } from "../idb.js";
 import { dmRoomId, normalizePubkey } from "../crypto.js";
@@ -104,12 +107,24 @@ export function createEngineStore({ blobs, log = () => {}, selfHex = null } = {}
       return listOutboxEvents(limit, { origins: ENGINE_ORIGINS });
     },
 
-    async markEventsSynced(ids, ts) {
-      await markOutboxSynced(ids, ts);
+    async recordOutboxRelayState(eventId, relay, patch) {
+      return recordOutboxRelayState(eventId, relay, patch);
     },
 
-    async recordOutboxResult(result) {
-      return recordRawOutboxResult(result);
+    async getOutboxEntry(eventId) {
+      return getOutboxEntry(eventId);
+    },
+
+    async scheduleOutboxRetry(eventId, options) {
+      return scheduleOutboxRetry(eventId, options);
+    },
+
+    async completeOutboxEvent(eventId) {
+      return completeOutboxEvent(eventId);
+    },
+
+    async retryOutboxEvent(eventId) {
+      return retryOutboxEvent(eventId);
     },
 
     async getRelayScores() {

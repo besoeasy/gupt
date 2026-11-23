@@ -963,6 +963,24 @@ export async function checkRelayHealth(
       };
     }
     const data = await res.json();
+    const mode = data?.peers?.battery?.mode || null;
+    const blobsEnabled = data?.blobs?.enabled !== false;
+    const storageBudgetBytes = Math.max(
+      0,
+      Number(data?.storage?.budget_bytes ?? data?.storage?.configured_bytes) || 0,
+    );
+    const storageUsedBytes = Math.max(0, Number(data?.storage?.used_bytes) || 0);
+    const freeBytes = Number(data?.storage?.free_bytes);
+    const hasRemainingHint = storageBudgetBytes > 0 || Number.isFinite(freeBytes);
+    const remainingBytes = hasRemainingHint
+      ? Number.isFinite(freeBytes)
+        ? Math.min(Math.max(0, storageBudgetBytes - storageUsedBytes), Math.max(0, freeBytes))
+        : Math.max(0, storageBudgetBytes - storageUsedBytes)
+      : undefined;
+    const maxSingleBytes = Math.max(
+      0,
+      Number(data?.upload?.max_single_bytes ?? data?.blobs?.max_single_bytes) || 0,
+    );
     return {
       ok: true,
       reachable: true,
@@ -981,10 +999,17 @@ export async function checkRelayHealth(
           : data?.blobs?.live !== undefined
             ? Number(data.blobs.live)
             : undefined,
-      mode: data?.peers?.battery?.mode || null,
+      mode,
       syncPeers: Array.isArray(data?.sync) ? data.sync.length : 0,
-      storageUsedBytes: Math.max(0, Number(data?.storage?.used_bytes) || 0),
-      storageBudgetBytes: Math.max(0, Number(data?.storage?.budget_bytes) || 0),
+      storageUsedBytes,
+      storageBudgetBytes,
+      maxSingleBytes,
+      remainingBytes,
+      blobsEnabled,
+      writable:
+        String(mode || "").toLowerCase() !== "read_only" &&
+        String(mode || "").toLowerCase() !== "sync_disabled" &&
+        blobsEnabled,
       limits: data?.limits || null,
       data,
     };

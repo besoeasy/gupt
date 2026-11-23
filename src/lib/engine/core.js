@@ -2,9 +2,11 @@
 // Completely free from legacy 1-hour window ledgers and heuristic hunting.
 //
 // Storage contract (implemented by createEngineStore):
-//   listUnsyncedEvents(limit)                        -> rows: { id, event, syncAttempts }
-//   markEventsSynced(ids, ts)
-//   recordOutboxResult({ ackedIds, unackedIds })     -> { failedIds }
+//   listUnsyncedEvents(limit)                        -> rows: { id, event, syncAttempts, relayStates }
+//   recordOutboxRelayState(eventId, relay, patch)
+//   scheduleOutboxRetry(eventId, { nextDue, error, partial }) -> { expired }
+//   completeOutboxEvent(eventId)
+//   retryOutboxEvent(eventId)
 //   getOutboxStatus()                                  -> { pending, stuck, failed, failedIds, ... }
 //   hasEventIds(ids)                                 -> Set of ids already stored
 //   getEventsByIds(ids)                              -> rows
@@ -44,13 +46,10 @@ export const ENGINE_REQUEST_RETRIES = 3;
 export const ENGINE_PARTIAL_RETRY_MS = 5 * 60 * 1000;
 export const ENGINE_PARTIAL_RETRY_BASE_MS = 3000;
 export const ENGINE_PARTIAL_RETRY_FACTOR = 4;
-export const ENGINE_STUCK_RETRY_MS = 60 * 1000;
-export const ENGINE_FAILED_AFTER_ATTEMPTS = 5;
 export const ENGINE_SEND_ROUNDS = 3;
-export const ENGINE_DONE_AT = Number.MAX_SAFE_INTEGER;
 
 import { RETENTION_DAYS } from "../../config/retention.js";
-import { OUTBOX_TERMINAL_ATTEMPTS, outboxRetryDelayMs } from "../../config/outbox.js";
+import { outboxRetryDelayMs } from "../../config/outbox.js";
 import { asyncPool } from "../asyncPool.js";
 import { rankRelays } from "../relay/score.js";
 import {
@@ -270,14 +269,6 @@ export async function relayRequest(url, opts = {}, log = () => {}) {
     noteRelayOutcome(origin, { ok: false, latencyMs: Date.now() - startedAt, error: lastErr });
   }
   throw lastErr || new Error(`request failed: ${url}`);
-}
-
-export async function relayHasEvent(relay, eventId) {
-  const { notFound } = await relayRequest(`${relay}/api/v1/events/${eventId}`, {
-    timeoutMs: RELAY_ATTEMPT_BASE_MS,
-    retries: 1,
-  });
-  return !notFound;
 }
 
 export async function postEventToRelay(relay, event) {
@@ -948,6 +939,7 @@ export async function pushOutboxBatch({
     relayOk: new Map(),
     relayOutcomes: [],
     skipped: [],
+    capabilityStale: false,
   };
 
   const relayList = filterLiveRelays((Array.isArray(relays) ? relays : []).filter(Boolean));
@@ -977,24 +969,29 @@ export async function pushOutboxBatch({
   }
 
   const blobSource = blobs && typeof blobs.getBlobBytes === "function" ? blobs : store;
-  const unackedIds = [];
-  const errorsById = {};
 
-  // Rows drain with bounded parallelism, but the relays inside one row are
-  // tried one at a time, best score first. One slow relay no longer holds the
-  // whole batch behind it, while a message still cannot fan out to every node
-  // at once. The first accepted relay releases the user-facing send; the rest
-  // are mirrored in the same ordered loop.
+  // Relays inside one event are tried one at a time, best score first. The
+  // per-relay truth is persisted on the outbox row, so a restart never asks a
+  // relay that already stored the event and Message Info can show exactly
+  // which relay has it.
   const pushOne = async (row) => {
     const event = row?.event;
     if (!event?.id) return;
 
     const attempts = Math.max(0, Number(row?.syncAttempts) || 0);
-    let eventAcked = false;
+    const previousStates =
+      row?.relayStates && typeof row.relayStates === "object" ? row.relayStates : {};
+    const states = { ...previousStates };
+    const alreadyOk = new Set(
+      Object.entries(previousStates)
+        .filter(([, state]) => state?.state === "ok")
+        .map(([relay]) => relay),
+    );
 
+    let firstAck = Boolean(row?.firstAckAt);
     const ackOnce = async () => {
-      if (eventAcked) return;
-      eventAcked = true;
+      if (firstAck) return;
+      firstAck = true;
       try {
         await onAck?.(event.id);
       } catch {}
@@ -1013,36 +1010,41 @@ export async function pushOutboxBatch({
 
     const maxBlobBytes = maxBlobBytesOf(bytesByHash);
     const operation = hashes.length ? "blob" : "publish";
-    const ordered = rankRelays(targets, relayScores, {
+    const candidates = rankRelays(targets, relayScores, {
       operation,
       relayModes,
       blobSizeBytes: maxBlobBytes,
     });
-    const eligible = new Set(ordered);
+    const candidateSet = new Set(candidates);
     for (const relay of targets) {
-      if (eligible.has(relay)) continue;
-      summary.skipped.push({ eventId: event.id, relay });
-      onSend?.({
-        eventId: event.id,
+      if (candidateSet.has(relay) || alreadyOk.has(relay)) continue;
+      const reason = hashes.length
+        ? "Attachment exceeds this relay's storage limit"
+        : "Relay is read-only";
+      summary.skipped.push({ eventId: event.id, relay, reason });
+      states[relay] = {
+        ...(states[relay] || {}),
         relay,
         state: "skipped",
-        reason: hashes.length
-          ? "Attachment exceeds this relay's storage limit"
-          : "Relay is read-only",
+        error: reason,
+        at: Date.now(),
+      };
+      await store.recordOutboxRelayState?.(event.id, relay, {
+        state: "skipped",
+        error: reason,
       });
+      onSend?.({ eventId: event.id, relay, state: "skipped", reason });
     }
 
     let lastError = null;
-    if (!ordered.length) {
+    if (!candidates.length) {
       lastError = hashes.length
         ? "No writable relay can hold this attachment"
         : "No writable relay available";
     }
 
-    const outcomes = [];
-    const skipExistsCheck = attempts === 0;
-
-    for (const relay of ordered) {
+    const todo = candidates.filter((relay) => !alreadyOk.has(relay));
+    for (const relay of todo) {
       const outcome = {
         relay,
         hasEvent: false,
@@ -1056,6 +1058,18 @@ export async function pushOutboxBatch({
       const score = relayScores?.[relay] || null;
       const timeoutMs = relayAttemptTimeoutMs(score?.latencyMs, 0);
       const startedAt = Date.now();
+      states[relay] = {
+        ...(states[relay] || {}),
+        relay,
+        state: "trying",
+        attempts: Math.max(0, Number(states[relay]?.attempts) || 0) + 1,
+        at: startedAt,
+      };
+      await store.recordOutboxRelayState?.(event.id, relay, {
+        state: "trying",
+        attempts: states[relay].attempts,
+        at: startedAt,
+      });
       onSend?.({
         eventId: event.id,
         relay,
@@ -1088,6 +1102,7 @@ export async function pushOutboxBatch({
               outcome.ok = false;
               outcome.blobsOk = false;
               outcome.error = err?.message || String(err);
+              if ([413, 507, 429].includes(Number(err?.status))) summary.capabilityStale = true;
               noteRetryAfter(err);
               log(`push blob ${hash.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
               break;
@@ -1096,22 +1111,12 @@ export async function pushOutboxBatch({
           outcome.blobLatencyMs = Date.now() - blobStartedAt;
         }
 
-        // Mirror an event's blobs to a relay before publishing the event there.
-        // Recipients may pull the event the moment it lands; publishing first
-        // leaves them with an event whose media 404s until a later retry.
+        // Blobs must exist before the event that references them: a recipient
+        // may pull the event the moment it lands, and publishing first would
+        // leave them with media that 404s until a later pass.
         if (outcome.blobsOk) {
           const eventStartedAt = Date.now();
-          if (skipExistsCheck) {
-            if (await postEventToRelay(relay, event)) {
-              outcome.hasEvent = true;
-              summary.pushedEvents++;
-            } else {
-              outcome.ok = false;
-              outcome.error = outcome.error || "Relay rejected the event";
-            }
-          } else if (await relayHasEvent(relay, event.id)) {
-            outcome.hasEvent = true;
-          } else if (await postEventToRelay(relay, event)) {
+          if (await postEventToRelay(relay, event)) {
             outcome.hasEvent = true;
             summary.pushedEvents++;
           } else {
@@ -1129,16 +1134,35 @@ export async function pushOutboxBatch({
         outcome.latencyMs = Date.now() - startedAt;
       }
 
-      if (outcome.hasEvent) await ackOnce();
       if (!outcome.hasEvent && outcome.error) lastError = outcome.error;
-      outcomes.push(outcome);
+
+      const relayState = outcome.hasEvent && outcome.blobsOk ? "ok" : "error";
+      states[relay] = {
+        ...(states[relay] || {}),
+        relay,
+        state: relayState,
+        latencyMs: outcome.latencyMs,
+        blobsOk: outcome.blobsOk,
+        error: relayState === "ok" ? null : outcome.error || "Relay did not accept the event",
+        at: Date.now(),
+      };
+      await store.recordOutboxRelayState?.(event.id, relay, {
+        state: relayState,
+        latencyMs: outcome.latencyMs,
+        blobsOk: outcome.blobsOk,
+        error: states[relay].error,
+        at: states[relay].at,
+      });
+      // Persist the per-relay truth before telling the UI it is sent, so a
+      // crash between the two can never lose the relay that already has it.
+      if (outcome.hasEvent) await ackOnce();
 
       onSend?.({
         eventId: event.id,
         relay,
-        state: outcome.hasEvent ? "ok" : "error",
+        state: relayState,
         latencyMs: outcome.latencyMs,
-        error: outcome.hasEvent ? null : outcome.error || "Relay did not accept the event",
+        error: states[relay].error,
         attempt: attempts,
       });
 
@@ -1170,48 +1194,40 @@ export async function pushOutboxBatch({
       }
     }
 
-    const eventsComplete = ordered.length > 0 && outcomes.every((outcome) => outcome.hasEvent);
-    const blobsComplete =
-      ordered.length > 0 && outcomes.every((outcome) => outcome.hasEvent && outcome.blobsOk);
+    const allDone =
+      (candidates.length > 0 && candidates.every((relay) => states[relay]?.state === "ok")) ||
+      (candidates.length === 0 && alreadyOk.size > 0);
 
     try {
-      if (eventAcked && eventsComplete && blobsComplete) {
+      if (allDone) {
         clearPartialRetry(event.id);
-        await store.markEventsSynced([event.id], ENGINE_DONE_AT);
+        await store.completeOutboxEvent?.(event.id);
         onSend?.({ eventId: event.id, state: "complete" });
-      } else if (eventAcked) {
-        // At least one relay accepted. The first ack already upgraded the
-        // bubble to sent; this schedule only mirrors the remaining relays.
-        const nextRetryAt =
-          Date.now() + Math.max(nextPartialRetryDelayMs(event.id), batteryRetryMs);
-        await store.markEventsSynced([event.id], nextRetryAt);
-        onSend?.({ eventId: event.id, state: "partial", nextRetryAt });
       } else {
-        // Nothing accepted. Keep the durable row alive and visible; the
-        // foreground bubble already timed out, but a later ack still upgrades.
-        const retryMs =
-          attempts + 1 >= ENGINE_FAILED_AFTER_ATTEMPTS
-            ? ENGINE_PARTIAL_RETRY_MS
-            : outboxRetryDelayMs(attempts);
+        // Keep trying until the event's own expiry. A first ack retries sooner
+        // to mirror the rest; a send with no ack backs off toward 10 minutes.
+        const retryMs = firstAck ? nextPartialRetryDelayMs(event.id) : outboxRetryDelayMs(attempts);
         const nextRetryAt = Date.now() + Math.max(retryMs, batteryRetryMs);
-        await store.markEventsSynced([event.id], nextRetryAt);
+        const retry = await store.scheduleOutboxRetry?.(event.id, {
+          nextDue: nextRetryAt,
+          error: lastError || "No relay accepted the event",
+          partial: firstAck,
+        });
+        if (retry?.expired) summary.failedIds.push(event.id);
         onSend?.({
           eventId: event.id,
-          state: "queued",
-          nextRetryAt,
+          state: firstAck ? "partial" : "queued",
+          nextRetryAt: retry?.nextDue || nextRetryAt,
           error: lastError || "No relay accepted the event",
         });
       }
     } catch (err) {
-      summary.errors.push(`mark synced ${event.id.slice(0, 12)}: ${err?.message || err}`);
+      summary.errors.push(`outbox schedule ${event.id.slice(0, 12)}: ${err?.message || err}`);
     }
 
-    if (eventAcked) {
+    if (firstAck) {
       summary.acknowledgedIds.push(event.id);
-    } else {
-      unackedIds.push(event.id);
     }
-    errorsById[event.id] = lastError || "No relay accepted the event within the attempt budget";
   };
 
   await asyncPool(ENGINE_PUSH_CONCURRENCY, pending, pushOne);
@@ -1220,20 +1236,6 @@ export async function pushOutboxBatch({
     summary.outboxRemaining = (await store.listUnsyncedEvents(1)).length;
     summary.outbox = await store.getOutboxStatus();
   } catch {}
-
-  if (unackedIds.length || summary.acknowledgedIds.length) {
-    try {
-      const result = await store.recordOutboxResult?.({
-        ackedIds: summary.acknowledgedIds,
-        unackedIds,
-        failedAfter: OUTBOX_TERMINAL_ATTEMPTS,
-        errorsById,
-      });
-      if (result?.failedIds?.length) summary.failedIds = result.failedIds;
-    } catch (err) {
-      summary.errors.push(`outbox attempts: ${err?.message || err}`);
-    }
-  }
 
   return summary;
 }
@@ -1253,6 +1255,7 @@ export async function syncCycle({
   onAck = null,
   onSend = null,
   fullReconcile = false,
+  pushOutbox = true,
 }) {
   const relayList = filterLiveRelays((Array.isArray(relays) ? relays : []).filter(Boolean));
   const self = String(pubkeyHex || "")
@@ -1278,23 +1281,38 @@ export async function syncCycle({
 
   if (!self || !relayList.length) return summary;
 
-  // 1. OUT: Drain Outbox
-  const outboxRes = await pushOutboxBatch({
-    store,
-    blobs,
-    relays: relayList,
-    relayModes,
-    relayScores,
-    log,
-    onAck,
-    onSend,
-  });
+  // 1. OUT: Drain Outbox. The worker suppresses this while the priority lane
+  // is sending the same rows, so an event is never pushed twice at once.
+  const outboxRes = pushOutbox
+    ? await pushOutboxBatch({
+        store,
+        blobs,
+        relays: relayList,
+        relayModes,
+        relayScores,
+        log,
+        onAck,
+        onSend,
+      })
+    : {
+        pushedEvents: 0,
+        pushedBlobs: 0,
+        acknowledgedIds: [],
+        failedIds: [],
+        errors: [],
+        outboxRemaining: 0,
+        outbox: await Promise.resolve(store.getOutboxStatus?.()).catch(() => null),
+        relayOk: new Map(),
+        relayOutcomes: [],
+        skipped: [],
+      };
   summary.pushedEvents = outboxRes.pushedEvents;
   summary.pushedBlobs = outboxRes.pushedBlobs;
   summary.acknowledgedIds = outboxRes.acknowledgedIds;
   summary.failedIds = outboxRes.failedIds;
   summary.outboxRemaining = outboxRes.outboxRemaining;
   summary.outbox = outboxRes.outbox;
+  summary.capabilityStale = Boolean(outboxRes.capabilityStale);
   summary.errors.push(...outboxRes.errors);
 
   // 2. IN: Fast Monotonic Stream

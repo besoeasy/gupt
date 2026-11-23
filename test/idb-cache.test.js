@@ -29,8 +29,8 @@ const {
   outboxQueueSize,
   setOutboxOwner,
   listOutboxEvents,
-  markOutboxSynced,
-  recordOutboxResult,
+  completeOutboxEvent,
+  scheduleOutboxRetry,
   getOutboxSnapshot,
   putRawEvent,
   ensureDbOwner,
@@ -47,16 +47,17 @@ function useRealIndexedDb() {
 const OUTBOX_KEY = "gupt_outbox_v1";
 
 function outboxRow(id, pubkey = "aa") {
+  const nowSec = Math.floor(Date.now() / 1000);
   return {
     id,
     pubkey,
     kind: 1,
     origin: "dm",
-    createdAt: 1,
+    createdAt: Date.now(),
     expiresAt: Number.MAX_SAFE_INTEGER,
     lastReplicatedAt: 0,
     syncAttempts: 0,
-    event: { id, pubkey, kind: 1, created_at: 1, content: `payload-${id}` },
+    event: { id, pubkey, kind: 1, created_at: nowSec, content: `payload-${id}` },
   };
 }
 
@@ -228,7 +229,7 @@ test("a stale pre-queue localStorage box is ignored, never resurrected", async (
   localStorage.removeItem(OUTBOX_KEY);
 });
 
-test("outbox attempts, due filtering and ack lifecycle", async () => {
+test("outbox due filtering, retries and completion", async () => {
   useRealIndexedDb();
   await setOutboxOwner("cc");
   await clearOutboxQueue();
@@ -238,35 +239,32 @@ test("outbox attempts, due filtering and ack lifecycle", async () => {
   assert.deepEqual((await listOutboxEvents(10)).map((row) => row.id).sort(), ["q1", "q2"]);
 
   // Deferred rows leave the drain cursor until they are due.
-  await markOutboxSynced(["q1"], Date.now() + 60000);
+  await scheduleOutboxRetry("q1", { nextDue: Date.now() + 60_000 });
   assert.deepEqual(
     (await listOutboxEvents(10)).map((row) => row.id),
     ["q2"],
   );
 
-  await recordOutboxResult({ unackedIds: ["q2"], failedAfter: 5 });
   let snap = await getOutboxSnapshot({});
-  assert.equal(snap.inFlight, 1);
-  assert.equal(snap.retryPending, 1);
+  assert.equal(snap.inFlight, 1, "q2 has not been attempted");
+  assert.equal(snap.retryPending, 1, "q1 is waiting for its next pass");
   assert.equal(snap.failed, 0);
 
-  for (let i = 0; i < 4; i += 1) {
-    await recordOutboxResult({ unackedIds: ["q2"], failedAfter: 5 });
-  }
+  await scheduleOutboxRetry("q2", { nextDue: Date.now() + 60_000, error: "no relay ack" });
   snap = await getOutboxSnapshot({});
-  assert.equal(snap.failed, 1);
-  assert.deepEqual(snap.failedIds, ["q2"]);
+  assert.equal(snap.inFlight, 0);
+  assert.equal(snap.retryPending, 2);
+  assert.equal(snap.failed, 0);
 
-  // Failed rows never resurface on the drain cursor.
+  // Completing one row removes it and leaves the other retrying.
+  await completeOutboxEvent("q1");
+  snap = await getOutboxSnapshot({});
+  assert.equal(snap.retryPending, 1);
   assert.deepEqual(
     (await listOutboxEvents(10)).map((row) => row.id),
     [],
+    "both rows are deferred until their next due time",
   );
-
-  await recordOutboxResult({ ackedIds: ["q1"] });
-  snap = await getOutboxSnapshot({});
-  assert.equal(snap.inFlight, 0);
-  assert.equal(snap.failed, 1);
 });
 
 test("putRawEvent queues self-authored rows; inbound rows stay out", async () => {

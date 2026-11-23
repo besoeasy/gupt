@@ -1,11 +1,11 @@
-// Durable outbox retry policy. Kept in one place because both the IndexedDB
-// queue (src/lib/idb.js) and the replication engine (src/lib/engine/core.js)
-// must agree on when a row is merely retrying and when it is terminal.
+// Durable outbox retry policy. Kept in one place because the replication
+// engine and the UI both need the same backoff curve.
 //
-// The foreground send path stops waiting long before this: a message shows
-// "failed" after SEND_VISIBLE_TIMEOUT_MS, while the outbox keeps retrying in
-// the background so a relay that comes back later can still upgrade it to sent.
-export const OUTBOX_TERMINAL_ATTEMPTS = 100;
+// There is no attempt ceiling: an event retries until its own expiry (or the
+// configured retention when it has none), because a relay that comes back
+// later must still receive it. The foreground send stops waiting after
+// SEND_VISIBLE_TIMEOUT_MS and shows the last relay error while this keeps
+// running in the background.
 export const OUTBOX_RETRY_BASE_MS = 30_000;
 export const OUTBOX_RETRY_MAX_MS = 10 * 60_000;
 

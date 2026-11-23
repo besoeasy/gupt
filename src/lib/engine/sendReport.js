@@ -138,7 +138,7 @@ export function markSendTimedOut(eventId, error = "No relay responded in time") 
   const report = ensureReport(eventId);
   if (!report || report.state === "complete") return report;
   report.state = "timedOut";
-  report.error = String(error || "No relay responded in time");
+  report.error = report.error || String(error || "No relay responded in time");
   report.updatedAt = Date.now();
   return report;
 }
@@ -179,9 +179,24 @@ export async function hydrateSendReport(eventId) {
   if (!row) return existing || null;
   const report = ensureReport(key);
   report.attempts = Number(row.attempts) || 0;
-  report.nextRetryAt = Number(row.nextDue) || 0;
+  const terminal = Number(row.failedAt) > 0 || Number(row.nextDue) >= Number.MAX_SAFE_INTEGER;
+  report.nextRetryAt = terminal ? 0 : Number(row.nextDue) || 0;
   if (row.lastSyncError) report.error = String(row.lastSyncError);
-  if (report.state !== "complete") report.state = "sending";
+  for (const [relay, state] of Object.entries(row.relayStates || {})) {
+    if (!relay || !state) continue;
+    report.relays[relay] = {
+      relay,
+      host: shortHost(relay),
+      state: String(state.state || "pending"),
+      attempts: Number(state.attempts) || 0,
+      latencyMs: Number(state.latencyMs) || 0,
+      error: state.error ? String(state.error) : null,
+      at: Number(state.at) || 0,
+    };
+  }
+  if (report.state !== "complete") {
+    report.state = row.firstAckAt ? "complete" : terminal ? "timedOut" : "sending";
+  }
   report.updatedAt = Date.now();
   return report;
 }

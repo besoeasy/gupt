@@ -40,6 +40,9 @@ import {
   indexRoomMessage,
   deleteRoomMessage,
   deleteEngineBlob,
+  isEventReplicated,
+  listOutboxEntries,
+  retryOutboxEvent,
 } from "@/lib/idb";
 import { decryptRows } from "@/lib/decryptCache";
 import { playMessageSound } from "@/lib/notifications";
@@ -50,6 +53,7 @@ import {
   getSendReport,
   markSendComplete,
   markSendTimedOut,
+  sendReports,
   trackSend,
 } from "@/lib/engine/sendReport.js";
 import {
@@ -57,6 +61,7 @@ import {
   onEngineIngested,
   startEngineBridge,
   stopEngineBridge,
+  wakeEngine,
 } from "@/lib/engine/bridge";
 
 const roomMessages = shallowReactive({});
@@ -65,6 +70,11 @@ const groupMessages = shallowReactive({});
 const groupMeta = shallowReactive({});
 /** roomId -> { ttlSec, updatedAt, eventId } — shared message timer per DM. */
 const chatTimers = shallowReactive({});
+
+// Snapshot of the durable outbox for rows loaded from cache. Without it a
+// reload would call every own message "sent" even when the queue never got an
+// ack. Refreshed once at boot and kept in step by the send/watch helpers.
+const outboxStatusById = new Map();
 
 const hydratedInbox = ref(false);
 const hydratedRooms = new Set();
@@ -175,12 +185,62 @@ function removeMessage(list, id) {
   return list.filter((entry) => entry.id !== id);
 }
 
-function markMessageStatus(list, id, status) {
+function markMessageStatus(list, id, status, patch = null) {
   const idx = list.findIndex((entry) => entry.id === id);
   if (idx < 0) return list;
   const next = list.slice();
-  next[idx] = { ...next[idx], status };
+  next[idx] = { ...next[idx], status, ...(patch || {}) };
   return next;
+}
+
+function outboxMessageStatus(id) {
+  const row = outboxStatusById.get(String(id || ""));
+  if (!row) return "sent";
+  if (Number(row.firstAckAt) > 0) return "sent";
+  if (Number(row.failedAt) > 0 || Number(row.nextDue) >= Number.MAX_SAFE_INTEGER) {
+    return "failed";
+  }
+  return "pending";
+}
+
+function outboxMessageError(id) {
+  return outboxStatusById.get(String(id || ""))?.lastSyncError || undefined;
+}
+
+async function refreshOutboxStatusById() {
+  try {
+    const rows = await listOutboxEntries();
+    outboxStatusById.clear();
+    for (const row of rows) outboxStatusById.set(row.id, row);
+  } catch {
+    outboxStatusById.clear();
+  }
+}
+
+function rememberOutboxPending(id) {
+  const key = String(id || "");
+  if (!key) return;
+  const existing = outboxStatusById.get(key) || {};
+  outboxStatusById.set(key, {
+    ...existing,
+    id: key,
+    attempts: Number(existing.attempts) || 0,
+    nextDue: Number(existing.nextDue) || Date.now(),
+    failedAt: 0,
+    lastSyncError: existing.lastSyncError || null,
+  });
+}
+
+function rememberOutboxFailed(id, reason) {
+  const key = String(id || "");
+  if (!key) return;
+  const existing = outboxStatusById.get(key) || {};
+  outboxStatusById.set(key, {
+    ...existing,
+    id: key,
+    failedAt: Date.now(),
+    lastSyncError: String(reason || "No relay responded"),
+  });
 }
 
 function shouldCountUnread(roomId, row) {
@@ -745,7 +805,12 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
 
   if (!isChatRow(row)) return;
 
-  const normalizedRow = { ...row, peerPubkey, status: row.mine ? "sent" : undefined };
+  const normalizedRow = {
+    ...row,
+    peerPubkey,
+    status: row.mine ? outboxMessageStatus(row.id) : undefined,
+    sendError: row.mine ? outboxMessageError(row.id) : undefined,
+  };
   if (row.type === "call-event") {
     normalizedRow.text =
       row.text || formatCallEventText(row.outcome, row.media, Number(row.durationSec || 0));
@@ -790,7 +855,13 @@ async function ingestIncomingGroupMessage(identity, row, options = {}) {
   );
   ingestGroupRow(
     fromMessage.groupId,
-    { ...row, mine, peerPubkey: row.peerPubkey || selfPubkey },
+    {
+      ...row,
+      mine,
+      peerPubkey: row.peerPubkey || selfPubkey,
+      status: mine ? outboxMessageStatus(row.id) : row.status,
+      sendError: mine ? outboxMessageError(row.id) : undefined,
+    },
     options,
   );
 
@@ -948,50 +1019,81 @@ async function sendDirectMessage(identity, peerPubkey, payload, opts = {}) {
  * the label to failed; the durable outbox row keeps retrying, and a later ack
  * still upgrades the message to sent. */
 function watchRelayAck(id) {
+  rememberOutboxPending(id);
   trackSend(id);
   waitForRelayAck(id, SEND_VISIBLE_TIMEOUT_MS)
     .then(() => markMessageSynced(id))
-    .catch(() => {
+    .catch(async () => {
+      if (await isEventReplicated(id).catch(() => false)) {
+        markMessageSynced(id);
+        return;
+      }
       const report = getSendReport(id);
       if (report?.state === "complete") {
         markMessageSynced(id);
         return;
       }
       markSendTimedOut(id);
-      markMessageFailed(id);
+      markMessageFailed(id, getSendReport(id)?.error || "No relay responded in time");
     });
 }
 
-function markMessageFailed(id) {
+function markMessageFailed(id, reason = "") {
+  const patch = { sendError: String(reason || "No relay responded") };
+  rememberOutboxFailed(id, patch.sendError);
   let touched = false;
   for (const [roomId, list] of Object.entries(roomMessages)) {
     const row = list.find((m) => m.id === id && m.mine);
     if (!row || row.status === "failed") continue;
-    roomMessages[roomId] = markMessageStatus(list, id, "failed");
+    roomMessages[roomId] = markMessageStatus(list, id, "failed", patch);
     touched = true;
   }
   for (const [groupId, list] of Object.entries(groupMessages)) {
     const row = list.find((m) => m.id === id && m.mine);
     if (!row || row.status === "failed") continue;
-    groupMessages[groupId] = markMessageStatus(list, id, "failed");
+    groupMessages[groupId] = markMessageStatus(list, id, "failed", patch);
     touched = true;
   }
   return touched;
 }
 
+/** Manual retry from Message Info: reset the queue row and wake the worker. */
+async function retryMessage(id) {
+  const key = String(id || "");
+  if (!key) return false;
+  const ok = await retryOutboxEvent(key).catch(() => false);
+  if (!ok) return false;
+  for (const [roomId, list] of Object.entries(roomMessages)) {
+    const row = list.find((m) => m.id === key && m.mine);
+    if (!row) continue;
+    roomMessages[roomId] = markMessageStatus(list, key, "pending", { sendError: null });
+  }
+  for (const [groupId, list] of Object.entries(groupMessages)) {
+    const row = list.find((m) => m.id === key && m.mine);
+    if (!row) continue;
+    groupMessages[groupId] = markMessageStatus(list, key, "pending", { sendError: null });
+  }
+  trackSend(key);
+  rememberOutboxPending(key);
+  wakeEngine(key);
+  watchRelayAck(key);
+  return true;
+}
+
 function markMessageSynced(id) {
+  outboxStatusById.delete(String(id || ""));
   markSendComplete(id);
   let touched = false;
   for (const [roomId, list] of Object.entries(roomMessages)) {
     const row = list.find((m) => m.id === id && m.mine);
     if (!row || row.status === "sent") continue;
-    roomMessages[roomId] = markMessageStatus(list, id, "sent");
+    roomMessages[roomId] = markMessageStatus(list, id, "sent", { sendError: null });
     touched = true;
   }
   for (const [groupId, list] of Object.entries(groupMessages)) {
     const row = list.find((m) => m.id === id && m.mine);
     if (!row || row.status === "sent") continue;
-    groupMessages[groupId] = markMessageStatus(list, id, "sent");
+    groupMessages[groupId] = markMessageStatus(list, id, "sent", { sendError: null });
     touched = true;
   }
   return touched;
@@ -1340,6 +1442,7 @@ async function start(identity) {
 
   activePubkey.value = next;
   bootPromise = (async () => {
+    await refreshOutboxStatusById();
     await reconcileEngineRows(identity);
     await hydrateInbox();
     startExpirySweep();
@@ -1472,6 +1575,8 @@ function stop() {
   groupsRebuiltFor = "";
   activeConversationId = "";
   clearAllReplyReminders();
+  outboxStatusById.clear();
+  sendReports.clear();
 
   for (const key of Object.keys(roomMessages)) delete roomMessages[key];
   for (const key of Object.keys(roomMeta)) delete roomMeta[key];
@@ -1521,6 +1626,7 @@ export const messenger = {
   sendDirectMessage,
   sendGroupMessage,
   sendGroupReadReceipt,
+  retryMessage,
 
   ingestRoomRow,
   ingestGroupRow,

@@ -7,12 +7,15 @@ import { blobHashesOf, postEventOnce, putBlobToRelay, syncCycle } from "../lib/e
 import { ENGINE_SEND_ROUNDS, relayAttemptTimeoutMs } from "../lib/engine/core.js";
 import { rankRelays } from "../lib/relay/score.js";
 import { filterLiveRelays } from "../lib/relay/circuit.js";
+import { checkRelayHealth } from "../lib/rabta/index.js";
+import { recordRelayOutcomes } from "../lib/idb.js";
 
 const ACTIVE_INTERVAL_MS = 1000;
 const IDLE_INTERVAL_MS = 3000;
 const HIDDEN_INTERVAL_MS = 15000;
 const MAX_BACKOFF_MS = 15000;
 const COLD_RECONCILE_INTERVAL_MS = 60 * 1000; // Cold bisection sweep every 1 min
+const CAPABILITIES_REFRESH_MS = 10 * 60 * 1000;
 
 const PRIORITY_QUEUE_MAX = 256;
 const HEARTBEAT_INTERVAL_MS = 10000;
@@ -31,6 +34,7 @@ let hidden = false;
 const priorityQueue = [];
 const priorityQueued = new Set();
 let priorityBusy = false;
+let pendingPriority = false;
 const blobPriorityInflight = new Set();
 
 function post(type, payload) {
@@ -79,6 +83,73 @@ function kickCycle() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Relay capabilities: what each node can actually store
+// ─────────────────────────────────────────────────────────────────────────────
+
+let capabilitiesProbeAt = 0;
+let capabilitiesBusy = false;
+
+/**
+ * Read GET /api/v1/node once per relay and persist the limits beside the
+ * scores. The sender uses maxSingleBytes/remainingBytes to skip a relay that
+ * cannot hold an attachment before spending a request on it. Probes run
+ * sequentially and never block a send.
+ */
+async function probeRelayCapabilities() {
+  if (capabilitiesBusy || !config.relays.length) return;
+  capabilitiesBusy = true;
+  const outcomes = [];
+  try {
+    for (const relay of filterLiveRelays(config.relays)) {
+      try {
+        const res = await checkRelayHealth(relay, {
+          detailed: true,
+          force: true,
+          timeoutMs: 5000,
+        });
+        if (!res.ok) {
+          outcomes.push({
+            relay,
+            ok: false,
+            latencyMs: Number(res.latency) || 0,
+            error: res.error || "Probe failed",
+          });
+          continue;
+        }
+        outcomes.push({
+          relay,
+          ok: true,
+          latencyMs: Number(res.latency) || 0,
+          mode: res.mode || undefined,
+          maxSingleBytes: Number(res.maxSingleBytes) || 0,
+          remainingBytes: Number(res.remainingBytes) || 0,
+          writable: res.writable !== false,
+        });
+      } catch (err) {
+        outcomes.push({
+          relay,
+          ok: false,
+          latencyMs: 0,
+          error: err?.message || String(err),
+        });
+      }
+    }
+    if (outcomes.length) await recordRelayOutcomes("connect", outcomes);
+    capabilitiesProbeAt = Date.now();
+  } catch (err) {
+    log(`capability probe failed: ${err?.message || err}`);
+  } finally {
+    capabilitiesBusy = false;
+  }
+}
+
+function maybeProbeCapabilities() {
+  if (capabilitiesBusy) return;
+  if (Date.now() - capabilitiesProbeAt < CAPABILITIES_REFRESH_MS) return;
+  void probeRelayCapabilities();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Priority Outbox: Immediate push on send
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -96,11 +167,11 @@ function enqueuePriority(id) {
   void drainPriority();
 }
 
-async function pushPriorityEvent(id, event, store) {
-  // Sequential fast lane: the queue the user hates is the one fan-out that
-  // holds the whole bubble on all relays at once. Try relays one at a time,
-  // best score first; the first accept wakes the sender, the rest mirror in
-  // the background cycle.
+async function pushPriorityEvent(id, event, store, readyRelays = null) {
+  // Sequential fast lane: try relays one at a time, best score first. The
+  // first accept wakes the sender; the rest mirror in the background cycle.
+  // Per-relay state is persisted on the outbox row, so a restart (or the
+  // batch pass that follows) never re-asks a relay that already stored it.
   const writable = config.relays.filter(
     (relay) => String(config.relayModes?.[relay] || "").toLowerCase() !== "read_only",
   );
@@ -115,17 +186,38 @@ async function pushPriorityEvent(id, event, store) {
     operation: isBlobSend ? "blob" : "publish",
     relayModes: config.relayModes,
   });
+  const available = readyRelays ? ordered.filter((relay) => readyRelays.has(relay)) : ordered;
+  if (!available.length) return;
+  let entry = null;
+  try {
+    entry = await store.getOutboxEntry?.(id);
+  } catch {}
+  const previous =
+    entry?.relayStates && typeof entry.relayStates === "object" ? entry.relayStates : {};
+  const alreadyOk = new Set(
+    Object.entries(previous)
+      .filter(([, state]) => state?.state === "ok")
+      .map(([relay]) => relay),
+  );
+  const remaining = available.filter((relay) => !alreadyOk.has(relay));
+  if (!remaining.length) {
+    if (ordered.length && ordered.every((relay) => alreadyOk.has(relay))) {
+      await store.completeOutboxEvent?.(id).catch(() => {});
+    }
+    return;
+  }
+
   // Up to three rounds over the ranked relays; each round doubles the per
   // attempt budget, so a slow best relay gets more time instead of being
   // mistaken for a dead one. The first accept returns; anything slower than
   // that falls through to the background batch cycle.
   for (let round = 0; round < ENGINE_SEND_ROUNDS; round++) {
-    for (const relay of ordered) {
+    for (const relay of remaining) {
+      if (alreadyOk.has(relay)) continue;
       const startedAt = Date.now();
       const outcome = { relay, ok: false, latencyMs: 0 };
-      // A known-slow best relay earns its observed budget instead of the flat
-      // circuit window; later rounds double it.
       const timeoutMs = relayAttemptTimeoutMs(scores?.[relay]?.latencyMs, round);
+      await store.recordOutboxRelayState?.(id, relay, { state: "trying", at: startedAt });
       post("sendReport", {
         report: { eventId: id, relay, state: "trying", timeoutMs, at: startedAt },
       });
@@ -133,6 +225,12 @@ async function pushPriorityEvent(id, event, store) {
         const ok = await postEventOnce(relay, event, { timeoutMs });
         outcome.ok = Boolean(ok);
         outcome.latencyMs = Date.now() - startedAt;
+        await store.recordOutboxRelayState?.(id, relay, {
+          state: outcome.ok ? "ok" : "error",
+          latencyMs: outcome.latencyMs,
+          error: outcome.ok ? null : "Relay did not accept the event",
+          at: Date.now(),
+        });
         post("relayOutcomes", {
           operation: "publish",
           outcomes: [{ ...outcome, eventId: id }],
@@ -148,14 +246,24 @@ async function pushPriorityEvent(id, event, store) {
           },
         });
         if (outcome.ok) {
+          alreadyOk.add(relay);
           post("acked", { ids: [id] });
-          post("sendReport", { report: { eventId: id, state: "complete", at: Date.now() } });
+          if (ordered.every((candidate) => alreadyOk.has(candidate))) {
+            await store.completeOutboxEvent?.(id).catch(() => {});
+            post("sendReport", { report: { eventId: id, state: "complete", at: Date.now() } });
+          }
           return; // First ack releases the sender; batch cycle mirrors the rest.
         }
       } catch (err) {
         outcome.ok = false;
         outcome.latencyMs = Date.now() - startedAt;
         outcome.error = err?.message || String(err);
+        await store.recordOutboxRelayState?.(id, relay, {
+          state: "error",
+          latencyMs: outcome.latencyMs,
+          error: outcome.error,
+          at: Date.now(),
+        });
         post("relayOutcomes", {
           operation: "publish",
           outcomes: [{ ...outcome, eventId: id }],
@@ -178,100 +286,140 @@ async function pushPriorityEvent(id, event, store) {
 
 async function pushPriorityBlobs(event, store) {
   const hashes = blobHashesOf(event);
-  if (!hashes.length) return true;
+  if (!hashes.length) return { ok: true, ready: null };
   const writable = config.relays.filter(
     (relay) => String(config.relayModes?.[relay] || "").toLowerCase() !== "read_only",
   );
   const candidates = filterLiveRelays(writable);
-  if (!candidates.length) return false;
+  if (!candidates.length) return { ok: false, ready: null };
   let scores = null;
   try {
     scores = await store.getRelayScores?.();
   } catch {}
 
-  let ok = true;
+  const bytesByHash = new Map();
   for (const hash of hashes) {
-    if (blobPriorityInflight.has(hash)) {
-      ok = false;
-      continue;
-    }
-    blobPriorityInflight.add(hash);
+    if (blobPriorityInflight.has(hash)) return { ok: false, ready: null };
     try {
       const bytes = await store.getBlobBytes(hash);
-      if (!bytes) {
-        ok = false;
-        continue;
-      }
-      const ordered = rankRelays(candidates, scores, {
-        operation: "blob",
-        relayModes: config.relayModes,
-        blobSizeBytes: Number(bytes?.byteLength) || 0,
-      });
-      if (!ordered.length) {
-        ok = false;
-        continue;
-      }
-      let storedOnce = false;
-      for (const relay of ordered) {
-        const startedAt = Date.now();
-        post("sendReport", {
-          report: { eventId: event.id, relay, state: "trying", at: startedAt, blob: true },
-        });
-        try {
-          const stored = await putBlobToRelay(relay, hash, bytes, { retries: 1 });
-          post("relayOutcomes", {
-            operation: "blob",
-            outcomes: [
-              {
-                relay,
-                ok: Boolean(stored),
-                latencyMs: Date.now() - startedAt,
-                eventId: event.id,
-              },
-            ],
-          });
-          if (stored) {
-            storedOnce = true;
-            post("sendReport", {
-              report: {
-                eventId: event.id,
-                relay,
-                state: "ok",
-                latencyMs: Date.now() - startedAt,
-                at: Date.now(),
-              },
-            });
-          }
-        } catch (err) {
-          post("relayOutcomes", {
-            operation: "blob",
-            outcomes: [
-              {
-                relay,
-                ok: false,
-                latencyMs: Date.now() - startedAt,
-                error: err?.message || String(err),
-                eventId: event.id,
-              },
-            ],
-          });
-          log(`priority blob ${hash.slice(0, 12)} failed: ${err?.message || err}`);
-        }
-      }
-      if (!storedOnce) ok = false;
-    } catch (err) {
-      ok = false;
-      log(`priority blob ${hash.slice(0, 12)} failed: ${err?.message || err}`);
-    } finally {
-      blobPriorityInflight.delete(hash);
+      if (!bytes) return { ok: false, ready: null };
+      bytesByHash.set(hash, bytes);
+    } catch {
+      return { ok: false, ready: null };
     }
   }
-  return ok;
+
+  const maxBytes = Math.max(0, ...[...bytesByHash.values()].map((b) => b.byteLength || 0));
+  const ordered = rankRelays(candidates, scores, {
+    operation: "blob",
+    relayModes: config.relayModes,
+    blobSizeBytes: maxBytes,
+  });
+
+  // One relay that holds every part is enough to publish the event; the batch
+  // cycle mirrors the same parts to the other relays afterwards. Trying every
+  // relay here would make a media send wait on the slowest node twice.
+  for (const relay of ordered) {
+    const relayStartedAt = Date.now();
+    let holdsAll = true;
+    for (const hash of hashes) {
+      const bytes = bytesByHash.get(hash);
+      if (!bytes) {
+        holdsAll = false;
+        break;
+      }
+      if (blobPriorityInflight.has(hash)) {
+        holdsAll = false;
+        break;
+      }
+      blobPriorityInflight.add(hash);
+      const startedAt = Date.now();
+      post("sendReport", {
+        report: { eventId: event.id, relay, state: "trying", at: startedAt, blob: true },
+      });
+      try {
+        const stored = await putBlobToRelay(relay, hash, bytes, { retries: 1 });
+        post("relayOutcomes", {
+          operation: "blob",
+          outcomes: [
+            {
+              relay,
+              ok: Boolean(stored),
+              latencyMs: Date.now() - startedAt,
+              eventId: event.id,
+            },
+          ],
+        });
+        if (!stored) {
+          holdsAll = false;
+          post("sendReport", {
+            report: {
+              eventId: event.id,
+              relay,
+              state: "error",
+              latencyMs: Date.now() - startedAt,
+              at: Date.now(),
+              error: "Relay refused the attachment",
+            },
+          });
+          break;
+        }
+      } catch (err) {
+        if ([413, 507, 429].includes(Number(err?.status))) void probeRelayCapabilities();
+        holdsAll = false;
+        post("relayOutcomes", {
+          operation: "blob",
+          outcomes: [
+            {
+              relay,
+              ok: false,
+              latencyMs: Date.now() - startedAt,
+              error: err?.message || String(err),
+              eventId: event.id,
+            },
+          ],
+        });
+        post("sendReport", {
+          report: {
+            eventId: event.id,
+            relay,
+            state: "error",
+            latencyMs: Date.now() - startedAt,
+            at: Date.now(),
+            error: err?.message || String(err),
+          },
+        });
+        log(`priority blob ${hash.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
+        break;
+      } finally {
+        blobPriorityInflight.delete(hash);
+      }
+    }
+    if (holdsAll) {
+      post("sendReport", {
+        report: {
+          eventId: event.id,
+          relay,
+          state: "ok",
+          latencyMs: Date.now() - relayStartedAt,
+          at: Date.now(),
+        },
+      });
+      return { ok: true, ready: new Set([relay]) };
+    }
+  }
+  return { ok: false, ready: new Set() };
 }
 
 async function drainPriority() {
   if (priorityBusy || !priorityQueue.length) return;
   if (!config.pubkeyHex || !config.relays.length) return;
+  // One sender at a time: a full cycle holds the store and the relay queues,
+  // so a priority send waits for it instead of pushing the same event twice.
+  if (busy) {
+    pendingPriority = true;
+    return;
+  }
   priorityBusy = true;
   try {
     const store = engineStore();
@@ -286,9 +434,9 @@ async function drainPriority() {
       }
       if (event) {
         // Media must exist on the relays before the event that references it.
-        const blobsReady = await pushPriorityBlobs(event, store);
-        if (blobsReady) {
-          await pushPriorityEvent(id, event, store);
+        const blobs = await pushPriorityBlobs(event, store);
+        if (blobs.ok) {
+          await pushPriorityEvent(id, event, store, blobs.ready);
         } else {
           log(`priority push ${id.slice(0, 12)} deferred: blob upload incomplete`);
         }
@@ -338,6 +486,7 @@ async function runCycle(forceReconcile = false) {
       onAck: (id) => post("acked", { ids: [id] }),
       onSend: (report) => post("sendReport", { report }),
       fullReconcile: shouldReconcile,
+      pushOutbox: !priorityBusy,
     });
 
     if (shouldReconcile) {
@@ -350,6 +499,7 @@ async function runCycle(forceReconcile = false) {
 
     post("summary", { ...summary, cycle: cycles, durationMs: Date.now() - startedAt });
     if (summary.pulledIds?.length) post("ingested", { ids: summary.pulledIds });
+    if (summary.capabilityStale) void probeRelayCapabilities();
   } catch (err) {
     consecutiveFailures = Math.min(consecutiveFailures + 1, 5);
     log(`cycle crashed: ${err?.message || err}`);
@@ -365,6 +515,11 @@ async function runCycle(forceReconcile = false) {
     });
   } finally {
     busy = false;
+    if (priorityQueue.length || pendingPriority) {
+      pendingPriority = false;
+      void drainPriority();
+    }
+    maybeProbeCapabilities();
     scheduleNext();
   }
 }
@@ -396,6 +551,7 @@ self.onmessage = (msg) => {
       `worker configured: ${config.pubkeyHex.slice(0, 8)} across ${config.relays.length} relay(s)`,
     );
     post("ready", { relays: config.relays.length });
+    void probeRelayCapabilities();
     void runCycle(false); // Initial run performs fast hot pull first
   } else if (type === "tick") {
     if (priorityId) enqueuePriority(priorityId);

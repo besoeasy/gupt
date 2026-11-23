@@ -57,6 +57,9 @@ export async function probeRelayConnections(relays, { timeoutMs = 5000, detailed
           res.storageUsedBytes !== undefined ? Number(res.storageUsedBytes) : undefined,
         storageBudgetBytes:
           res.storageBudgetBytes !== undefined ? Number(res.storageBudgetBytes) : undefined,
+        maxSingleBytes: res.maxSingleBytes !== undefined ? Number(res.maxSingleBytes) : undefined,
+        remainingBytes: res.remainingBytes !== undefined ? Number(res.remainingBytes) : undefined,
+        writable: res.writable !== undefined ? Boolean(res.writable) : undefined,
       };
     }),
   );

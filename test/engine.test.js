@@ -8,9 +8,57 @@ import {
   reconcileRangeBisection,
   pushOutboxBatch,
   syncCycle,
-  ENGINE_DONE_AT,
   ENGINE_PULL_PAGE,
 } from "../src/lib/engine/core.js";
+
+function makeOutboxStore({ events = [], syncAttempts = 0, blobBytes = null } = {}) {
+  const rows = new Map(
+    events.map((event) => [
+      event.id,
+      { id: event.id, event, syncAttempts, relayStates: {}, firstAckAt: 0, lastAckRelay: null },
+    ]),
+  );
+  const result = { completed: [], scheduled: [], states: new Map() };
+  return {
+    rows,
+    result,
+    async listUnsyncedEvents() {
+      return [...rows.values()];
+    },
+    async recordOutboxRelayState(id, relay, patch = {}) {
+      const row = rows.get(id);
+      if (!row) return null;
+      row.relayStates[relay] = { ...(row.relayStates[relay] || {}), ...patch, relay };
+      if (row.relayStates[relay].state === "ok" && !row.firstAckAt) {
+        row.firstAckAt = Date.now();
+        row.lastAckRelay = relay;
+      }
+      result.states.set(`${id}|${relay}`, row.relayStates[relay]);
+      return row.relayStates[relay];
+    },
+    async scheduleOutboxRetry(id, opts = {}) {
+      result.scheduled.push({ id, ...opts });
+      const row = rows.get(id);
+      return {
+        eventId: id,
+        attempts: (row?.syncAttempts || 0) + 1,
+        nextDue: opts.nextDue,
+        expired: false,
+      };
+    },
+    async completeOutboxEvent(id) {
+      rows.delete(id);
+      result.completed.push(id);
+      return true;
+    },
+    async getOutboxStatus() {
+      return { pending: rows.size, stuck: 0, failed: 0 };
+    },
+    async getBlobBytes() {
+      return blobBytes;
+    },
+  };
+}
 
 test("sha256HexOfBytes correctly digests bytes", async () => {
   const bytes = new TextEncoder().encode("gupt-replication-test");
@@ -200,13 +248,7 @@ test("pushOutboxBatch POSTs fresh rows without a HEAD existence check", async ()
   };
 
   const calls = [];
-  const store = {
-    listUnsyncedEvents: async () => [{ id: event.id, event, syncAttempts: 0 }],
-    markEventsSynced: async () => {},
-    recordOutboxResult: async () => ({ failedIds: [] }),
-    getOutboxStatus: async () => ({ pending: 0, stuck: 0, failed: 0 }),
-    getBlobBytes: async () => null,
-  };
+  const store = makeOutboxStore({ events: [event] });
 
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, opts) => {
@@ -238,7 +280,7 @@ test("pushOutboxBatch POSTs fresh rows without a HEAD existence check", async ()
   }
 });
 
-test("pushOutboxBatch re-checks existence for retried rows", async () => {
+test("pushOutboxBatch re-POSTs retried rows and trusts per-relay state", async () => {
   const event = {
     id: "retry_ev_1",
     owner: "ed25519:ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
@@ -247,13 +289,7 @@ test("pushOutboxBatch re-checks existence for retried rows", async () => {
   };
 
   const calls = [];
-  const store = {
-    listUnsyncedEvents: async () => [{ id: event.id, event, syncAttempts: 3 }],
-    markEventsSynced: async () => {},
-    recordOutboxResult: async () => ({ failedIds: [] }),
-    getOutboxStatus: async () => ({ pending: 0, stuck: 0, failed: 0 }),
-    getBlobBytes: async () => null,
-  };
+  const store = makeOutboxStore({ events: [event], syncAttempts: 3 });
 
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, opts) => {
@@ -275,14 +311,11 @@ test("pushOutboxBatch re-checks existence for retried rows", async () => {
     });
 
     assert.ok(
-      calls.some((call) => call.startsWith("GET") && call.includes(event.id)),
-      `retried row must HEAD first, got: ${calls.join(", ")}`,
-    );
-    assert.ok(
-      !calls.some((call) => call.startsWith("POST")),
-      "already-stored row must not POST again",
+      calls.some((call) => call.startsWith("POST") && call.includes("/api/v1/events")),
+      `a retry re-POSTs; relays dedupe by event id, got: ${calls.join(", ")}`,
     );
     assert.deepEqual(res.acknowledgedIds, [event.id]);
+    assert.deepEqual(store.result.completed, [event.id]);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -298,14 +331,7 @@ test("pushOutboxBatch drains rows concurrently, not one round-trip at a time", a
 
   let inFlight = 0;
   let maxInFlight = 0;
-  const store = {
-    listUnsyncedEvents: async () =>
-      events.map((event) => ({ id: event.id, event, syncAttempts: 0 })),
-    markEventsSynced: async () => {},
-    recordOutboxResult: async () => ({ failedIds: [] }),
-    getOutboxStatus: async () => ({ pending: 0, stuck: 0, failed: 0 }),
-    getBlobBytes: async () => null,
-  };
+  const store = makeOutboxStore({ events });
 
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, opts) => {
@@ -327,6 +353,7 @@ test("pushOutboxBatch drains rows concurrently, not one round-trip at a time", a
     });
 
     assert.equal(res.acknowledgedIds.length, 6);
+    assert.deepEqual(new Set(store.result.completed), new Set(events.map((event) => event.id)));
     assert.ok(maxInFlight > 1, `rows must overlap in flight, max was ${maxInFlight}`);
   } finally {
     globalThis.fetch = originalFetch;
@@ -342,19 +369,7 @@ test("pushOutboxBatch broadcasts event and marks synced on all relays ok", async
   };
 
   let ackedId = null;
-  let syncedIds = null;
-  let syncedAt = null;
-
-  const store = {
-    listUnsyncedEvents: async () => [{ id: event.id, event, syncAttempts: 0 }],
-    markEventsSynced: async (ids, ts) => {
-      syncedIds = ids;
-      syncedAt = ts;
-    },
-    recordOutboxResult: async () => ({ failedIds: [] }),
-    getOutboxStatus: async () => ({ pending: 0, stuck: 0, failed: 0 }),
-    getBlobBytes: async () => null,
-  };
+  const store = makeOutboxStore({ events: [event] });
 
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, opts) => {
@@ -375,8 +390,7 @@ test("pushOutboxBatch broadcasts event and marks synced on all relays ok", async
     });
 
     assert.equal(ackedId, event.id, "First successful relay must trigger onAck callback");
-    assert.equal(syncedAt, ENGINE_DONE_AT, "Full relay acceptance must mark ENGINE_DONE_AT");
-    assert.deepEqual(syncedIds, [event.id]);
+    assert.deepEqual(store.result.completed, [event.id], "All relays ok must leave the queue");
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -393,17 +407,7 @@ test("pushOutboxBatch uploads blobs before publishing their event", async () => 
   };
 
   const calls = [];
-  let syncedAt = null;
-
-  const store = {
-    listUnsyncedEvents: async () => [{ id: event.id, event, syncAttempts: 0 }],
-    markEventsSynced: async (ids, ts) => {
-      syncedAt = ts;
-    },
-    recordOutboxResult: async () => ({ failedIds: [] }),
-    getOutboxStatus: async () => ({ pending: 0, stuck: 0, failed: 0 }),
-    getBlobBytes: async () => blobBytes,
-  };
+  const store = makeOutboxStore({ events: [event], blobBytes });
 
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, opts) => {
@@ -430,7 +434,11 @@ test("pushOutboxBatch uploads blobs before publishing their event", async () => 
 
     assert.deepEqual(calls, ["blob", "event"], "Blob must be stored before the event is posted");
     assert.equal(res.acknowledgedIds.length, 1);
-    assert.equal(syncedAt, ENGINE_DONE_AT, "Event and blobs complete must mark ENGINE_DONE_AT");
+    assert.deepEqual(
+      store.result.completed,
+      [event.id],
+      "Event and blobs complete must leave the queue",
+    );
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -447,17 +455,7 @@ test("pushOutboxBatch withholds the event when its blob cannot be uploaded", asy
   };
 
   let postedEvent = false;
-  let syncedAt = null;
-
-  const store = {
-    listUnsyncedEvents: async () => [{ id: event.id, event, syncAttempts: 0 }],
-    markEventsSynced: async (ids, ts) => {
-      syncedAt = ts;
-    },
-    recordOutboxResult: async () => ({ failedIds: [] }),
-    getOutboxStatus: async () => ({ pending: 0, stuck: 0, failed: 0 }),
-    getBlobBytes: async () => blobBytes,
-  };
+  const store = makeOutboxStore({ events: [event], blobBytes });
 
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, opts) => {
@@ -483,7 +481,61 @@ test("pushOutboxBatch withholds the event when its blob cannot be uploaded", asy
 
     assert.equal(postedEvent, false, "Event must not be published while its blob is missing");
     assert.equal(res.acknowledgedIds.length, 0);
-    assert.notEqual(syncedAt, ENGINE_DONE_AT, "Incomplete push must not mark ENGINE_DONE_AT");
+    assert.equal(store.result.completed.length, 0, "Incomplete push must stay queued");
+    assert.equal(store.result.scheduled.length, 1, "Incomplete push must schedule a retry");
+    assert.equal(
+      store.result.states.get(`${event.id}|https://relay2.com`)?.state,
+      "error",
+      "The relay's persisted state must record the blob failure",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("pushOutboxBatch skips a relay the persisted state says already has the event", async () => {
+  const event = {
+    id: "persisted_ev_1",
+    owner: "ed25519:ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    collection: "gupt/chat/dm",
+    blobs: [],
+  };
+  const store = makeOutboxStore({ events: [event] });
+  const row = store.rows.get(event.id);
+  row.relayStates["https://relay1.com"] = {
+    relay: "https://relay1.com",
+    state: "ok",
+    at: Date.now(),
+  };
+  row.firstAckAt = Date.now();
+  row.lastAckRelay = "https://relay1.com";
+
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, opts) => {
+    calls.push(String(url));
+    if (opts?.method === "POST" && url.includes("/api/v1/events")) {
+      return new Response(JSON.stringify({ id: event.id }), { status: 201 });
+    }
+    return new Response("{}", { status: 200 });
+  };
+  try {
+    const res = await pushOutboxBatch({
+      store,
+      relays: ["https://relay1.com", "https://relay2.com"],
+    });
+    assert.equal(
+      calls.filter((url) => url.startsWith("https://relay1.com")).length,
+      0,
+      "a relay that already stored the event must not be asked again",
+    );
+    assert.equal(
+      calls.filter((url) => url.startsWith("https://relay2.com")).length,
+      1,
+      "the remaining relay must receive it",
+    );
+    assert.deepEqual(res.acknowledgedIds, [event.id]);
+    assert.deepEqual(store.result.completed, [event.id]);
   } finally {
     globalThis.fetch = originalFetch;
   }

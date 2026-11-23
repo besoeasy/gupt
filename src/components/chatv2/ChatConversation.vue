@@ -656,6 +656,13 @@ function handleMessageExpired(message) {
   void messenger.expireMessagesNow(targetId.value, message.id, Number(message.expiresAt || 0));
 }
 
+/** Manual resend from Message Info after the queue marked a message failed. */
+async function handleRetrySend(message) {
+  if (!message?.id) return;
+  const ok = await messenger.retryMessage(message.id);
+  if (!ok) error.value = "This message is no longer in the send queue.";
+}
+
 /** The browser could not decode an attachment it was given: repair the cached
  *  copy once, then fall back to the retry card. */
 function handleMediaError(message) {
@@ -1133,6 +1140,7 @@ onBeforeUnmount(() => {
                 :sender-avatar="profilePicture(item.sender) || avatarUrl(item.sender)"
                 @download="downloadMedia"
                 @retry="retryMedia"
+                @retry-send="handleRetrySend"
                 @reply="handleReply"
                 @react="handleReact"
                 @edit="handleEdit"

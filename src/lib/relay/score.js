@@ -11,6 +11,10 @@ export const RELAY_SCORE_MAX = 10;
 export const RELAY_SCORE_ALPHA = 0.3;
 export const WRITE_SCORE_NEUTRAL = 5;
 export const READ_SCORE_NEUTRAL = 0.5;
+// A relay that has not been exercised for two weeks should not keep the rank
+// it earned a month ago. Scores decay toward neutral, so an old champion has
+// to prove itself again instead of blocking a newly added relay forever.
+export const SCORE_HALF_LIFE_MS = 14 * 24 * 60 * 60 * 1000;
 
 function toNumber(value, fallback = 0) {
   const numeric = Number(value);
@@ -48,6 +52,21 @@ export function updateRelayScore(
   const base = Number.isFinite(numeric) ? Math.max(0, Math.min(max, numeric)) : neutral;
   const target = Math.max(0, Math.min(max, toNumber(reward, 0)));
   return Math.round((base * (1 - alpha) + target * alpha) * 1000) / 1000;
+}
+
+/** Pull an unused relay's score back toward neutral over time. */
+export function decayRelayScore(
+  score,
+  updatedAt,
+  now = Date.now(),
+  { halfLifeMs = SCORE_HALF_LIFE_MS, neutral = WRITE_SCORE_NEUTRAL } = {},
+) {
+  const numeric = Number(score);
+  if (!Number.isFinite(numeric)) return numeric;
+  const age = Math.max(0, toNumber(now, 0) - toNumber(updatedAt, 0));
+  if (!age) return numeric;
+  const factor = 0.5 ** (age / Math.max(1, halfLifeMs));
+  return Math.round((neutral + (numeric - neutral) * factor) * 1000) / 1000;
 }
 
 function scoreOf(row, operation) {
@@ -89,13 +108,20 @@ export function rankRelays(
       const row = lookup(relay);
       const mode = relayModeOf(relay, row, relayModes);
       const writeBlocked =
-        operation !== "query" && (mode === "read_only" || mode === "sync_disabled");
+        operation !== "query" &&
+        (mode === "read_only" || mode === "sync_disabled" || row?.writable === false);
       let fits = true;
       if (size > 0 && operation !== "query") {
-        const maxSingle = Number(row?.maxSingleBytes);
-        const remaining = Number(row?.remainingBytes);
-        if (Number.isFinite(maxSingle) && maxSingle > 0 && size > maxSingle) fits = false;
-        if (Number.isFinite(remaining) && size > remaining) fits = false;
+        const maxSingleRaw = row?.maxSingleBytes;
+        if (maxSingleRaw !== null && maxSingleRaw !== undefined) {
+          const maxSingle = Number(maxSingleRaw);
+          if (Number.isFinite(maxSingle) && maxSingle > 0 && size > maxSingle) fits = false;
+        }
+        const remainingRaw = row?.remainingBytes;
+        if (remainingRaw !== null && remainingRaw !== undefined) {
+          const remaining = Number(remainingRaw);
+          if (Number.isFinite(remaining) && size > remaining) fits = false;
+        }
       }
       return {
         relay,
