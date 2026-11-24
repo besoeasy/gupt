@@ -271,7 +271,7 @@ async function switchTab(next) {
 </script>
 
 <template>
-  <div class="feed-view__block">
+  <div class="feed-view">
     <main class="feed-view__main">
       <header class="feed-head">
         <div class="feed-head__identity">
@@ -357,12 +357,12 @@ async function switchTab(next) {
         <div
           v-for="n in 3"
           :key="n"
-          class="feed-view__block-6"
+          class="feed-skeleton-card"
           aria-hidden="true"
         >
-          <div class="skeleton-shimmer feed-view__block-7" />
-          <div class="skeleton-shimmer feed-view__block-8" />
-          <div class="skeleton-shimmer feed-view__block-9" />
+          <div class="skeleton-shimmer feed-skeleton__title" />
+          <div class="skeleton-shimmer feed-skeleton__line" />
+          <div class="skeleton-shimmer feed-skeleton__line--short" />
         </div>
       </div>
 
@@ -399,7 +399,7 @@ async function switchTab(next) {
         </RouterLink>
       </div>
 
-      <div v-else class="feed-view__block-11">
+      <div v-else class="feed-view__list">
         <FeedPostCard
           v-for="post in visiblePosts"
           :key="post.eventId"
@@ -435,110 +435,57 @@ async function switchTab(next) {
 </template>
 
 <style scoped>
-@layer base, gupt-components;
-
-/* Light theme adjustments */
-
-@layer gupt-components {
-
-@media (min-width:40rem) {
-.feed-view__main {
-  padding-inline: calc(var(--spacing) * 6);
-}
-}
-
-@media (min-width:64rem) {
-.feed-view__main {
-  padding-inline: calc(var(--spacing) * 8);
-}
-}
-
-@layer gupt-components {
-.feed-view__main {
-  margin-inline: auto;
-}
-.feed-view__block-8 {
-  height: calc(var(--spacing) * 3);
-}
-.feed-view__block-9 {
-  height: calc(var(--spacing) * 3);
-}
-.feed-view__block-7 {
-  height: calc(var(--spacing) * 4);
-}
-.feed-view__block {
+.feed-view {
   min-height: 100vh;
-}
-.feed-view__block-9 {
-  width: 80%;
-}
-.feed-view__block-7 {
-  width: calc(var(--spacing) * 48);
-}
-.feed-view__main {
-  width: 100%;
-}
-.feed-view__block-8 {
-  width: 100%;
-}
-.feed-view__main {
-  max-width: var(--container-6xl);
-}
-:where(.feed-view__block-6>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
-}
-:where(.feed-view__status>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 3) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 3) * calc(1 - 0));
-}
-:where(.feed-view__main>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 5) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 5) * calc(1 - 0));
-}
-:where(.feed-view__block-11>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 5) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 5) * calc(1 - 0));
-}
-.feed-view__block-6 {
-  border-radius: var(--radius-xl);
-}
-.feed-view__block-6 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.feed-view__block-6 {
-  border-color: var(--app-border-quiet);
-}
-.feed-view__block {
-  background-color: var(--ui-black);
-}
-.feed-view__block-6 {
-  background-color: var(--app-surface-inset);
-}
-.feed-view__block-6 {
-  padding: calc(var(--spacing) * 4);
-}
-.feed-view__main {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.feed-view__main {
-  padding-block: calc(var(--spacing) * 6);
-}
-.feed-view__block {
-  padding-bottom: calc(var(--spacing) * 16);
-}
-.feed-view__block {
-  color: var(--ui-zinc-100);
-}
-}
+  padding-bottom: 4rem;
+  background: var(--app-bg);
+  color: var(--app-text);
 }
 
-/* Ledger pass: the feed header is a title rule, the tabs an underline. */
+.feed-view__main {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding: 1.5rem 1rem;
+}
+
+.feed-view__main > :not(:last-child) {
+  margin-bottom: 1.25rem;
+}
+
+.feed-view__status > :not(:last-child) {
+  margin-bottom: 0.75rem;
+}
+
+.feed-view__list > :not(:last-child) {
+  margin-bottom: 1.25rem;
+}
+
+.feed-skeleton-card {
+  padding: 1rem;
+  border: 1px solid var(--app-border-quiet);
+  border-radius: 18px;
+  background: var(--app-surface-inset);
+}
+
+.feed-skeleton-card > :not(:last-child) {
+  margin-bottom: 0.5rem;
+}
+
+.feed-skeleton__title {
+  width: 12rem;
+  height: 1rem;
+}
+
+.feed-skeleton__line {
+  width: 100%;
+  height: 0.75rem;
+}
+
+.feed-skeleton__line--short {
+  width: 80%;
+  height: 0.75rem;
+}
 
 .feed-head {
   display: flex;
@@ -548,14 +495,12 @@ async function switchTab(next) {
   border-bottom: 1px solid var(--app-border);
   animation: ledger-rise 480ms var(--app-ease-emphasized) both;
 }
-
 .feed-head__identity {
   display: flex;
   flex-direction: column;
   gap: var(--app-space-2);
   min-width: 0;
 }
-
 .feed-head__eyebrow {
   margin: 0;
   font-family: var(--font-mono);
@@ -566,7 +511,6 @@ async function switchTab(next) {
   text-transform: uppercase;
   color: var(--app-muted-2);
 }
-
 .feed-head__title {
   display: flex;
   align-items: baseline;
@@ -578,7 +522,6 @@ async function switchTab(next) {
   letter-spacing: var(--app-tracking-display);
   color: var(--app-text);
 }
-
 .feed-head__count {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -587,13 +530,11 @@ async function switchTab(next) {
   color: var(--app-muted-2);
   font-variant-numeric: tabular-nums;
 }
-
 .feed-head__count::before {
   content: "·";
   margin-right: var(--app-space-2);
   color: var(--app-border-strong);
 }
-
 .feed-head__lede {
   max-width: 56ch;
   margin: 0;
@@ -601,13 +542,11 @@ async function switchTab(next) {
   line-height: 1.6;
   color: var(--app-muted);
 }
-
 .feed-head__actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--app-space-2);
 }
-
 .feed-action {
   display: inline-flex;
   align-items: center;
@@ -626,44 +565,33 @@ async function switchTab(next) {
   color: var(--app-muted);
   text-decoration: none;
   cursor: pointer;
-  transition:
-    border-color var(--app-dur-fast) var(--app-ease-standard),
-    background-color var(--app-dur-fast) var(--app-ease-standard),
-    color var(--app-dur-fast) var(--app-ease-standard),
-    transform var(--app-dur-fast) var(--app-ease-standard);
+  transition: border-color var(--app-dur-fast) var(--app-ease-standard), background-color var(--app-dur-fast) var(--app-ease-standard), color var(--app-dur-fast) var(--app-ease-standard), transform var(--app-dur-fast) var(--app-ease-standard);
 }
-
 .feed-action:active {
   transform: translateY(1px);
 }
-
 .feed-action:disabled {
   opacity: 0.5;
   cursor: default;
 }
-
 .feed-action--ink {
   border-color: var(--app-text);
   background: var(--app-text);
   color: var(--app-bg);
 }
-
 .feed-action__icon {
   width: 13px;
   height: 13px;
 }
-
 .feed-action__icon--spin {
-  animation: var(--animate-spin);
+  animation: spin 1s linear infinite;
 }
-
 .feed-tabs {
   display: flex;
   align-items: stretch;
   gap: var(--app-space-6);
   border-bottom: 1px solid var(--app-border);
 }
-
 .feed-tabs__tab {
   position: relative;
   display: inline-flex;
@@ -681,7 +609,6 @@ async function switchTab(next) {
   cursor: pointer;
   transition: color var(--app-dur-fast) var(--app-ease-standard);
 }
-
 .feed-tabs__tab::after {
   content: "";
   position: absolute;
@@ -694,31 +621,25 @@ async function switchTab(next) {
   transform-origin: left;
   transition: transform var(--app-dur-base) var(--app-ease-emphasized);
 }
-
 .feed-tabs__tab.is-active {
   color: var(--app-text);
 }
-
 .feed-tabs__tab.is-active::after {
   transform: scaleX(1);
   animation: ledger-draw var(--app-dur-slow) var(--app-ease-emphasized) both;
 }
-
 .feed-tabs__count {
   font-size: 10px;
   color: var(--app-muted-2);
   font-variant-numeric: tabular-nums;
 }
-
 .feed-tabs__tab.is-active .feed-tabs__count {
   color: var(--app-muted);
 }
-
 .feed-search {
   position: relative;
   display: block;
 }
-
 .feed-search__icon {
   position: absolute;
   top: 50%;
@@ -729,7 +650,6 @@ async function switchTab(next) {
   color: var(--app-muted-2);
   pointer-events: none;
 }
-
 .feed-search__field {
   width: 100%;
   height: 40px;
@@ -739,21 +659,16 @@ async function switchTab(next) {
   background: transparent;
   font-size: var(--app-text-body);
   color: var(--app-text);
-  transition:
-    border-color var(--app-dur-fast) var(--app-ease-standard),
-    box-shadow var(--app-dur-fast) var(--app-ease-standard);
+  transition: border-color var(--app-dur-fast) var(--app-ease-standard), box-shadow var(--app-dur-fast) var(--app-ease-standard);
 }
-
 .feed-search__field::placeholder {
   color: var(--app-muted-2);
 }
-
 .feed-search__field:focus {
   outline: none;
   border-color: var(--app-border-strong);
   box-shadow: var(--app-focus-ring);
 }
-
 .feed-empty {
   display: flex;
   flex-direction: column;
@@ -766,7 +681,6 @@ async function switchTab(next) {
   text-align: center;
   animation: ledger-rise 420ms var(--app-ease-emphasized) both;
 }
-
 .feed-empty__eyebrow {
   margin: 0;
   font-family: var(--font-mono);
@@ -775,7 +689,6 @@ async function switchTab(next) {
   text-transform: uppercase;
   color: var(--app-muted-2);
 }
-
 .feed-empty__title {
   margin: 0;
   font-size: var(--app-text-heading);
@@ -783,7 +696,6 @@ async function switchTab(next) {
   letter-spacing: var(--app-tracking-heading);
   color: var(--app-text);
 }
-
 .feed-empty__lede {
   max-width: 36ch;
   margin: 0;
@@ -791,11 +703,9 @@ async function switchTab(next) {
   line-height: 1.6;
   color: var(--app-muted);
 }
-
 .feed-empty__action {
   margin-top: var(--app-space-3);
 }
-
 .feed-loading__label {
   position: absolute;
   width: 1px;
@@ -807,18 +717,25 @@ async function switchTab(next) {
   white-space: nowrap;
   border: 0;
 }
-
 @media (min-width: 40rem) {
+  .feed-view__main {
+    padding-inline: 1.5rem;
+  }
+
   .feed-head {
     flex-direction: row;
     align-items: flex-end;
     justify-content: space-between;
     gap: var(--app-space-6);
   }
-
   .feed-head__actions {
     flex-shrink: 0;
     padding-bottom: 2px;
+  }
+}
+@media (min-width: 64rem) {
+  .feed-view__main {
+    padding-inline: 2rem;
   }
 }
 
@@ -826,54 +743,40 @@ async function switchTab(next) {
   .feed-head {
     padding-bottom: var(--app-space-5);
   }
-
   .feed-head__title {
     font-size: 26px;
   }
-
   .feed-tabs {
     gap: var(--app-space-5);
   }
 }
-
 @media (hover: hover) {
   .feed-action:hover {
     border-color: var(--app-border-strong);
     color: var(--app-text);
   }
-
   .feed-action--ink:hover {
     border-color: var(--app-text);
     background: color-mix(in oklab, var(--app-text) 86%, transparent);
     color: var(--app-bg);
   }
-
   .feed-tabs__tab:hover {
     color: var(--app-text);
   }
 }
-
 @media (pointer: coarse) {
   .feed-action {
     min-height: var(--app-touch-h);
   }
-
   .feed-tabs__tab {
     min-height: var(--app-touch-h);
   }
 }
-
 @media (prefers-reduced-motion: reduce) {
-  .feed-head,
-  .feed-empty,
-  .feed-tabs__tab.is-active::after {
+  .feed-head, .feed-empty, .feed-tabs__tab.is-active::after {
     animation: none;
   }
-
-  .feed-action,
-  .feed-tabs__tab,
-  .feed-tabs__tab::after,
-  .feed-search__field {
+  .feed-action, .feed-tabs__tab, .feed-tabs__tab::after, .feed-search__field {
     transition: none;
   }
 }
