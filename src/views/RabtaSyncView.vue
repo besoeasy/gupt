@@ -414,7 +414,7 @@ function formatAgo(ts) {
 }
 
 .mesh-action__icon--spin {
-  animation: var(--animate-spin);
+  animation: spin 1s linear infinite;
 }
 
 .mesh-action:disabled {

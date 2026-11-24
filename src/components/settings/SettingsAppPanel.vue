@@ -141,7 +141,6 @@ onMounted(load);
 </template>
 
 <style scoped>
-@layer base, gupt-components;
 
 .app-panel {
   display: flex;

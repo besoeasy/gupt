@@ -664,7 +664,7 @@ onMounted(loadPost);
 }
 
 .feed-detail__btn-icon--spin {
-  animation: var(--animate-spin);
+  animation: spin 1s linear infinite;
 }
 
 .feed-detail__btn:active {

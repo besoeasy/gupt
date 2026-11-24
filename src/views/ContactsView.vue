@@ -180,7 +180,7 @@ async function confirmDelete() {
   flex-direction: column;
   gap: var(--app-space-5);
   width: 100%;
-  max-width: var(--container-6xl);
+  max-width: 72rem;
   margin-inline: auto;
   padding: var(--app-space-6) var(--app-space-4);
 }
@@ -488,7 +488,7 @@ async function confirmDelete() {
 }
 
 .spin {
-  animation: var(--animate-spin);
+  animation: spin 1s linear infinite;
 }
 
 @media (min-width: 40rem) {

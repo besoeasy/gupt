@@ -333,7 +333,7 @@ function openProfile(e) {
 }
 
 .comment__btn-icon--spin {
-  animation: var(--animate-spin);
+  animation: spin 1s linear infinite;
 }
 
 /* ---- Owner actions ---- */

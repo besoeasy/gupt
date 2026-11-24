@@ -183,7 +183,6 @@ function continueToApp() {
 </template>
 
 <style scoped>
-@layer base, gupt-components;
 
 /* Ledger pass: setup steps read as numbered entries on one sheet. */
 

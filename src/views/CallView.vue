@@ -924,7 +924,7 @@ onBeforeUnmount(() => {
 }
 
 .call__control-icon--spin {
-  animation: var(--animate-spin);
+  animation: spin 1s linear infinite;
 }
 
 /* ---- Verification panel ---- */

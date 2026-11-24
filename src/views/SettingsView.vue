@@ -205,7 +205,6 @@ function onTabKeydown(event, index) {
 </template>
 
 <style scoped>
-@layer base, gupt-components;
 
 .settings-view {
   min-height: 100%;

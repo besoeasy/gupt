@@ -41,7 +41,6 @@ defineProps({
 </template>
 
 <style scoped>
-@layer base, gupt-components;
 
 /* Ledger primary action: one filled control, six-pixel corners, a lift. */
 
@@ -119,7 +118,7 @@ defineProps({
   width: var(--app-space-4);
   height: var(--app-space-4);
   color: color-mix(in oklab, var(--app-bg) 80%, transparent);
-  animation: var(--animate-spin);
+  animation: spin 1s linear infinite;
 }
 
 .primary-button__icon-shape {

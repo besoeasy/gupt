@@ -591,7 +591,7 @@ async function confirmDelete() {
 }
 
 .spin {
-  animation: var(--animate-spin);
+  animation: spin 1s linear infinite;
 }
 
 @media (min-width: 40rem) {

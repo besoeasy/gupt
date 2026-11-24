@@ -52,7 +52,6 @@ const tabbarStyle = computed(() => ({
 </template>
 
 <style scoped>
-@layer base, gupt-components;
 
 /* Ledger segmented control: a hairline tray with one ink-filled thumb that
    slides between evenly sized labels. */

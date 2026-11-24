@@ -23,7 +23,6 @@ defineProps({
 </template>
 
 <style scoped>
-@layer base, gupt-components;
 
 /* Ledger notice: a hairline note with one coloured mark, never a filled card. */
 

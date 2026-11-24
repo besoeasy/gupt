@@ -111,7 +111,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-@layer base, gupt-components;
 
 .cache-panel {
   display: flex;

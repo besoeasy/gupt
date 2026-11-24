@@ -253,7 +253,6 @@ async function handleProbe() {
 </template>
 
 <style scoped>
-@layer base, gupt-components;
 
 .relays-panel {
   display: flex;
@@ -502,7 +501,7 @@ async function handleProbe() {
 }
 
 .relays-panel__spin {
-  animation: var(--animate-spin);
+  animation: spin 1s linear infinite;
 }
 
 .relays-panel__head {

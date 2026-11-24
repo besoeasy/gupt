@@ -231,7 +231,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-@layer base, gupt-components;
 
 /* Ledger post: a hairline sheet, mono metadata, no shadow at rest or hover. */
 

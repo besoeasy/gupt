@@ -368,7 +368,7 @@ function memberActivity(pk) {
 }
 
 .drawer__tool-icon--spin {
-  animation: var(--animate-spin);
+  animation: spin 1s linear infinite;
 }
 
 /* ---- Identity ---- */

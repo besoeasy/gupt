@@ -736,7 +736,7 @@ onMounted(() => {
 }
 
 .bookmark-btn__icon--spin {
-  animation: var(--animate-spin);
+  animation: spin 1s linear infinite;
 }
 
 .bookmark-btn:active {

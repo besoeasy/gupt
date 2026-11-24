@@ -30,7 +30,6 @@ const emit = defineEmits(["react"]);
 </template>
 
 <style scoped>
-@layer base, gupt-components;
 
 /* Ledger reactions: quiet hairline chips; the one you chose is filled ink. */
 

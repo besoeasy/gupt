@@ -18,7 +18,6 @@ defineProps({
 </template>
 
 <style scoped>
-@layer base, gupt-components;
 
 .settings-row {
   display: flex;

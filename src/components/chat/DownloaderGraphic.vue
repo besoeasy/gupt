@@ -705,7 +705,7 @@ const statusSubtitle = computed(() => {
 
 .downloader__spinner-arc {
   color: var(--app-primary);
-  animation: var(--animate-spin);
+  animation: spin 1s linear infinite;
 }
 
 /* ---- Chunks ---- */

@@ -133,7 +133,6 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-@layer base, gupt-components;
 
 .sync-panel {
   display: flex;
@@ -274,7 +273,7 @@ onUnmounted(() => {
 }
 
 .sync-panel__spin {
-  animation: var(--animate-spin);
+  animation: spin 1s linear infinite;
 }
 
 @media (hover: hover) {

@@ -23,7 +23,6 @@ defineProps({
 </template>
 
 <style scoped>
-@layer base, gupt-components;
 
 /* Ledger page header: mono eyebrow, one display line, a hairline and air. */
 

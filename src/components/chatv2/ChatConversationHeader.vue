@@ -193,7 +193,6 @@ function startCall(kind) {
 </template>
 
 <style scoped>
-@layer base, gupt-components;
 
 /* Ledger conversation bar: identity on the left, square actions on the right,
    one hairline underneath to meet the thread. */

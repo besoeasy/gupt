@@ -361,7 +361,6 @@ function navigateTo(targetPath) {
 </template>
 
 <style scoped>
-@layer base, gupt-components;
 
 /* ---------------------------------------------------------------
    Primary navigation — Ledger chrome: opaque, one hairline, text

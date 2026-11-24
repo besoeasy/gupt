@@ -462,7 +462,7 @@ onUnmounted(() => {
   width: 18px;
   height: 18px;
   color: var(--app-muted);
-  animation: var(--animate-spin);
+  animation: spin 1s linear infinite;
 }
 
 .hotlink-status__text {

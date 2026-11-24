@@ -51,7 +51,6 @@ async function copyIdentity() {
 </template>
 
 <style scoped>
-@layer base, gupt-components;
 
 .account-panel {
   display: flex;

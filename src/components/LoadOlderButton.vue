@@ -69,7 +69,7 @@ defineEmits(["click"]);
 }
 
 .load-older__icon--spin {
-  animation: var(--animate-spin);
+  animation: spin 1s linear infinite;
 }
 
 .load-older__btn:focus-visible {

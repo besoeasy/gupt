@@ -128,7 +128,7 @@ watch(sentinelEl, (el) => {
 }
 
 .feed-end__icon--spin {
-  animation: var(--animate-spin);
+  animation: spin 1s linear infinite;
 }
 
 .feed-end__icon--done {

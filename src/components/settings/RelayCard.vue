@@ -163,7 +163,6 @@ const failing = computed(
 </template>
 
 <style scoped>
-@layer base, gupt-components;
 
 .relay-card {
   --relay-card-accent: var(--app-muted);
