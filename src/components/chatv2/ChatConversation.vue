@@ -1019,7 +1019,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="chat-conversation__block">
+  <div class="chat-conversation__shell">
     <!-- Header -->
     <ChatConversationHeader
       :is-group="isGroup"
@@ -1048,8 +1048,8 @@ onBeforeUnmount(() => {
     />
 
     <!-- Main Container -->
-    <div class="chat-conversation__block-2">
-      <section class="chat-conversation__section">
+    <div class="chat-conversation__body">
+      <section class="chat-conversation__thread">
         <ChatMessageList
           ref="messageListRef"
           :items="visibleMessagesWithSeparators"
@@ -1065,21 +1065,21 @@ onBeforeUnmount(() => {
           @layout-resize="onLayoutResize"
         >
           <template #header>
-            <div v-if="isGroup" class="chat-conversation__block-3">
-              <div class="chat-conversation__block-4">
+            <div v-if="isGroup" class="chat-conversation__group-intro">
+              <div class="chat-conversation__group-avatar">
                 <RoboAvatar :src="groupAvatarSrc" size="xl" />
               </div>
-              <p class="chat-conversation__text">
+              <p class="chat-conversation__group-title">
                 {{ groupTitle }}
               </p>
-              <p class="chat-conversation__text-2">
+              <p class="chat-conversation__group-lede">
                 Private encrypted group chat — each message is one event encrypted to every member.
               </p>
             </div>
           </template>
 
           <template #before-list>
-            <AppAlertBanner v-if="error" :message="error" class="chat-conversation__app-alert-banner" />
+            <AppAlertBanner v-if="error" :message="error" class="chat-conversation__alert" />
             <LoadOlderButton
               v-if="hasMoreToLoad && oldestTs"
               :loading="loadingOlder"
@@ -1088,33 +1088,33 @@ onBeforeUnmount(() => {
           </template>
 
           <template #empty>
-            <div v-if="messagesLoading" class="chat-conversation__status" role="status">
-              <span class="chat-conversation__text-3">Loading messages…</span>
-              <div class="chat-conversation__block-5" aria-hidden="true">
-                <AppSkeleton class="chat-conversation__app-skeleton" />
+            <div v-if="messagesLoading" class="chat-conversation__loading" role="status">
+              <span class="chat-conversation__visually-hidden">Loading messages…</span>
+              <div class="chat-conversation__skeleton-row chat-conversation__skeleton-row--center" aria-hidden="true">
+                <AppSkeleton class="chat-conversation__skeleton-pill" />
               </div>
-              <div class="chat-conversation__block-6" aria-hidden="true">
-                <AppSkeleton class="chat-conversation__app-skeleton-2" />
+              <div class="chat-conversation__skeleton-row chat-conversation__skeleton-row--start" aria-hidden="true">
+                <AppSkeleton class="chat-conversation__skeleton-bar--wide" />
               </div>
-              <div class="chat-conversation__block-7" aria-hidden="true">
-                <AppSkeleton class="chat-conversation__app-skeleton-3" />
+              <div class="chat-conversation__skeleton-row chat-conversation__skeleton-row--end" aria-hidden="true">
+                <AppSkeleton class="chat-conversation__skeleton-bar--narrow" />
               </div>
-              <div class="chat-conversation__block-8" aria-hidden="true">
-                <AppSkeleton class="chat-conversation__app-skeleton-4" />
+              <div class="chat-conversation__skeleton-row chat-conversation__skeleton-row--start" aria-hidden="true">
+                <AppSkeleton class="chat-conversation__skeleton-bar--tall" />
               </div>
-              <div class="chat-conversation__block-9" aria-hidden="true">
-                <AppSkeleton class="chat-conversation__app-skeleton-5" />
+              <div class="chat-conversation__skeleton-row chat-conversation__skeleton-row--end" aria-hidden="true">
+                <AppSkeleton class="chat-conversation__skeleton-bar--half" />
               </div>
             </div>
-            <div v-else class="chat-conversation__block-10">
+            <div v-else class="chat-conversation__empty">
               No messages yet. Say hello!
             </div>
           </template>
 
           <template #item="{ item, prevItem }">
-            <div v-if="item.__dateSeparator" class="chat-conversation__block-11">
+            <div v-if="item.__dateSeparator" class="chat-conversation__date-rule">
               <span
-                class="chat-conversation__text-4"
+                class="chat-conversation__date-label"
               >
                 {{ item.label }}
               </span>
@@ -1224,465 +1224,178 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+.chat-conversation__shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--app-bg);
+  color: var(--app-text);
+}
 
-/* Light theme adjustments */
+.chat-conversation__body {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
 
-@layer gupt-components {
-.chat-conversation__text-3 {
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border-width: 0;
+.chat-conversation__thread {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.chat-conversation__group-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding-block: 1.5rem;
+  text-align: center;
+}
+
+.chat-conversation__group-avatar {
+  overflow: hidden;
+  border: 1px solid var(--app-surface-raised);
+  border-radius: 18px;
+}
+
+.chat-conversation__group-title {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.55;
+  letter-spacing: -0.025em;
+  color: var(--app-text);
+}
+
+.chat-conversation__group-lede {
+  max-width: 24rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--app-muted);
+}
+
+.chat-conversation__alert {
+  margin-bottom: 0.75rem;
+}
+
+.chat-conversation__loading {
+  padding-inline: 0.25rem;
+}
+
+.chat-conversation__loading > :not(:last-child) {
+  margin-bottom: 0.75rem;
+}
+
+.chat-conversation__visually-hidden {
+  position: absolute;
   width: 1px;
   height: 1px;
   margin: -1px;
   padding: 0;
-  position: absolute;
   overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
-.chat-conversation__block {
-  position: relative;
-}
-.chat-conversation__section {
-  position: relative;
-}
-.chat-conversation__block-11 {
-  margin-block: calc(var(--spacing) * 4);
-}
-.chat-conversation__block-3 {
-  margin-bottom: calc(var(--spacing) * 2);
-}
-.chat-conversation__app-alert-banner {
-  margin-bottom: calc(var(--spacing) * 3);
-}
-.chat-conversation__block {
+
+.chat-conversation__skeleton-row {
   display: flex;
 }
-.chat-conversation__block-2 {
-  display: flex;
+
+.chat-conversation__skeleton-row--start {
+  justify-content: flex-start;
 }
-.chat-conversation__section {
-  display: flex;
+
+.chat-conversation__skeleton-row--center {
+  justify-content: center;
 }
-.chat-conversation__block-3 {
-  display: flex;
+
+.chat-conversation__skeleton-row--end {
+  justify-content: flex-end;
 }
-.chat-conversation__block-5 {
-  display: flex;
+
+.chat-conversation__skeleton-pill {
+  width: 5rem;
+  height: 1rem;
+  border-radius: 9999px;
 }
-.chat-conversation__block-6 {
-  display: flex;
-}
-.chat-conversation__block-7 {
-  display: flex;
-}
-.chat-conversation__block-8 {
-  display: flex;
-}
-.chat-conversation__block-9 {
-  display: flex;
-}
-.chat-conversation__block-11 {
-  display: flex;
-}
-.chat-conversation__app-skeleton {
-  height: calc(var(--spacing) * 4);
-}
-.chat-conversation__app-skeleton-3 {
-  height: calc(var(--spacing) * 10);
-}
-.chat-conversation__app-skeleton-5 {
-  height: calc(var(--spacing) * 10);
-}
-.chat-conversation__app-skeleton-2 {
-  height: calc(var(--spacing) * 12);
-}
-.chat-conversation__app-skeleton-4 {
-  height: calc(var(--spacing) * 16);
-}
-.chat-conversation__block {
-  height: 100%;
-}
-.chat-conversation__block-2 {
-  min-height: 0;
-}
-.chat-conversation__section {
-  min-height: 0;
-}
-.chat-conversation__app-skeleton-5 {
-  width: 50%;
-}
-.chat-conversation__app-skeleton-4 {
-  width: 66.6667%;
-}
-.chat-conversation__app-skeleton-3 {
-  width: 40%;
-}
-.chat-conversation__app-skeleton-2 {
+
+.chat-conversation__skeleton-bar--wide {
   width: 60%;
+  height: 3rem;
+  border-radius: 22px;
+  border-bottom-left-radius: var(--app-radius-md);
 }
-.chat-conversation__app-skeleton {
-  width: calc(var(--spacing) * 20);
+
+.chat-conversation__skeleton-bar--narrow {
+  width: 40%;
+  height: 2.5rem;
+  border-radius: 22px;
+  border-bottom-right-radius: var(--app-radius-md);
 }
-.chat-conversation__block {
-  width: 100%;
+
+.chat-conversation__skeleton-bar--tall {
+  width: 66.6667%;
+  height: 4rem;
+  border-radius: 22px;
+  border-bottom-left-radius: var(--app-radius-md);
 }
-.chat-conversation__text-2 {
-  max-width: var(--container-sm);
 
+.chat-conversation__skeleton-bar--half {
+  width: 50%;
+  height: 2.5rem;
+  border-radius: 22px;
+  border-bottom-right-radius: var(--app-radius-md);
 }
-.chat-conversation__block-2 {
-  min-width: 0;
-}
-.chat-conversation__section {
-  min-width: 0;
-}
-.chat-conversation__block-2 {
-  flex: 1;
-}
-.chat-conversation__section {
-  flex: 1;
-}
-.chat-conversation__block {
-  flex-direction: column;
-}
-.chat-conversation__section {
-  flex-direction: column;
-}
-.chat-conversation__block-3 {
-  flex-direction: column;
-}
-.chat-conversation__block-3 {
-  align-items: center;
-}
-.chat-conversation__block-11 {
-  align-items: center;
-}
-.chat-conversation__block-5 {
-  justify-content: center;
-}
-.chat-conversation__block-11 {
-  justify-content: center;
-}
-.chat-conversation__block-7 {
-  justify-content: flex-end;
-}
-.chat-conversation__block-9 {
-  justify-content: flex-end;
-}
-.chat-conversation__block-6 {
-  justify-content: flex-start;
-}
-.chat-conversation__block-8 {
-  justify-content: flex-start;
-}
-.chat-conversation__block-3 {
-  gap: calc(var(--spacing) * 2);
-}
-:where(.chat-conversation__status>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 3) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 3) * calc(1 - 0));
-}
-.chat-conversation__block-4 {
-  overflow: hidden;
-}
-.chat-conversation__app-skeleton-2 {
-  border-radius: var(--radius-2xl);
-}
-.chat-conversation__app-skeleton-3 {
-  border-radius: var(--radius-2xl);
-}
-.chat-conversation__app-skeleton-4 {
-  border-radius: var(--radius-2xl);
-}
-.chat-conversation__app-skeleton-5 {
-  border-radius: var(--radius-2xl);
-}
-.chat-conversation__app-skeleton {
-  border-radius: 3.40282e38px;
-}
-.chat-conversation__text-4 {
-  border-radius: 0;
 
-
-
-
-
-
-
-
-}
-.chat-conversation__block-4 {
-  border-radius: var(--radius-xl);
-}
-.chat-conversation__app-skeleton-3 {
-  border-bottom-right-radius: var(--radius-md);
-}
-.chat-conversation__app-skeleton-5 {
-  border-bottom-right-radius: var(--radius-md);
-}
-.chat-conversation__app-skeleton-2 {
-  border-bottom-left-radius: var(--radius-md);
-}
-.chat-conversation__app-skeleton-4 {
-  border-bottom-left-radius: var(--radius-md);
-}
-.chat-conversation__block-4 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.chat-conversation__text-4 {
-  border-style: var(--border-style,solid);
-  border-width: 0;
-
-
-
-
-
-
-
-
-}
-.chat-conversation__block-4 {
-  border-color: var(--ui-zinc-800);
-}
-.chat-conversation__text-4 {
-  border-color: var(--ui-zinc-800);
-
-
-
-
-
-
-
-
-}
-.chat-conversation__block {
-  background-color: var(--app-bg);
-}
-.chat-conversation__text-4 {
-  background-color: transparent;
-
-
-
-
-
-
-
-
-}
-.chat-conversation__status {
-  padding-inline: var(--spacing);
-}
-.chat-conversation__block-11 {
-  padding-inline: var(--spacing);
-}
-.chat-conversation__text-4 {
-  padding-inline: 0;
-
-
-
-
-
-
-
-
-}
-.chat-conversation__text-4 {
-  padding-block: 0;
-
-
-
-
-
-
-
-
-}
-.chat-conversation__block-3 {
-  padding-block: calc(var(--spacing) * 6);
-}
-.chat-conversation__block-10 {
-  padding-block: calc(var(--spacing) * 12);
-
-
-}
-.chat-conversation__block-3 {
-  text-align: center;
-}
-.chat-conversation__block-10 {
-  text-align: center;
-
-
-}
-.chat-conversation__block-10 {
+.chat-conversation__empty {
+  padding-block: 3rem;
   font-family: var(--font-mono);
-
-
-}
-.chat-conversation__text-4 {
-  font-family: var(--font-mono);
-
-
-
-
-
-
-
-
-}
-.chat-conversation__text {
-  font-size: var(--text-base);
-  line-height: var(--leading,var(--text-base--line-height));
-
-}
-.chat-conversation__text-2 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-
-}
-.chat-conversation__block-10 {
   font-size: 10.5px;
-  line-height: var(--leading,var(--text-xs--line-height));
-
-
-}
-.chat-conversation__text-4 {
-  font-size: 9.5px;
-
-
-
-
-
-
-
-
-}
-.chat-conversation__text {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-
-}
-.chat-conversation__text {
-  --tracking: var(--tracking-tight);
-  letter-spacing: var(--tracking-tight);
-
-}
-.chat-conversation__text-4 {
-  --tracking: var(--tracking-tight);
-  letter-spacing: var(--tracking-tight);
-
-
-
-
-
-
-
-
-}
-.chat-conversation__block {
-  color: var(--app-text);
-}
-.chat-conversation__text {
-  color: var(--app-text);
-
-}
-.chat-conversation__text-2 {
-  color: var(--app-muted);
-
-}
-.chat-conversation__text-4 {
+  line-height: 1.5;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
   color: var(--app-muted-2);
-
-
-
-
-
-
-
-
-}
-.chat-conversation__block-10 {
-  color: var(--app-muted-2);
-
-
-}
-.chat-conversation__text-4 {
-  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
-  box-shadow: none;
-
-
-
-
-
-
-
-
-}
-.chat-conversation__text-4 {
-  -webkit-user-select: none;
-  user-select: none;
-
-
-
-
-
-
-
-
-}
-[data-theme="light"] .chat-conversation__text-2 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .chat-conversation__text-4 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .chat-conversation__block-10 {
-  color: var(--app-muted);
-}
 }
 
-
-@layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation__text-4 {
-  background-color: transparent;
-
-
-
-
-
-
-
-
-}
-}
-}
-
-/* Ledger pass: a date is a rule with a label, not a pill. */
-
-.chat-conversation__block-11 {
+.chat-conversation__date-rule {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: var(--app-space-3);
   margin-block: var(--app-space-6);
+  padding-inline: 0.25rem;
 }
 
-.chat-conversation__block-11::before,
-.chat-conversation__block-11::after {
+.chat-conversation__date-rule::before,
+.chat-conversation__date-rule::after {
   content: "";
   flex: 1;
   height: 1px;
   background-color: var(--app-border);
 }
 
-.chat-conversation__text-4 {
+.chat-conversation__date-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
   letter-spacing: var(--app-tracking-label);
   text-transform: uppercase;
   white-space: nowrap;
+  user-select: none;
+  color: var(--app-muted-2);
 }
 
-.chat-conversation__block-10 {
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+[data-theme="light"] .chat-conversation__date-label,
+[data-theme="light"] .chat-conversation__empty {
+  color: var(--app-muted);
 }
 </style>
+
