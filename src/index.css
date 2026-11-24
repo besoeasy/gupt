@@ -1,12 +1,6 @@
 /* Hand-written global styles. No framework, no utility classes. */
 
-/* Layer order: base reset is weakest, then the utility translations emitted in
-   component <style> blocks. Everything else in this file stays unlayered, as the
-   app's own CSS did before, so it keeps priority over both. */
-@layer base, gupt-components;
-
-/* ---------- Reset (the subset of normalize Tailwind preflight provided) ---------- */
-@layer base {
+/* ---------- Reset ---------- */
   *,:after,:before,::backdrop {
     box-sizing: border-box;
     border: 0 solid;
@@ -25,9 +19,9 @@
     -webkit-text-size-adjust: 100%;
     tab-size: 4;
     line-height: 1.5;
-    font-family: var(--default-font-family,ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji");
-    font-feature-settings: var(--default-font-feature-settings,normal);
-    font-variation-settings: var(--default-font-variation-settings,normal);
+    font-family: var(--font-sans);
+    font-feature-settings: normal;
+    font-variation-settings: normal;
     -webkit-tap-highlight-color: transparent;
   }
 
@@ -58,9 +52,9 @@
   }
 
   code,kbd,samp,pre {
-    font-family: var(--default-mono-font-family,ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
-    font-feature-settings: var(--default-mono-font-feature-settings,normal);
-    font-variation-settings: var(--default-mono-font-variation-settings,normal);
+    font-family: var(--font-mono);
+    font-feature-settings: normal;
+    font-variation-settings: normal;
     font-size: 1em;
   }
 
@@ -239,7 +233,6 @@
   [hidden]:where(:not([hidden=until-found])) {
     display: none !important;
   }
-}
 
 /* ---------- Design tokens ---------- */
 
@@ -276,68 +269,6 @@
   --color-rose-400: oklch(71.2% .194 13.428);
   --color-rose-500: oklch(64.5% .246 16.439);
   --color-white: #fff;
-  --spacing: .25rem;
-  --container-xs: 20rem;
-  --container-sm: 24rem;
-  --container-md: 28rem;
-  --container-lg: 32rem;
-  --container-2xl: 42rem;
-  --container-5xl: 64rem;
-  --container-6xl: 72rem;
-  --text-xs: .75rem;
-  --text-xs--line-height: 1.5;
-  --text-sm: .8125rem;
-  --text-sm--line-height: 1.5;
-  --text-base: .9375rem;
-  --text-base--line-height: 1.55 ;
-  --text-lg: 1.0625rem;
-  --text-lg--line-height: 1.45;
-  --text-xl: 1.1875rem;
-  --text-xl--line-height: 1.35;
-  --text-2xl: 1.5rem;
-  --text-2xl--line-height: 1.25;
-  --text-3xl: 1.875rem;
-  --text-3xl--line-height: 1.15 ;
-  --text-4xl: 2.25rem;
-  --text-4xl--line-height: 1.1;
-  --text-5xl: 3rem;
-  --text-5xl--line-height: 1.05;
-  --text-6xl: 3.75rem;
-  --text-6xl--line-height: 1;
-  --font-weight-normal: 400;
-  --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
-  --tracking-tighter: -.05em;
-  --tracking-tight: -.025em;
-  --tracking-wide: .025em;
-  --tracking-wider: .05em;
-  --tracking-widest: .1em;
-  --leading-tight: 1.25;
-  --leading-snug: 1.375;
-  --leading-relaxed: 1.625;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 18px;
-  --radius-2xl: 22px;
-  --radius-3xl: 26px;
-  --ease-in: cubic-bezier(.4, 0, 1, 1);
-  --ease-out: cubic-bezier(0, 0, .2, 1);
-  --ease-in-out: cubic-bezier(.4, 0, .2, 1);
-  --animate-spin: spin 1s linear infinite;
-  --animate-ping: ping 1s cubic-bezier(0, 0, .2, 1) infinite;
-  --animate-pulse: pulse 2s cubic-bezier(.4, 0, .6, 1) infinite;
-  --animate-bounce: bounce 1s infinite;
-  --blur-xs: 4px;
-  --blur-md: 12px;
-  --blur-xl: 24px;
-  --blur-2xl: 40px;
-  --aspect-video: 16 / 9;
-  --default-transition-duration: .15s;
-  --default-transition-timing-function: cubic-bezier(.4, 0, .2, 1);
-  --default-font-family: var(--font-sans);
-  --default-mono-font-family: var(--font-mono);
 }
 
 /* ---------- Keyframes ---------- */
@@ -385,27 +316,7 @@
 
 @keyframes spin{to{transform:rotate(360deg)}}
 
-@keyframes ping{75%,to{opacity:0;transform:scale(1.9)}}
-
 @keyframes pulse{50%{opacity:.5}}
-
-@keyframes bounce{0%,to{animation-timing-function:cubic-bezier(.8,0,1,1);transform:translateY(-25%)}50%{animation-timing-function:cubic-bezier(0,0,.2,1);transform:none}}
-
-@keyframes sweep {
-    to {
-      transform: translateX(200%);
-    }
-  }
-
-@keyframes dot-breathe {
-    0%,
-    100% {
-      box-shadow: 0 0 0 0 color-mix(in srgb, var(--app-primary) 40%, transparent);
-    }
-    50% {
-      box-shadow: 0 0 0 6px color-mix(in srgb, var(--app-primary) 0%, transparent);
-    }
-  }
 
 @keyframes ping {
     75%,
@@ -422,30 +333,6 @@
     }
     50% {
       opacity: 0.5;
-    }
-  }
-
-@keyframes empty-icon-pulse {
-    0%,
-    100% {
-      transform: scale(1);
-      box-shadow: 0 0 0 0 color-mix(in srgb, var(--app-primary) 0%, transparent);
-      border-color: var(--app-border);
-    }
-    50% {
-      transform: scale(1.06);
-      box-shadow: 0 0 0 10px color-mix(in srgb, var(--app-primary) 12%, transparent);
-      border-color: color-mix(in srgb, var(--app-primary) 45%, var(--app-border));
-    }
-  }
-
-@keyframes bar-glow {
-    0%,
-    100% {
-      box-shadow: 0 0 6px color-mix(in srgb, var(--app-primary) 55%, transparent);
-    }
-    50% {
-      box-shadow: 0 0 14px color-mix(in srgb, var(--app-primary) 80%, transparent);
     }
   }
 
@@ -490,113 +377,6 @@
     }
   }
 
-@keyframes donate-rise {
-    from {
-      opacity: 0;
-      transform: translateY(14px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-@keyframes donate-shimmer {
-    0%,
-    35% {
-      transform: translateX(-100%);
-    }
-    70%,
-    100% {
-      transform: translateX(100%);
-    }
-  }
-
-@keyframes donate-tier-entrance {
-    from {
-      opacity: 0;
-      transform: translateY(10px) scale(0.94);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-
-@keyframes donate-tier-pulse {
-    0%,
-    100% {
-      transform: scale(1);
-      opacity: 0.55;
-    }
-    50% {
-      transform: scale(1.06);
-      opacity: 1;
-    }
-  }
-
-@keyframes donate-tier-pulse-fast {
-    0%,
-    100% {
-      transform: scale(1);
-      opacity: 0.7;
-    }
-    50% {
-      transform: scale(1.09);
-      opacity: 1;
-    }
-  }
-
-@keyframes donate-tier-float {
-    0%,
-    100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-3px);
-    }
-  }
-
-@keyframes donate-heartbeat {
-    0%,
-    100% {
-      transform: scale(1);
-    }
-    12% {
-      transform: scale(1.28);
-    }
-    24% {
-      transform: scale(1);
-    }
-    36% {
-      transform: scale(1.18);
-    }
-    48% {
-      transform: scale(1);
-    }
-  }
-
-@keyframes donate-goal-pulse {
-    0%,
-    100% {
-      transform: scale(1);
-      text-shadow: 0 0 0 transparent;
-    }
-    50% {
-      transform: scale(1.04);
-      text-shadow: 0 0 28px color-mix(in srgb, var(--app-text) 18%, transparent);
-    }
-  }
-
-.donate-goal-amount {
-  animation: donate-goal-pulse 2.6s ease-in-out infinite;
-  transform-origin: left bottom;
-}
-
-.empty-chat-icon {
-  animation: empty-icon-pulse 2.4s ease-in-out infinite;
-}
-
 :root {
   color-scheme: dark;
   --app-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
@@ -637,15 +417,15 @@
   --app-info-soft: #00a5ef1a;
   /* Translucent layers built on the theme's own surfaces: the token holds the
      opaque surface as its fallback, and the @supports block below lowers its
-     alpha. Both themes get them through the --ui-zinc-* remapping. */
-  --app-border-quiet: var(--ui-zinc-800);
-  --app-border-faint: var(--ui-zinc-800);
-  --app-surface-tint: var(--ui-zinc-900);
-  --app-surface-tint-soft: var(--ui-zinc-900);
-  --app-surface-inset: var(--ui-zinc-950);
-  --app-surface-inset-strong: var(--ui-zinc-950);
-  --app-surface-raised-tint: var(--ui-zinc-800);
-  --app-surface-raised-tint-soft: var(--ui-zinc-800);
+     alpha, so each theme supplies the colour. */
+  --app-border-quiet: var(--app-surface-raised);
+  --app-border-faint: var(--app-surface-raised);
+  --app-surface-tint: var(--app-surface);
+  --app-surface-tint-soft: var(--app-surface);
+  --app-surface-inset: var(--app-bg-soft);
+  --app-surface-inset-strong: var(--app-bg-soft);
+  --app-surface-raised-tint: var(--app-surface-raised);
+  --app-surface-raised-tint-soft: var(--app-surface-raised);
   --app-accent-share: #c084fc;
   --app-accent-heart: #f472b6;
   /* A camera reads contrast, not the theme: QR symbols stay black on white in
@@ -684,20 +464,6 @@
   --app-glow-amber: 0 0 7px color-mix(in srgb, var(--app-warning) 55%, transparent);
   --app-glow-primary: 0 0 18px color-mix(in srgb, var(--app-primary) 35%, transparent);
   --app-lift: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 16px 40px rgba(0, 0, 0, 0.38);
-  /* Dark-mode base tokens (Tailwind color remapping targets above) */
-  --ui-black: var(--app-bg);
-  --ui-zinc-950: var(--app-bg-soft);
-  --ui-zinc-900: var(--app-surface);
-  --ui-zinc-800: var(--app-surface-raised);
-  --ui-zinc-700: #2a2a2a;
-  --ui-zinc-600: #454545;
-  --ui-zinc-500: var(--app-muted);
-  --ui-zinc-400: var(--app-text-soft);
-  --ui-zinc-300: #c7c7c7;
-  --ui-zinc-200: #e5e5e5;
-  --ui-zinc-100: #f5f5f5;
-  --ui-zinc-50: #fafafa;
-  /* Component-level semantic vars */
 }
 
 @supports (color: color-mix(in lab, red, red)) {
@@ -705,14 +471,14 @@
     --app-danger-soft: color-mix(in oklab, var(--color-red-500) 10%, transparent);
     --app-warning-soft: color-mix(in oklab, var(--color-amber-500) 10%, transparent);
     --app-info-soft: color-mix(in oklab, var(--color-sky-500) 10%, transparent);
-    --app-border-quiet: color-mix(in oklab, var(--ui-zinc-800) 80%, transparent);
-    --app-border-faint: color-mix(in oklab, var(--ui-zinc-800) 60%, transparent);
-    --app-surface-tint: color-mix(in oklab, var(--ui-zinc-900) 60%, transparent);
-    --app-surface-tint-soft: color-mix(in oklab, var(--ui-zinc-900) 40%, transparent);
-    --app-surface-inset: color-mix(in oklab, var(--ui-zinc-950) 40%, transparent);
-    --app-surface-inset-strong: color-mix(in oklab, var(--ui-zinc-950) 60%, transparent);
-    --app-surface-raised-tint: color-mix(in oklab, var(--ui-zinc-800) 80%, transparent);
-    --app-surface-raised-tint-soft: color-mix(in oklab, var(--ui-zinc-800) 60%, transparent);
+    --app-border-quiet: color-mix(in oklab, var(--app-surface-raised) 80%, transparent);
+    --app-border-faint: color-mix(in oklab, var(--app-surface-raised) 60%, transparent);
+    --app-surface-tint: color-mix(in oklab, var(--app-surface) 60%, transparent);
+    --app-surface-tint-soft: color-mix(in oklab, var(--app-surface) 40%, transparent);
+    --app-surface-inset: color-mix(in oklab, var(--app-bg-soft) 40%, transparent);
+    --app-surface-inset-strong: color-mix(in oklab, var(--app-bg-soft) 60%, transparent);
+    --app-surface-raised-tint: color-mix(in oklab, var(--app-surface-raised) 80%, transparent);
+    --app-surface-raised-tint-soft: color-mix(in oklab, var(--app-surface-raised) 60%, transparent);
   }
 }
 
@@ -1010,7 +776,7 @@ body {
 
 /* Default radius without out-ranking an explicit `rounded-*` utility. */
 :where(.skeleton-shimmer) {
-  border-radius: var(--radius-md);
+  border-radius: var(--app-radius-md);
 }
 
 /* Message bubble enter (short threads) */
@@ -1095,27 +861,13 @@ body {
   --app-accent-heart: #db2777;
   --app-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.08);
   --app-lift: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 16px 40px rgba(0, 0, 0, 0.08);
-  /* Tailwind zinc remap */
-  --ui-black: var(--app-bg);
-  --ui-zinc-950: var(--app-bg-soft);
-  --ui-zinc-900: var(--app-surface);
-  --ui-zinc-800: #ededed;
-  --ui-zinc-700: #d4d4d4;
-  --ui-zinc-600: #a3a3a3;
-  --ui-zinc-500: var(--app-muted);
-  --ui-zinc-400: var(--app-text-soft);
-  --ui-zinc-300: #525252;
-  --ui-zinc-200: #262626;
-  --ui-zinc-100: #0a0a0a;
-  --ui-zinc-50: #000000;
-  /* Component-level tokens */
 }
 
 /* Shared relay tier + Rabta status classes (see src/lib/relay/constants.js and
    src/stores/rabtaSync.js). Kept global because JavaScript returns the names. */
 .relay-tier-badge {
   background-color: #ffffff14;
-  color: var(--ui-zinc-400);
+  color: var(--app-text-soft);
 }
 
 @supports (color: color-mix(in lab, red, red)) {
@@ -1170,7 +922,7 @@ body {
 }
 
 .relay-tier-dot--muted {
-  background-color: var(--ui-zinc-400);
+  background-color: var(--app-muted);
 }
 
 .rabta-status--syncing {
@@ -1186,9 +938,9 @@ body {
 }
 
 .rabta-status--muted {
-  border-color: var(--ui-zinc-700);
-  background-color: var(--ui-zinc-800);
-  color: var(--ui-zinc-400);
+  border-color: var(--app-border-strong);
+  background-color: var(--app-surface-raised);
+  color: var(--app-text-soft);
 }
 
 .rabta-status--success {
@@ -1209,8 +961,8 @@ body {
   }
 
   .rabta-status--muted {
-    border-color: color-mix(in oklab, var(--ui-zinc-700) 50%, transparent);
-    background-color: color-mix(in oklab, var(--ui-zinc-800) 60%, transparent);
+    border-color: color-mix(in oklab, var(--app-border-strong) 50%, transparent);
+    background-color: color-mix(in oklab, var(--app-surface-raised) 60%, transparent);
   }
 
   .rabta-status--success {
@@ -1245,7 +997,7 @@ body {
 }
 
 [data-theme="light"] .rabta-status--muted {
-  background-color: var(--ui-zinc-800);
+  background-color: var(--app-surface-raised);
   color: var(--app-muted);
 }
 
@@ -1315,35 +1067,6 @@ body {
   .media-fetch-ring,
   .media-fetch-arrow,
   .media-fetch-tray {
-    animation: none;
-  }
-}
-
-/* =====================================================
-   DONATE VIEW
-   ===================================================== */
-
-/* ---- Animations ---- */
-
-/* Continuous gentle pulse on the glow ring */
-
-/* Faster pulse on hover */
-
-/* Gentle up-down float for the icon */
-
-/* Classic heartbeat: two quick thumps then rest */
-
-/* ---- Reduced motion ---- */
-@media (prefers-reduced-motion: reduce) {
-  .donate-panel,
-  .donate-fill::after,
-  .donate-resolving-spinner,
-  .donate-tier-pill,
-  .donate-tier-ring,
-  .donate-tier-icon-wrap,
-  .donate-btn-heart,
-  .donate-goal-amount,
-  .empty-chat-icon {
     animation: none;
   }
 }
