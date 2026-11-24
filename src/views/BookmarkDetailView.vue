@@ -838,8 +838,8 @@ onMounted(() => {
   gap: 6px;
 }
 
-.bookmark-meta__event-id {
-  margin-top: 6px !important;
+.bookmark-meta__item .bookmark-meta__event-id {
+  margin-top: 6px;
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--app-muted);
