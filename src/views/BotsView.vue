@@ -760,8 +760,8 @@ onBeforeUnmount(() => {
   margin: 0;
 }
 
-.bots-row__known {
-  margin-top: 3px !important;
+.bots-row__stamp .bots-row__known {
+  margin-top: 3px;
   color: var(--app-border-strong);
 }
 
