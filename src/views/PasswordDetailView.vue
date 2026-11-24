@@ -1545,8 +1545,8 @@ onMounted(() => {
   color: var(--app-border-strong);
 }
 
-.vault-meta__event-id {
-  margin-top: 6px !important;
+.vault-meta__item .vault-meta__event-id {
+  margin-top: 6px;
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--app-muted);
