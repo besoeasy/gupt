@@ -6,3 +6,4 @@
 4. **IndexedDB is disposable.** Relays hold the truth; no migrations, `DB_VERSION` or upgrade code.
 5. **Honour the 400-day support window.** Read `src/config/compat.js`; date every shim, delete at expiry.
 6. **Delete expired migrations first.** Run `grep -rn "COMPAT: remove after" src` before every release.
+7. **Never rename a storage key.** Keep keys stable; version payloads with `v` and `w`.
