@@ -58,48 +58,6 @@ Releases are dated: `2026.11.20` is the release of 20 November 2026 — one rele
 
 ---
 
-## Component screenshots
-
-Element-level screenshots rendered from Vue components with dummy data.
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/docs/screenshots/components/primary-button.png" alt="PrimaryButton component" width="30%" />
-  &nbsp;
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/docs/screenshots/components/alert-banners.png" alt="AppAlertBanner component" width="30%" />
-  &nbsp;
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/docs/screenshots/components/pin-strength-meter.png" alt="PinStrengthMeter component" width="30%" />
-</p>
-<p align="center"><sub>Primary button, alert banners, PIN strength meter</sub></p>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/docs/screenshots/components/robo-avatar.png" alt="RoboAvatar component" width="30%" />
-  &nbsp;
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/docs/screenshots/components/load-older-button.png" alt="LoadOlderButton component" width="30%" />
-  &nbsp;
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/docs/screenshots/components/new-messages-pill.png" alt="NewMessagesPill component" width="30%" />
-</p>
-<p align="center"><sub>Avatars, load older, new messages pill</sub></p>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/docs/screenshots/components/feed-reaction-bar.png" alt="FeedReactionBar component" width="30%" />
-  &nbsp;
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/docs/screenshots/components/page-header.png" alt="PageHeader component" width="30%" />
-  &nbsp;
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/docs/screenshots/components/app-skeleton.png" alt="AppSkeleton component" width="30%" />
-</p>
-<p align="center"><sub>Reaction bar, page header, skeleton</sub></p>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/docs/screenshots/components/relay-event-link.png" alt="RelayEventLink component" width="30%" />
-  &nbsp;
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/docs/screenshots/components/vault-ttl-slider.png" alt="VaultTtlSlider component" width="30%" />
-  &nbsp;
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/docs/screenshots/components/call-event-line.png" alt="CallEventLine component" width="30%" />
-</p>
-<p align="center"><sub>Relay event link, vault TTL slider, call event line</sub></p>
-
----
-
 ## Features
 
 ### 💬 Chat & messaging
