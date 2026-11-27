@@ -1,6 +1,6 @@
 {
   "name": "gupt",
-  "version": "2026.11.24",
+  "version": "2026.11.27",
   "description": "End-to-end encrypted privacy suite in your browser: chat, WebRTC calls, files, passwords, notes and bookmarks. No phone number, email or account — just a keypair your device derives, on self-hostable relays that only ever see ciphertext.",
   "homepage": "https://gupt.app",
   "license": "CC-BY-NC-4.0",
