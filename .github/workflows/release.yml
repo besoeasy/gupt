@@ -241,7 +241,7 @@ jobs:
   # docker and pages all succeed — means a failed build can never leave a
   # half-published tag behind, which the old per-job `softprops` step could.
   publish:
-    needs: [build-flatpak, build-docker, deploy-pages]
+    needs: [validate, build-flatpak, build-docker, deploy-pages]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
