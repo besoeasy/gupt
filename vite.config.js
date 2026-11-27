@@ -8,22 +8,6 @@ import vue from "@vitejs/plugin-vue";
 import vueDevTools from "vite-plugin-vue-devtools";
 import { VitePWA } from "vite-plugin-pwa";
 
-const buildTarget = process.env.BUILD_TARGET || "web";
-const isFlatpak = buildTarget === "flatpak";
-const usesLocalAssets = isFlatpak;
-
-const pwaRegisterStub = {
-  name: "pwa-register-stub",
-  resolveId(id) {
-    if (id === "virtual:pwa-register") return "\0virtual:pwa-register-stub";
-  },
-  load(id) {
-    if (id === "\0virtual:pwa-register-stub") {
-      return "export function registerSW(){ return () => Promise.resolve(); }";
-    }
-  },
-};
-
 // Vite's dev client needs `unsafe-eval` for hot-module replacement and
 // `unsafe-inline` for its injected styles, so `npm run dev` would be blocked by
 // the strict policy in index.html. Swap in a relaxed copy while serving; the
@@ -74,20 +58,14 @@ const pwaPlugin = VitePWA({
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: usesLocalAssets ? "./" : "/",
+  base: "/",
   define: {
     __APP_BUILD_TIME__: JSON.stringify(new Date().toISOString()),
-    __BUILD_TARGET__: JSON.stringify(buildTarget),
     // Build-time only: feeds the writer stamp in src/lib/writerVersion.js.
     // Never displayed in the UI (Settings shows the build date).
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
-  plugins: [
-    vue(),
-    vueDevTools(),
-    devCspPlugin,
-    ...(usesLocalAssets ? [pwaRegisterStub] : [pwaPlugin]),
-  ],
+  plugins: [vue(), vueDevTools(), devCspPlugin, pwaPlugin],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
@@ -95,15 +73,7 @@ export default defineConfig({
   },
   server: {
     watch: {
-      ignored: [
-        "**/build/**",
-        "**/build-dir/**",
-        "**/bundle/**",
-        "**/dist/**",
-        "**/dev-dist/**",
-        "**/flatpak/**",
-        "**/.flatpak-builder/**",
-      ],
+      ignored: ["**/build/**", "**/build-dir/**", "**/bundle/**", "**/dist/**", "**/dev-dist/**"],
     },
   },
   esbuild: {

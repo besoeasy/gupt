@@ -5,28 +5,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import {
-  METAINFO_PATH,
-  checkVersion,
-  expiredShims,
-  parseRelease,
-  releaseOf,
-  stampMetainfo,
-} from "../scripts/release.mjs";
+import { checkVersion, expiredShims, parseRelease, releaseOf } from "../scripts/release.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
-function fakeTree(version, lockVersion = version, metainfoVersion = version) {
+function fakeTree(version, lockVersion = version) {
   const root = mkdtempSync(join(tmpdir(), "gupt-release-"));
   writeFileSync(join(root, "package.json"), JSON.stringify({ name: "gupt", version }));
   writeFileSync(
     join(root, "package-lock.json"),
     JSON.stringify({ version: lockVersion, packages: { "": { version: lockVersion } } }),
-  );
-  mkdirSync(join(root, "flatpak"), { recursive: true });
-  writeFileSync(
-    join(root, METAINFO_PATH),
-    `<component><releases>\n    <release version="${metainfoVersion}" date="${parseRelease(metainfoVersion)?.date}"/>\n  </releases></component>`,
   );
   return root;
 }
@@ -74,38 +62,6 @@ test("this tree is releasable, and the lockfile is held to it", () => {
   const badFormat = checkVersion(fakeTree("2026.11.05"));
   assert.equal(badFormat.length, 1);
   assert.match(badFormat[0], /not a release date/);
-});
-
-test("a release that skipped the metainfo stamp is refused", () => {
-  const stale = checkVersion(fakeTree("2026.11.20", "2026.11.20", "2026.11.19"));
-  assert.equal(stale.length, 1);
-  assert.match(stale[0], /metainfo lists 2026\.11\.19 — run npm run release:metainfo/);
-});
-
-test("the AppStream entry follows package.json instead of being retyped", () => {
-  const xml = `<component>
-  <releases>
-    <release version="5.0.0" date="2026-09-22">
-      <description><p>older</p></description>
-    </release>
-  </releases>
-</component>
-`;
-  const stamped = stampMetainfo(xml, "2026.11.20");
-  assert.match(stamped, /<releases>\n {4}<release version="2026\.11\.20" date="2026-11-20"\/>/);
-  assert.ok(stamped.includes(`<release version="5.0.0" date="2026-09-22">`), "history is kept");
-  assert.equal(stampMetainfo(stamped, "2026.11.20"), stamped, "stamping twice changes nothing");
-
-  const corrected = stampMetainfo(
-    stamped.replace('date="2026-11-20"', 'date="2026-01-01"'),
-    "2026.11.20",
-  );
-  assert.ok(corrected.includes('date="2026-11-20"'), "a hand-typed date is corrected");
-
-  assert.throws(
-    () => stampMetainfo("<component></component>", "2026.11.20"),
-    /no <releases> block/,
-  );
 });
 
 test("a shim past its date blocks the release, a live one does not", () => {

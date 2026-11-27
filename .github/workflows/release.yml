@@ -25,7 +25,6 @@ jobs:
       contents: read
     outputs:
       release_tag: ${{ steps.stamp.outputs.release_tag }}
-      flatpak_bundle: ${{ steps.stamp.outputs.flatpak_bundle }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -53,7 +52,6 @@ jobs:
           fi
 
           echo "release_tag=$version" >> "$GITHUB_OUTPUT"
-          echo "flatpak_bundle=gupt-$version-linux.flatpak" >> "$GITHUB_OUTPUT"
         id: stamp
 
       - name: Test
@@ -75,77 +73,7 @@ jobs:
           {
             echo "### Release ${{ steps.stamp.outputs.release_tag }}"
             echo "- Web dist built once here; Pages reuses it (no rebuild)."
-            echo "- Flatpak rebuilds with \`BUILD_TARGET=flatpak\` (different base)."
             echo "- Docker builds inside its own multi-arch builder."
-          } >> "$GITHUB_STEP_SUMMARY"
-
-  build-flatpak:
-    needs: validate
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
-
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 24
-          cache: npm
-
-      - name: Cache flatpak SDK
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: ~/.local/share/flatpak
-          key: flatpak-${{ runner.os }}-gnome50-node24-${{ hashFiles('flatpak/com.besoeasy.gupt.dev.yaml', 'flatpak/generated-sources.json') }}
-          restore-keys: |
-            flatpak-${{ runner.os }}-gnome50-node24-
-
-      - name: Install flatpak tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends flatpak flatpak-builder
-          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-          flatpak install --user -y flathub org.gnome.Platform//50 org.gnome.Sdk//50
-
-      - name: Install dependencies and build
-        run: |
-          npm ci
-          # The AppStream entry follows package.json instead of being typed again.
-          npm run release:metainfo
-          npm run build:flatpak
-
-      - name: Build flatpak
-        run: flatpak-builder --repo=repo build-dir flatpak/com.besoeasy.gupt.dev.yaml
-
-      - name: Bundle flatpak
-        run: >
-          flatpak build-bundle repo
-          "${{ needs.validate.outputs.flatpak_bundle }}"
-          com.besoeasy.gupt
-          --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
-
-      - name: Checksum bundle
-        run: |
-          sha256sum "${{ needs.validate.outputs.flatpak_bundle }}" > "${{ needs.validate.outputs.flatpak_bundle }}.sha256"
-          cat "${{ needs.validate.outputs.flatpak_bundle }}.sha256"
-
-      - name: Upload flatpak bundle
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: flatpak-bundle
-          path: |
-            ${{ needs.validate.outputs.flatpak_bundle }}
-            ${{ needs.validate.outputs.flatpak_bundle }}.sha256
-          retention-days: 7
-
-      - name: Summary
-        run: |
-          {
-            ls -lh "${{ needs.validate.outputs.flatpak_bundle }}"
-            cat "${{ needs.validate.outputs.flatpak_bundle }}.sha256"
           } >> "$GITHUB_STEP_SUMMARY"
 
   build-docker:
@@ -203,7 +131,7 @@ jobs:
           echo "digest ${{ steps.bake.outputs.digest }}" >> "$GITHUB_STEP_SUMMARY"
 
   # Pages deploys the dist built in `validate` — it no longer waits for the
-  # 30-minute flatpak/docker jobs, and it does no second `npm ci` + build.
+  # slow docker job, and it does no second `npm ci` + build.
   deploy-pages:
     needs: validate
     concurrency:
@@ -237,40 +165,20 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
 
-  # The only job that writes a release. Creating it here — after flatpak,
-  # docker and pages all succeed — means a failed build can never leave a
-  # half-published tag behind, which the old per-job `softprops` step could.
+  # The only job that writes a release. Creating it here — after docker
+  # and pages both succeed — means a failed build can never leave a
+  # half-published tag behind.
   publish:
-    needs: [validate, build-flatpak, build-docker, deploy-pages]
+    needs: [validate, build-docker, deploy-pages]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: write
-      id-token: write
-      attestations: write
     steps:
-      - name: Download flatpak bundle
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: flatpak-bundle
-
-      - name: Verify checksum
-        run: sha256sum -c "${{ needs.validate.outputs.flatpak_bundle }}.sha256"
-
-      - name: Attest flatpak bundle
-        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
-        with:
-          subject-path: |
-            ${{ needs.validate.outputs.flatpak_bundle }}
-            ${{ needs.validate.outputs.flatpak_bundle }}.sha256
-
       - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ needs.validate.outputs.release_tag }}
           target_commitish: ${{ github.sha }}
           name: ${{ needs.validate.outputs.release_tag }}
-          files: |
-            ${{ needs.validate.outputs.flatpak_bundle }}
-            ${{ needs.validate.outputs.flatpak_bundle }}.sha256
           generate_release_notes: true

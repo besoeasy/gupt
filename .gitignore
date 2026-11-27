@@ -6,9 +6,6 @@ dist
 build/
 bundle/
 
-# flatpak local build cache
-.flatpak-builder/
-
 # stray lockfile (project uses npm / package-lock.json)
 bun.lock
 
