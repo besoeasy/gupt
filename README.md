@@ -58,39 +58,9 @@ Releases are dated: `2026.11.20` is the release of 20 November 2026 — one rele
 
 ---
 
-## Screenshots
+## Component screenshots
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/messages.png" alt="Encrypted chat inbox" width="45%" />
-  &nbsp;
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/messages-light.png" alt="Chat view in light theme" width="45%" />
-</p>
-<p align="center"><sub>Encrypted chat — dark and light</sub></p>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/passwords.png" alt="Encrypted password manager" width="45%" />
-  &nbsp;
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/notes.png" alt="Encrypted notes" width="45%" />
-</p>
-<p align="center"><sub>Passwords and notes, encrypted on your device</sub></p>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/secure-note.png" alt="Secure note detail view" width="45%" />
-  &nbsp;
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/bookmarks.png" alt="Encrypted bookmarks" width="45%" />
-</p>
-<p align="center"><sub>Note detail and bookmarks</sub></p>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/profile.png" alt="Profile and identity" width="45%" />
-  &nbsp;
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/settings.png" alt="Settings and preferences" width="45%" />
-</p>
-<p align="center"><sub>Profile, identity, and settings</sub></p>
-
-### Components
-
-Element-level screenshots rendered from the Vue components with dummy data.
+Element-level screenshots rendered from Vue components with dummy data.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/docs/screenshots/components/primary-button.png" alt="PrimaryButton component" width="30%" />
