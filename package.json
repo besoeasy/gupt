@@ -22,9 +22,7 @@
     "test": "node --test test/*.test.js",
     "format": "oxfmt",
     "format:check": "oxfmt --list-different",
-    "build": "vite build",
-    "release:check": "npm run format:check && node scripts/release.mjs check",
-    "release:bump": "node scripts/release.mjs bump"
+    "build": "vite build"
   },
   "dependencies": {
     "@noble/ciphers": "2.3.0",

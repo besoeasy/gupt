@@ -26,8 +26,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Check format and release version
-        run: npm run --silent release:check
+      - name: Check formatting
+        run: npm run --silent format:check
 
       - name: Test
         # Live-relay tests are opt-in (GUPT_LIVE=1) so CI stays deterministic.

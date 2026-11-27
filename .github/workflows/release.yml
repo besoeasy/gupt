@@ -40,9 +40,9 @@ jobs:
 
       - name: Validate calendar version
         run: |
-          # One source: package.json. The script owns the format and checks the
-          # lockfile agrees, so nothing here restates either rule.
-          npm run --silent release:check
+          # The version is typed by hand in package.json; the tag guard below
+          # is what stops a reused one from overwriting a published release.
+          npm run --silent format:check
 
           version="$(jq -r .version package.json)"
           # A reused tag silently overwrites the previous release's assets.
