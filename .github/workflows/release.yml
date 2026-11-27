@@ -69,9 +69,11 @@ jobs:
           retention-days: 1
 
       - name: Summary
+        env:
+          RELEASE_TAG: ${{ steps.stamp.outputs.release_tag }}
         run: |
           {
-            echo "### Release ${{ steps.stamp.outputs.release_tag }}"
+            echo "### Release $RELEASE_TAG"
             echo "- Web dist built once here; Pages reuses it (no rebuild)."
             echo "- Docker builds inside its own multi-arch builder."
           } >> "$GITHUB_STEP_SUMMARY"
@@ -127,8 +129,10 @@ jobs:
           provenance: mode=max
 
       - name: Summary
+        env:
+          DIGEST: ${{ steps.bake.outputs.digest }}
         run: |
-          echo "digest ${{ steps.bake.outputs.digest }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "digest $DIGEST" >> "$GITHUB_STEP_SUMMARY"
 
   # Pages deploys the dist built in `validate` — it no longer waits for the
   # slow docker job, and it does no second `npm ci` + build.
@@ -175,10 +179,8 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: ${{ needs.validate.outputs.release_tag }}
-          target_commitish: ${{ github.sha }}
-          name: ${{ needs.validate.outputs.release_tag }}
-          generate_release_notes: true
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.validate.outputs.release_tag }}
+        run: gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --title "$RELEASE_TAG" --generate-notes
