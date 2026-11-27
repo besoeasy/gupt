@@ -1,6 +1,8 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { Globe, LoaderCircle, Plus, RefreshCw, RotateCcw, TriangleAlert } from "@/icons";
+import { Check, Copy, Globe, LoaderCircle, Plus, RefreshCw, RotateCcw, TriangleAlert } from "@/icons";
+import { copyToClipboard } from "@/lib/clipboard";
+import { useIdentityStore } from "@/stores/identity";
 import {
   addCustomRelay,
   getCustomRelays,
@@ -20,6 +22,39 @@ const probing = ref(false);
 const errorKey = ref("");
 const healthByUrl = ref({});
 const scoresByUrl = ref({});
+const identityStore = useIdentityStore();
+const copiedPolicy = ref(false);
+let copiedPolicyTimer = null;
+
+const policyEnv = computed(() => {
+  const pubkey = identityStore.pubkeyHex;
+  if (!pubkey) return "";
+  return `POLICY='${JSON.stringify({ rules: [{ owner: [`ed25519:${pubkey}`] }, { labels: [pubkey] }] })}'`;
+});
+
+const selfHostCommand = computed(() => {
+  if (!policyEnv.value) return "";
+  return [
+    "docker run -d \\",
+    "  --name rabta \\",
+    "  -p 127.0.0.1:3232:3232 \\",
+    "  -v rabta-data:/data \\",
+    "  --restart unless-stopped \\",
+    "  -e STORAGE=20GB \\",
+    `  -e ${policyEnv.value} \\`,
+    "  ghcr.io/rabta-protocol/rabta:latest",
+  ].join("\n");
+});
+
+function copyPolicyCommand() {
+  if (!selfHostCommand.value) return;
+  copiedPolicy.value = true;
+  clearTimeout(copiedPolicyTimer);
+  copiedPolicyTimer = setTimeout(() => (copiedPolicy.value = false), 2000);
+  void copyToClipboard(selfHostCommand.value).catch(() => {
+    copiedPolicy.value = false;
+  });
+}
 
 function load() {
   customRelays.value = getCustomRelays();
@@ -83,12 +118,14 @@ const failingLabel = computed(() =>
 onMounted(() => {
   load();
   loadStats();
+  void identityStore.init();
   if (typeof window !== "undefined") {
     window.addEventListener("gupt:relays-changed", handleRelaysChanged);
   }
 });
 
 onUnmounted(() => {
+  clearTimeout(copiedPolicyTimer);
   if (typeof window !== "undefined") {
     window.removeEventListener("gupt:relays-changed", handleRelaysChanged);
   }
@@ -218,6 +255,12 @@ async function handleProbe() {
         <p class="relays-panel__add-title">Add a relay</p>
         <p class="relays-panel__add-hint">
           Any Rabta node URL — for example https://rabta.example.com.
+          <a
+            class="relays-panel__link"
+            href="https://github.com/besoeasy/rabta"
+            target="_blank"
+            rel="noopener noreferrer"
+          >Run your own relay</a>.
         </p>
       </div>
       <form class="relays-panel__add" @submit.prevent="handleAdd">
@@ -249,6 +292,28 @@ async function handleProbe() {
     <p v-else-if="errorKey === 'duplicate'" class="relays-panel__error" role="alert">
       This relay is already in the list.
     </p>
+
+    <div v-if="selfHostCommand" class="relays-panel__selfhost">
+      <div class="relays-panel__selfhost-head">
+        <div class="relays-panel__selfhost-copy">
+          <p class="relays-panel__selfhost-title">Run your own relay</p>
+          <p class="relays-panel__selfhost-hint">
+            Prefilled with a POLICY filter that prioritises your Gupt account.
+          </p>
+        </div>
+        <button
+          type="button"
+          class="relays-panel__action"
+          :aria-label="copiedPolicy ? 'Copied command' : 'Copy command'"
+          @click="copyPolicyCommand"
+        >
+          <Check v-if="copiedPolicy" :stroke-width="2" aria-hidden="true" />
+          <Copy v-else :stroke-width="1.9" aria-hidden="true" />
+          {{ copiedPolicy ? "Copied" : "Copy" }}
+        </button>
+      </div>
+      <pre class="relays-panel__code"><code>{{ selfHostCommand }}</code></pre>
+    </div>
   </div>
 </template>
 
@@ -500,6 +565,70 @@ async function handleProbe() {
   color: var(--app-danger);
 }
 
+.relays-panel__link {
+  color: var(--app-primary);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--app-primary) 35%, transparent);
+  text-underline-offset: 2px;
+  transition: color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.relays-panel__selfhost {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+  padding-top: var(--app-space-5);
+  border-top: 1px solid var(--app-border);
+}
+
+.relays-panel__selfhost-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--app-space-3);
+}
+
+.relays-panel__selfhost-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.relays-panel__selfhost-title {
+  margin: 0;
+  font-size: var(--app-text-body);
+  font-weight: 500;
+  color: var(--app-text);
+}
+
+.relays-panel__selfhost-hint {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: var(--app-leading-body);
+  color: var(--app-muted);
+}
+
+.relays-panel__code {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.8;
+  color: var(--app-text-soft);
+  overflow-x: auto;
+  white-space: pre;
+  tab-size: 2;
+}
+
+.relays-panel__code code {
+  font: inherit;
+}
+
 .relays-panel__spin {
   animation: spin 1s linear infinite;
 }
@@ -513,6 +642,10 @@ async function handleProbe() {
 }
 
 @media (hover: hover) {
+  .relays-panel__link:hover {
+    color: var(--app-primary-strong);
+  }
+
   .relays-panel__action:hover {
     color: var(--app-text);
     border-color: var(--app-border-strong);
@@ -534,7 +667,8 @@ async function handleProbe() {
 .relays-panel__action:focus-visible,
 .relays-panel__warning-action:focus-visible,
 .relays-panel__add-button:focus-visible,
-.relays-panel__field:focus-visible {
+.relays-panel__field:focus-visible,
+.relays-panel__link:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--app-primary) 70%, transparent);
   outline-offset: 2px;
 }
