@@ -3,33 +3,40 @@ name: Release
 on:
   workflow_dispatch:
 
-permissions:
-  contents: write
-  packages: write
-  pages: write
-  id-token: write
+# Least privilege: every job declares exactly what it needs.
+permissions: {}
 
+# One release at a time — a second dispatch queues instead of racing the
+# first for the same tag, bundle name and Pages deploy. The Pages
+# serialisation lives on the deploy-pages job (group: pages), as GitHub
+# documents, so this group only guards releases against each other.
 concurrency:
-  group: pages
+  group: release
   cancel-in-progress: false
 
 jobs:
-  prepare-release:
+  # Single source of truth for the release: validates once, builds the web
+  # dist once, and hands both down. Previously prepare/test/pages each ran
+  # `npm ci` + a build; now downstream jobs download `web-dist` instead.
+  validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
+    permissions:
+      contents: read
     outputs:
       release_tag: ${{ steps.stamp.outputs.release_tag }}
       flatpak_bundle: ${{ steps.stamp.outputs.flatpak_bundle }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
+
       - name: Install dependencies
-        # release:check runs the formatter gate, so the devDependencies have to
-        # be present before the version is validated.
         run: npm ci
+
       - name: Validate calendar version
         run: |
           # One source: package.json. The script owns the format and checks the
@@ -42,74 +49,99 @@ jobs:
             echo "::error::tag '$version' already exists — gupt releases once per day, so today's release is already published."
             exit 1
           fi
-      - name: Read version from package.json
-        id: stamp
-        run: |
-          release_tag="$(jq -r .version package.json)"
-          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
-          echo "flatpak_bundle=gupt-$release_tag-linux.flatpak" >> "$GITHUB_OUTPUT"
 
-  test:
-    needs: prepare-release
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - name: Install dependencies
-        run: npm ci
-      # Live-relay tests are opt-in (GUPT_LIVE=1) so CI stays deterministic.
+          echo "release_tag=$version" >> "$GITHUB_OUTPUT"
+          echo "flatpak_bundle=gupt-$version-linux.flatpak" >> "$GITHUB_OUTPUT"
+        id: stamp
+
       - name: Test
+        # Live-relay tests are opt-in (GUPT_LIVE=1) so CI stays deterministic.
         run: npm test
 
+      - name: Build website
+        run: npm run build
+
+      - name: Upload web dist for Pages
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: dist
+          retention-days: 1
+
+      - name: Summary
+        run: |
+          {
+            echo "### Release ${{ steps.stamp.outputs.release_tag }}"
+            echo "- Web dist built once here; Pages reuses it (no rebuild)."
+            echo "- Flatpak rebuilds with \`BUILD_TARGET=flatpak\` (different base)."
+            echo "- Docker builds inside its own multi-arch builder."
+          } >> "$GITHUB_STEP_SUMMARY"
+
   build-flatpak:
-    needs: [prepare-release, test]
+    needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
-      - name: Cache flatpak data
+
+      - name: Cache flatpak SDK
         uses: actions/cache@v4
         with:
           path: ~/.local/share/flatpak
-          key: flatpak-${{ runner.os }}-gnome50-node24
+          key: flatpak-${{ runner.os }}-gnome50-node24-${{ hashFiles('flatpak/com.besoeasy.gupt.dev.yaml', 'flatpak/generated-sources.json') }}
+          restore-keys: |
+            flatpak-${{ runner.os }}-gnome50-node24-
+
       - name: Install flatpak tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder
+          sudo apt-get install -y --no-install-recommends flatpak flatpak-builder
           flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
           flatpak install --user -y flathub org.gnome.Platform//50 org.gnome.Sdk//50
+
       - name: Install dependencies and build
         run: |
           npm ci
           # The AppStream entry follows package.json instead of being typed again.
           npm run release:metainfo
           npm run build:flatpak
-      - run: flatpak-builder --force-clean --repo=repo build-dir flatpak/com.besoeasy.gupt.dev.yaml
-      - run: flatpak build-bundle repo "${{ needs.prepare-release.outputs.flatpak_bundle }}" com.besoeasy.gupt --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
-      - uses: softprops/action-gh-release@v2
+
+      - name: Build flatpak
+        run: flatpak-builder --repo=repo build-dir flatpak/com.besoeasy.gupt.dev.yaml
+
+      - name: Bundle flatpak
+        run: >
+          flatpak build-bundle repo
+          "${{ needs.validate.outputs.flatpak_bundle }}"
+          com.besoeasy.gupt
+          --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
+
+      - name: Upload flatpak bundle
+        uses: actions/upload-artifact@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: ${{ needs.prepare-release.outputs.release_tag }}
-          target_commitish: ${{ github.sha }}
-          name: ${{ needs.prepare-release.outputs.release_tag }}
-          files: ${{ needs.prepare-release.outputs.flatpak_bundle }}
-          overwrite_files: true
-          generate_release_notes: true
+          name: flatpak-bundle
+          path: ${{ needs.validate.outputs.flatpak_bundle }}
+          retention-days: 7
+
+      - name: Summary
+        run: |
+          ls -lh "${{ needs.validate.outputs.flatpak_bundle }}" >> "$GITHUB_STEP_SUMMARY"
 
   build-docker:
-    needs: [prepare-release, test]
+    needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -132,8 +164,9 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=raw,value=${{ needs.prepare-release.outputs.release_tag }}
+            type=raw,value=${{ needs.validate.outputs.release_tag }}
             type=raw,value=latest
+            type=sha
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -146,34 +179,32 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  build-and-deploy:
-    needs: [build-flatpak, build-docker]
+  # Pages deploys the dist built in `validate` — it no longer waits for the
+  # 30-minute flatpak/docker jobs, and it does no second `npm ci` + build.
+  deploy-pages:
+    needs: validate
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Download web dist
+        uses: actions/download-artifact@v4
         with:
-          node-version: "24"
-          cache: npm
+          name: web-dist
+          path: ./dist
 
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v5
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build website
-        run: npm run build
-
-      # Both Pages actions target Node 24 in v5; v3 and v4 still declare Node
-      # 20 and get force-run on 24, which logs a deprecation warning per job.
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
@@ -182,3 +213,27 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
+
+  # The only job that writes a release. Creating it here — after flatpak,
+  # docker and pages all succeed — means a failed build can never leave a
+  # half-published tag behind, which the old per-job `softprops` step could.
+  publish:
+    needs: [build-flatpak, build-docker, deploy-pages]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download flatpak bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: flatpak-bundle
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ needs.validate.outputs.release_tag }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ needs.validate.outputs.release_tag }}
+          files: ${{ needs.validate.outputs.flatpak_bundle }}
+          generate_release_notes: true
