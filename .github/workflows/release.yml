@@ -27,9 +27,11 @@ jobs:
       release_tag: ${{ steps.stamp.outputs.release_tag }}
       flatpak_bundle: ${{ steps.stamp.outputs.flatpak_bundle }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: npm
@@ -62,7 +64,7 @@ jobs:
         run: npm run build
 
       - name: Upload web dist for Pages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: web-dist
           path: dist
@@ -84,15 +86,17 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: npm
 
       - name: Cache flatpak SDK
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.local/share/flatpak
           key: flatpak-${{ runner.os }}-gnome50-node24-${{ hashFiles('flatpak/com.besoeasy.gupt.dev.yaml', 'flatpak/generated-sources.json') }}
@@ -123,16 +127,26 @@ jobs:
           com.besoeasy.gupt
           --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
 
+      - name: Checksum bundle
+        run: |
+          sha256sum "${{ needs.validate.outputs.flatpak_bundle }}" > "${{ needs.validate.outputs.flatpak_bundle }}.sha256"
+          cat "${{ needs.validate.outputs.flatpak_bundle }}.sha256"
+
       - name: Upload flatpak bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: flatpak-bundle
-          path: ${{ needs.validate.outputs.flatpak_bundle }}
+          path: |
+            ${{ needs.validate.outputs.flatpak_bundle }}
+            ${{ needs.validate.outputs.flatpak_bundle }}.sha256
           retention-days: 7
 
       - name: Summary
         run: |
-          ls -lh "${{ needs.validate.outputs.flatpak_bundle }}" >> "$GITHUB_STEP_SUMMARY"
+          {
+            ls -lh "${{ needs.validate.outputs.flatpak_bundle }}"
+            cat "${{ needs.validate.outputs.flatpak_bundle }}.sha256"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   build-docker:
     needs: validate
@@ -143,16 +157,18 @@ jobs:
       packages: write
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -160,7 +176,7 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
@@ -169,7 +185,8 @@ jobs:
             type=sha
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        id: bake
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64
@@ -178,6 +195,12 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          sbom: true
+          provenance: mode=max
+
+      - name: Summary
+        run: |
+          echo "digest ${{ steps.bake.outputs.digest }}" >> "$GITHUB_STEP_SUMMARY"
 
   # Pages deploys the dist built in `validate` — it no longer waits for the
   # 30-minute flatpak/docker jobs, and it does no second `npm ci` + build.
@@ -197,22 +220,22 @@ jobs:
       id-token: write
     steps:
       - name: Download web dist
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: web-dist
           path: ./dist
 
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v5
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         with:
           path: ./dist
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
 
   # The only job that writes a release. Creating it here — after flatpak,
   # docker and pages all succeed — means a failed build can never leave a
@@ -223,17 +246,31 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     steps:
       - name: Download flatpak bundle
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: flatpak-bundle
 
-      - uses: softprops/action-gh-release@v2
+      - name: Verify checksum
+        run: sha256sum -c "${{ needs.validate.outputs.flatpak_bundle }}.sha256"
+
+      - name: Attest flatpak bundle
+        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2
+        with:
+          subject-path: |
+            ${{ needs.validate.outputs.flatpak_bundle }}
+            ${{ needs.validate.outputs.flatpak_bundle }}.sha256
+
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ needs.validate.outputs.release_tag }}
           target_commitish: ${{ github.sha }}
           name: ${{ needs.validate.outputs.release_tag }}
-          files: ${{ needs.validate.outputs.flatpak_bundle }}
+          files: |
+            ${{ needs.validate.outputs.flatpak_bundle }}
+            ${{ needs.validate.outputs.flatpak_bundle }}.sha256
           generate_release_notes: true
