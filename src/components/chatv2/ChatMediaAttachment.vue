@@ -239,6 +239,13 @@ function onImageError() {
   .chat-message-bubble__button-retry:hover { opacity: .8; }
 }
 
+[data-theme="light"] .chat-message-bubble__file-row {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__file-parts {
+  color: var(--app-muted);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .chat-message-bubble__image-3,
   .chat-message-bubble__file-download {

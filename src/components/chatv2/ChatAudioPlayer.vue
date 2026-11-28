@@ -367,6 +367,10 @@ function clearHover() {
   }
 }
 
+[data-theme="light"] .chat-message-bubble__button-x {
+  color: var(--app-muted);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .chat-message-bubble__voice-play,
   .chat-message-bubble__audio-play,

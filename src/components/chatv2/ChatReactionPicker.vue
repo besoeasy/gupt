@@ -163,6 +163,10 @@ function react(emoji) {
   outline-offset: 1px;
 }
 
+[data-theme="light"] .chat-message-bubble__button-react {
+  color: var(--app-muted);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .chat-message-bubble__button-react,
   .chat-message-bubble__emoji,

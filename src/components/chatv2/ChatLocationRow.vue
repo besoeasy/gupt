@@ -119,6 +119,10 @@ const approximate = computed(() => Boolean(props.message?.approximate));
   }
 }
 
+[data-theme="light"] .chat-message-bubble__location-coords {
+  color: var(--app-muted);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .chat-message-bubble__link-opens-openstreetmap {
     transition: none;
