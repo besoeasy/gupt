@@ -53,6 +53,7 @@ const roundedClass = computed(
     ({
       sm: "robo-avatar--round-sm",
       md: "robo-avatar--round-md",
+      lg: "robo-avatar--round-lg",
       xl: "robo-avatar--round-md",
       "2xl": "robo-avatar--round-md",
       "3xl": "robo-avatar--round-lg",
