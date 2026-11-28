@@ -110,7 +110,7 @@ function onImageError() {
     </div>
 
     <!-- File meta + download — one inline row: name · format · action -->
-    <div class="chat-message-bubble__file-row">
+    <div v-if="!showMediaDownloadTile" class="chat-message-bubble__file-row">
       <span class="chat-message-bubble__file-base">{{ fileBaseName }}</span>
       <template v-if="fileExtension">
         <span class="chat-message-bubble__file-sep" aria-hidden="true">·</span>
