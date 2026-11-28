@@ -333,7 +333,7 @@ Why this matters:
 
 - **Independently audited by Cure53** (ciphers v1.0.0 Sep 2024, curves v1.6.0 Sep 2024, hashes 2022) — [audit report](https://cure53.de/audit-report_noble-crypto-libs.pdf)
 - **Pinned exact, no drift** — exact versions in `package.json` with integrity hashes in `package-lock.json`
-- **Tiny supply chain** — 6 runtime deps total: Vue, Pinia, Vue Router + those 3 Noble libs
+- **Tiny supply chain** — 7 runtime deps total: Vue, Pinia, Vue Router, `@vue/devtools-api` (Pinia 4 peer) + those 3 Noble libs
 
 No hand-rolled crypto. Ever.
 
