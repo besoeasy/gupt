@@ -6,10 +6,8 @@ import {
   CheckCheck,
   Copy,
   Download,
-  ExternalLink,
   ImageOff,
   Mic,
-  MapPin,
   Reply,
   Pencil,
   Video,
@@ -24,7 +22,6 @@ import {
   isMediaMessage,
 } from "@/lib/chatUtils";
 import { formatSeenByTitle } from "@/lib/chatListUtils";
-import { formatAccuracy, formatCoords, osmMapUrl } from "@/lib/location";
 import { triggerHaptic, HAPTIC } from "@/lib/haptics";
 import { messagePlainText, resolveMessageFormat } from "@/lib/messageFormat";
 import ChatMessageBody from "@/components/chatv2/ChatMessageBody.vue";
@@ -33,6 +30,7 @@ import ChatMessageInfoDialog from "@/components/chatv2/ChatMessageInfoDialog.vue
 import ChatAudioPlayer from "@/components/chatv2/ChatAudioPlayer.vue";
 import ChatReactionPicker from "@/components/chatv2/ChatReactionPicker.vue";
 import ChatMediaAttachment from "@/components/chatv2/ChatMediaAttachment.vue";
+import ChatLocationRow from "@/components/chatv2/ChatLocationRow.vue";
 import MessageExpiryCountdown from "@/components/chatv2/MessageExpiryCountdown.vue";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
 import RelayEventLink from "@/components/RelayEventLink.vue";
@@ -480,17 +478,7 @@ const fileBaseName = computed(() => {
   return stripped || name;
 });
 
-const locationLabel = computed(() => String(props.message?.label || "").trim());
 const isLocationRow = computed(() => props.message?.type === "location");
-const locationAccuracy = computed(() => formatAccuracy(props.message?.accuracy));
-const locationCoords = computed(() => {
-  const coords = formatCoords(props.message?.lat, props.message?.lon);
-  if (!coords) return "Position unavailable";
-  // Accuracy is dropped in the approximate case on the way out, so this only
-  // ever renders for an exact fix.
-  return locationAccuracy.value ? `${coords} · ${locationAccuracy.value}` : coords;
-});
-const locationMapUrl = computed(() => osmMapUrl(props.message?.lat, props.message?.lon));
 
 const linkifyText = computed(() => {
   const text = props.message?.text || "";
@@ -737,37 +725,7 @@ const linkifyText = computed(() => {
              `isLocationMessage` would drop it into the empty fallback and
              render an empty bubble. -->
         <template v-else-if="isLocationRow" class="chat-message-bubble__group">
-          <div class="chat-message-bubble__location">
-            <div class="chat-message-bubble__location-main">
-              <MapPin class="chat-message-bubble__map-pin" :stroke-width="1.8" />
-              <div class="chat-message-bubble__location-text">
-                <p v-if="locationLabel" class="chat-message-bubble__location-label">
-                  {{ locationLabel }}
-                </p>
-                <p class="chat-message-bubble__location-coords">{{ locationCoords }}</p>
-                <p
-                  v-if="message.approximate"
-                  class="chat-message-bubble__location-approx"
-                >
-                  Approximate · ~1km
-                </p>
-              </div>
-            </div>
-            <!-- Deliberately inert until tapped. An embedded map would tell a
-                 tile server the reader's IP and that they care about this
-                 coordinate; the link only fires on an explicit click. -->
-            <a
-              v-if="locationMapUrl"
-              :href="locationMapUrl"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="chat-message-bubble__link-opens-openstreetmap"
-              title="Opens OpenStreetMap in a new tab"
-            >
-              <ExternalLink class="chat-message-bubble__external-link" :stroke-width="1.8" />
-              Open map
-            </a>
-          </div>
+          <ChatLocationRow :message="message" />
         </template>
 
         <template v-else />
@@ -795,7 +753,7 @@ const linkifyText = computed(() => {
         :progress="mediaProgress"
         :event-id="eventId"
         :file-name="fileBaseName || message.text || ''"
-        :file-size="fileAttachment?.size || message.media?.size || 0"
+        :file-size="message.media?.size || 0"
         :retryable="true"
         compact
         class="chat-message-bubble__media-decrypt-status"
