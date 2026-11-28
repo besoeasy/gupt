@@ -34,6 +34,7 @@ import { formatAccuracy, formatCoords, osmMapUrl } from "@/lib/location";
 import { triggerHaptic, HAPTIC } from "@/lib/haptics";
 import { messagePlainText, resolveMessageFormat } from "@/lib/messageFormat";
 import ChatMessageBody from "@/components/chatv2/ChatMessageBody.vue";
+import ChatImageLightbox from "@/components/chatv2/ChatImageLightbox.vue";
 import MessageExpiryCountdown from "@/components/chatv2/MessageExpiryCountdown.vue";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
 import RelayEventLink from "@/components/RelayEventLink.vue";
@@ -475,66 +476,6 @@ onUnmounted(() => {
 });
 
 const lightboxOpen = ref(false);
-const lightboxScale = ref(1);
-const lightboxOffsetX = ref(0);
-const lightboxOffsetY = ref(0);
-const lbIsPinching = ref(false);
-let lbPinchStartDist = 0;
-let lbPinchStartScale = 1;
-let lbPanStartX = 0;
-let lbPanStartY = 0;
-let lbPanStartOffsetX = 0;
-let lbPanStartOffsetY = 0;
-let lbLastTap = 0;
-
-function openLightbox() {
-  lightboxOpen.value = true;
-  lightboxScale.value = 1;
-  lightboxOffsetX.value = 0;
-  lightboxOffsetY.value = 0;
-}
-function closeLightbox() {
-  lightboxOpen.value = false;
-}
-function lbTouchStart(e) {
-  if (e.touches.length === 2) {
-    lbIsPinching.value = true;
-    const dx = e.touches[1].clientX - e.touches[0].clientX;
-    const dy = e.touches[1].clientY - e.touches[0].clientY;
-    lbPinchStartDist = Math.hypot(dx, dy);
-    lbPinchStartScale = lightboxScale.value;
-  } else if (e.touches.length === 1) {
-    lbIsPinching.value = false;
-    lbPanStartX = e.touches[0].clientX;
-    lbPanStartY = e.touches[0].clientY;
-    lbPanStartOffsetX = lightboxOffsetX.value;
-    lbPanStartOffsetY = lightboxOffsetY.value;
-  }
-}
-function lbTouchMove(e) {
-  e.preventDefault();
-  if (e.touches.length === 2 && lbIsPinching.value) {
-    const dx = e.touches[1].clientX - e.touches[0].clientX;
-    const dy = e.touches[1].clientY - e.touches[0].clientY;
-    const dist = Math.hypot(dx, dy);
-    lightboxScale.value = Math.min(5, Math.max(0.5, lbPinchStartScale * (dist / lbPinchStartDist)));
-  } else if (e.touches.length === 1 && !lbIsPinching.value && lightboxScale.value > 1) {
-    lightboxOffsetX.value = lbPanStartOffsetX + (e.touches[0].clientX - lbPanStartX);
-    lightboxOffsetY.value = lbPanStartOffsetY + (e.touches[0].clientY - lbPanStartY);
-  }
-}
-function lbTouchEnd(e) {
-  if (e.touches.length < 2) lbIsPinching.value = false;
-}
-function lbHandleClick() {
-  const n = Date.now();
-  if (n - lbLastTap < 300) {
-    lightboxScale.value = lightboxScale.value > 1 ? 1 : 2.5;
-    lightboxOffsetX.value = 0;
-    lightboxOffsetY.value = 0;
-  }
-  lbLastTap = n;
-}
 
 const avatarError = ref(false);
 watch(
@@ -925,7 +866,7 @@ const linkifyText = computed(() => {
           :src="blobUrl"
           :alt="getFileLabel(message)"
           class="chat-message-bubble__image-2"
-          @click="openLightbox"
+          @click="lightboxOpen = true"
           @load="emit('image-load')"
           @error="emit('media-error', message)"
         />
@@ -1074,7 +1015,7 @@ const linkifyText = computed(() => {
                 :src="blobUrl"
                 :alt="getFileLabel(message)"
                 class="chat-message-bubble__image-3"
-                @click="openLightbox"
+                @click="lightboxOpen = true"
                 @load="emit('image-load')"
                 @error="emit('media-error', message)"
               />
@@ -1540,61 +1481,14 @@ const linkifyText = computed(() => {
     </Transition>
   </Teleport>
 
-  <!-- Lightbox Teleport Modal -->
-  <Teleport to="body">
-    <Transition
-      enter-active-class="chat-message-bubble__enter-active-class-2"
-      enter-from-class="chat-message-bubble__enter-from-class-2"
-      enter-to-class="chat-message-bubble__enter-to-class-2"
-      leave-active-class="chat-message-bubble__leave-active-class-2"
-      leave-from-class="chat-message-bubble__leave-from-class-2"
-      leave-to-class="chat-message-bubble__leave-to-class-2"
-    >
-      <div
-        v-if="lightboxOpen"
-        class="chat-message-bubble__lightbox"
-        @click.self="closeLightbox"
-      >
-        <div class="chat-message-bubble__lightbox-actions">
-          <button
-            type="button"
-            @click="emit('download', message)"
-            class="chat-message-bubble__button-save-image"
-            aria-label="Save image to device"
-          >
-            <Download class="chat-message-bubble__download-4" :stroke-width="2" />
-          </button>
-          <button
-            type="button"
-            @click="closeLightbox"
-            class="chat-message-bubble__button-close"
-            aria-label="Close"
-          >
-            <X class="chat-message-bubble__x-2" :stroke-width="2" />
-          </button>
-        </div>
-
-        <div
-          class="chat-message-bubble__lightbox-stage"
-          @touchstart="lbTouchStart"
-          @touchmove.prevent="lbTouchMove"
-          @touchend="lbTouchEnd"
-          @click="lbHandleClick"
-        >
-          <img
-            :src="blobUrl"
-            :alt="getFileLabel(message)"
-            class="chat-message-bubble__image-4"
-            :style="{
-              transform: `translate(${lightboxOffsetX}px, ${lightboxOffsetY}px) scale(${lightboxScale})`,
-              transition: lbIsPinching ? 'none' : 'transform 0.15s ease-out',
-            }"
-            draggable="false"
-          />
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
+  <!-- Lightbox (extracted child component) -->
+  <ChatImageLightbox
+    :open="lightboxOpen"
+    :src="blobUrl"
+    :message="message"
+    @close="lightboxOpen = false"
+    @download="emit('download', message)"
+  />
 </template>
 
 <style scoped>
@@ -1661,12 +1555,6 @@ const linkifyText = computed(() => {
     background-color: var(--app-surface-raised);
     color: var(--app-text);
   }
-  .chat-message-bubble__button-save-image:hover {
-    background-color: color-mix(in oklab,var(--color-white) 20%,transparent);
-  }
-  .chat-message-bubble__button-close:hover {
-    background-color: color-mix(in oklab,var(--color-white) 20%,transparent);
-  }
   .chat-message-bubble__button-react:hover {
     background-color: var(--app-surface-raised);
     color: var(--app-warning);
@@ -1703,9 +1591,6 @@ const linkifyText = computed(() => {
   .chat-message-bubble__body {
     max-width: 72%;
   }
-  .chat-message-bubble__image-4 {
-    max-width: 100%;
-  }
   .chat-message-bubble__info-overlay {
     align-items: center;
   }
@@ -1736,12 +1621,6 @@ const linkifyText = computed(() => {
   top: 0.5rem;
   right: 0.5rem;
   z-index: 10;
-}
-.chat-message-bubble__image-4 {
-  pointer-events: none;
-  max-height: 100%;
-  max-width: 100vw;
-  object-fit: contain;
 }
 .chat-message-bubble__actions {
   position: absolute;
@@ -1811,15 +1690,6 @@ const linkifyText = computed(() => {
   background-color: var(--app-text-soft);
   opacity: .75;
 }
-.chat-message-bubble__lightbox-actions {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
 .chat-message-bubble__info-overlay {
   position: fixed;
   inset: 0;
@@ -1831,15 +1701,6 @@ const linkifyText = computed(() => {
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   background-color: color-mix(in oklab,var(--app-bg) 80%,transparent);
-}
-.chat-message-bubble__lightbox {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: color-mix(in oklab,var(--app-bg) 95%,transparent);
 }
 .chat-message-bubble__body {
   position: relative;
@@ -2249,17 +2110,6 @@ const linkifyText = computed(() => {
   gap: 0.5rem;
   padding-top: 0.25rem;
 }
-.chat-message-bubble__lightbox-stage {
-  display: flex;
-  height: 100%;
-  width: 100%;
-  touch-action: none;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  -webkit-user-select: none;
-  user-select: none;
-}
 .chat-message-bubble__audio {
   display: none;
 }
@@ -2574,14 +2424,6 @@ const linkifyText = computed(() => {
   height: 1rem;
   width: 1rem;
 }
-.chat-message-bubble__download-4 {
-  height: 1.25rem;
-  width: 1.25rem;
-}
-.chat-message-bubble__x-2 {
-  height: 1.25rem;
-  width: 1.25rem;
-}
 .chat-message-bubble__video-2 {
   max-height: 16rem;
   width: 100%;
@@ -2790,26 +2632,6 @@ const linkifyText = computed(() => {
   transition-timing-function: var(--app-ease-standard);
   transition-duration: var(--app-dur-fast);
 }
-.chat-message-bubble__button-save-image {
-  cursor: pointer;
-  border-radius: 9999px;
-  padding: 0.5rem;
-  color: var(--color-white);
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,translate,scale,rotate,filter,-webkit-backdrop-filter,backdrop-filter,display,content-visibility,overlay,pointer-events;
-  transition-timing-function: var(--app-ease-standard);
-  transition-duration: var(--app-dur-fast);
-  background-color: color-mix(in oklab,var(--color-white) 10%,transparent);
-}
-.chat-message-bubble__button-close {
-  cursor: pointer;
-  border-radius: 9999px;
-  padding: 0.5rem;
-  color: var(--color-white);
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,translate,scale,rotate,filter,-webkit-backdrop-filter,backdrop-filter,display,content-visibility,overlay,pointer-events;
-  transition-timing-function: var(--app-ease-standard);
-  transition-duration: var(--app-dur-fast);
-  background-color: color-mix(in oklab,var(--color-white) 10%,transparent);
-}
 .chat-message-bubble--peer {
   flex-direction: row;
 }
@@ -3006,20 +2828,8 @@ const linkifyText = computed(() => {
 .chat-message-bubble__meta--hidden {
   opacity: 0;
 }
-.chat-message-bubble__enter-from-class-2 {
-  opacity: 0;
-}
-.chat-message-bubble__leave-to-class-2 {
-  opacity: 0;
-}
 .chat-message-bubble__meta--end {
   opacity: .8;
-}
-.chat-message-bubble__enter-to-class-2 {
-  opacity: 1;
-}
-.chat-message-bubble__leave-from-class-2 {
-  opacity: 1;
 }
 .chat-message-bubble__enter-active-class {
   transition-property: all;
@@ -3030,16 +2840,6 @@ const linkifyText = computed(() => {
   transition-property: all;
   transition-duration: .1s;
   transition-timing-function: var(--app-ease-in);
-}
-.chat-message-bubble__enter-active-class-2 {
-  transition-property: opacity;
-  transition-timing-function: var(--app-ease-standard);
-  transition-duration: .15s;
-}
-.chat-message-bubble__leave-active-class-2 {
-  transition-property: opacity;
-  transition-timing-function: var(--app-ease-standard);
-  transition-duration: .15s;
 }
 .chat-message-bubble__button-download-file:active {
   scale: 95% 95%;
@@ -3058,12 +2858,6 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__meta--hidden:has([data-expiry]) {
   opacity: 1;
-}
-[data-theme="light"] .chat-message-bubble__button-save-image {
-  background-color: var(--app-surface-soft);
-}
-[data-theme="light"] .chat-message-bubble__button-close {
-  background-color: var(--app-surface-soft);
 }
 [data-theme="light"] .chat-message-bubble__reactions {
   color: var(--app-text-soft);
@@ -3133,12 +2927,6 @@ const linkifyText = computed(() => {
 }
 [data-theme="light"] .chat-message-bubble__seen-caption {
   color: var(--app-muted);
-}
-[data-theme="light"] .chat-message-bubble__button-save-image:hover {
-  background-color: var(--app-surface-hover);
-}
-[data-theme="light"] .chat-message-bubble__button-close:hover {
-  background-color: var(--app-surface-hover);
 }
 .chat-message-bubble__button-react, .chat-message-bubble__button-edit-message, .chat-message-bubble__button-reply, .chat-message-bubble__copy-text, .chat-message-bubble__emoji {
   border-radius: 4px;
