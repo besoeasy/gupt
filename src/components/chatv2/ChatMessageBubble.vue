@@ -16,7 +16,6 @@ import {
   Pencil,
   Smile,
   Video,
-  X,
 } from "@/icons";
 import {
   formatBytes,
@@ -35,6 +34,7 @@ import { triggerHaptic, HAPTIC } from "@/lib/haptics";
 import { messagePlainText, resolveMessageFormat } from "@/lib/messageFormat";
 import ChatMessageBody from "@/components/chatv2/ChatMessageBody.vue";
 import ChatImageLightbox from "@/components/chatv2/ChatImageLightbox.vue";
+import ChatMessageInfoDialog from "@/components/chatv2/ChatMessageInfoDialog.vue";
 import MessageExpiryCountdown from "@/components/chatv2/MessageExpiryCountdown.vue";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
 import RelayEventLink from "@/components/RelayEventLink.vue";
@@ -44,7 +44,6 @@ import { avatarUrl } from "@/lib/avatar";
 import { MEDIA_PHASE } from "@/lib/mediaDecrypt";
 import {
   getSendReport,
-  hydrateSendReport,
   relayAttemptsOf,
   sendReports,
 } from "@/lib/engine/sendReport.js";
@@ -104,7 +103,6 @@ function clearLongPressTimer() {
 function openMessageInfo() {
   showReactionPicker.value = false;
   showMessageInfo.value = true;
-  idCopied.value = false;
 }
 
 function closeMessageInfo() {
@@ -162,8 +160,6 @@ const bubbleTransform = computed(() => (swipeX.value ? `translateX(${swipeX.valu
 const bubbleTransition = computed(() => (swipeX.value ? "none" : "transform 0.2s ease-out"));
 
 const showMessageInfo = ref(false);
-const idCopied = ref(false);
-const textCopied = ref(false);
 const hoverCopied = ref(false);
 
 const copyableMessageText = computed(() => {
@@ -209,24 +205,7 @@ const nextRetryLabel = computed(() => {
   return `retrying in ${Math.ceil(seconds / 60)}m`;
 });
 
-function sendAttemptLabel(entry) {
-  if (!entry) return "";
-  if (entry.state === "ok") {
-    const ms = Math.max(0, Math.round(Number(entry.latencyMs) || 0));
-    return `stored · ${ms}ms`;
-  }
-  if (entry.state === "skipped") return "skipped";
-  if (entry.state === "trying") return "trying…";
-  return "failed";
-}
 
-watch(
-  showMessageInfo,
-  (open) => {
-    if (open && RABTA_EVENT_ID_RE.test(sendKey.value)) void hydrateSendReport(sendKey.value);
-  },
-  { flush: "post" },
-);
 
 const readByNames = computed(() => props.message?.readByNames || []);
 const unreadByNames = computed(() => props.message?.unreadByNames || []);
@@ -279,26 +258,6 @@ const fullTimestamp = computed(() => {
   if (!ts) return "—";
   return new Date(ts).toLocaleString();
 });
-
-async function copyEventId() {
-  const id = eventId.value;
-  if (!id || id === "—") return;
-  try {
-    await copyToClipboard(id);
-    idCopied.value = true;
-    setTimeout(() => (idCopied.value = false), 1500);
-  } catch {}
-}
-
-async function copyMessageText() {
-  const text = copyableMessageText.value;
-  if (!text) return;
-  try {
-    await copyToClipboard(text);
-    textCopied.value = true;
-    setTimeout(() => (textCopied.value = false), 1500);
-  } catch {}
-}
 
 async function copyMessageTextFromHover() {
   const text = copyableMessageText.value;
@@ -1299,187 +1258,27 @@ const linkifyText = computed(() => {
     </div>
   </div>
 
-  <!-- Message Info Teleport Modal -->
-  <Teleport to="body">
-    <Transition
-      enter-active-class="app-modal-enter-active"
-      enter-from-class="app-modal-enter-from"
-      leave-active-class="app-modal-leave-active"
-      leave-to-class="app-modal-leave-to"
-    >
-      <div
-        v-if="showMessageInfo"
-        class="chat-message-bubble__info-overlay"
-        @click.self="closeMessageInfo"
-      >
-        <div
-          class="app-modal-panel chat-message-bubble__dialog"
-          role="dialog"
-          @click.stop
-        >
-          <div class="chat-message-bubble__info-head">
-            <h3 class="chat-message-bubble__heading-message-info">Message Info</h3>
-            <button
-              type="button"
-              @click="closeMessageInfo"
-              class="chat-message-bubble__info-close"
-            >
-              <X class="chat-message-bubble__x" :stroke-width="1.8" />
-            </button>
-          </div>
-
-          <div class="chat-message-bubble__info-reactions">
-            <button
-              v-for="e in REACT_EMOJIS"
-              :key="e"
-              type="button"
-              @click="
-                react(e);
-                closeMessageInfo();
-              "
-              class="chat-message-bubble__info-emoji"
-            >
-              {{ e }}
-            </button>
-          </div>
-
-          <div class="chat-message-bubble__info-body">
-            <p v-if="isGroupMessage" class="chat-message-bubble__info-note">
-              Group messages are sealed individually for each member inside a single relay event, so
-              only group members can decrypt their own copy.
-            </p>
-
-            <div>
-              <p class="chat-message-bubble__info-label">
-                {{ isGroupMessage ? "Message ID" : "Event ID" }}
-              </p>
-              <button
-                type="button"
-                @click="copyEventId"
-                class="chat-message-bubble__info-copy"
-              >
-                <span class="chat-message-bubble__info-id">{{ eventId }}</span>
-                <Copy
-                  v-if="!idCopied"
-                  class="chat-message-bubble__copy-2"
-                  :stroke-width="1.8"
-                />
-                <Check
-                  v-else
-                  class="chat-message-bubble__check-3"
-                  :stroke-width="2"
-                />
-              </button>
-            </div>
-
-            <div>
-              <p class="chat-message-bubble__text-status">
-                Status
-              </p>
-              <p :class="statusColorClass" class="chat-message-bubble__info-status">{{ statusLabel }}</p>
-              <p
-                v-if="sendError && props.mine && props.message.status !== 'sent'"
-                class="chat-message-bubble__text-send-detail"
-              >
-                {{ sendError }}<span v-if="nextRetryLabel"> · {{ nextRetryLabel }}</span>
-              </p>
-            </div>
-
-            <div v-if="props.mine && sendAttempts.length">
-              <p class="chat-message-bubble__text-status">
-                Relays
-              </p>
-              <ul class="chat-message-bubble__send-attempts">
-                <li
-                  v-for="entry in sendAttempts"
-                  :key="entry.relay"
-                  class="chat-message-bubble__send-attempt"
-                >
-                  <span
-                    class="chat-message-bubble__send-dot"
-                    :class="{
-                      'chat-message-bubble__send-dot--ok': entry.state === 'ok',
-                      'chat-message-bubble__send-dot--trying': entry.state === 'trying',
-                      'chat-message-bubble__send-dot--skipped': entry.state === 'skipped',
-                    }"
-                  />
-                  <span class="chat-message-bubble__send-host">{{ entry.host }}</span>
-                  <span class="chat-message-bubble__send-state">{{ sendAttemptLabel(entry) }}</span>
-                </li>
-              </ul>
-              <p
-                v-for="entry in sendAttempts.filter((e) => e.state !== 'ok' && e.error)"
-                :key="`err-${entry.relay}`"
-                class="chat-message-bubble__text-send-detail"
-              >
-                {{ entry.host }}: {{ entry.error }}
-              </p>
-            </div>
-
-            <div
-              v-if="
-                isGroupMessage &&
-                (readByNames.length || unreadByNames.length || unknownByNames.length)
-              "
-            >
-              <p class="chat-message-bubble__text-seen-by">
-                Seen by
-              </p>
-              <p class="chat-message-bubble__info-seen">
-                {{ readByNames.length ? readByNames.join(", ") : "Nobody yet" }}
-              </p>
-              <p v-if="unreadByNames.length" class="chat-message-bubble__text-waiting-on">
-                Waiting on {{ unreadByNames.join(", ") }}
-              </p>
-              <p v-if="unknownByNames.length" class="chat-message-bubble__info-unknown">
-                No record for {{ unknownByNames.join(", ") }} — read receipts expire after 30 days
-              </p>
-            </div>
-
-            <div>
-              <p class="chat-message-bubble__text-timestamp">
-                Timestamp
-              </p>
-              <p class="chat-message-bubble__info-timestamp">{{ fullTimestamp }}</p>
-            </div>
-          </div>
-
-          <div class="chat-message-bubble__info-actions">
-            <button
-              v-if="props.mine && props.message.status === 'failed'"
-              type="button"
-              @click="
-                emit('retry-send', message);
-                closeMessageInfo();
-              "
-              class="chat-message-bubble__info-action"
-            >
-              Retry sending
-            </button>
-
-            <button
-              v-if="copyableMessageText"
-              type="button"
-              @click="copyMessageText"
-              class="chat-message-bubble__info-action"
-            >
-              <Copy v-if="!textCopied" class="chat-message-bubble__copy-3" :stroke-width="1.8" />
-              <Check v-else class="chat-message-bubble__check-4" :stroke-width="2" />
-              {{ textCopied ? "Copied!" : "Copy message text" }}
-            </button>
-
-            <RelayEventLink
-              v-if="!isGroupMessage"
-              :event-id="eventId"
-              variant="button"
-              placement="top"
-              label="Inspect on Rabta relay"
-            />
-          </div>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
+  <!-- Message Info (extracted child component) -->
+  <ChatMessageInfoDialog
+    :open="showMessageInfo"
+    :message="message"
+    :mine="mine"
+    :event-id="eventId"
+    :is-group-message="isGroupMessage"
+    :copyable-message-text="copyableMessageText"
+    :status-label="statusLabel"
+    :status-color-class="statusColorClass"
+    :send-error="sendError"
+    :next-retry-label="nextRetryLabel"
+    :send-attempts="sendAttempts"
+    :read-by-names="readByNames"
+    :unread-by-names="unreadByNames"
+    :unknown-by-names="unknownByNames"
+    :full-timestamp="fullTimestamp"
+    @close="closeMessageInfo"
+    @react="react"
+    @retry-send="emit('retry-send', message)"
+  />
 
   <!-- Lightbox (extracted child component) -->
   <ChatImageLightbox
