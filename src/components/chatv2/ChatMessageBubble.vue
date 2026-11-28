@@ -21,7 +21,6 @@ import {
   formatBytes,
   formatTime,
   formatDuration,
-  finiteDurationSeconds,
   isImage,
   isVideo,
   isAudio,
@@ -31,6 +30,7 @@ import {
 import { formatSeenByTitle } from "@/lib/chatListUtils";
 import { formatAccuracy, formatCoords, osmMapUrl } from "@/lib/location";
 import { triggerHaptic, HAPTIC } from "@/lib/haptics";
+import { useAudioPlayback } from "@/composables/useAudioPlayback";
 import { messagePlainText, resolveMessageFormat } from "@/lib/messageFormat";
 import ChatMessageBody from "@/components/chatv2/ChatMessageBody.vue";
 import ChatImageLightbox from "@/components/chatv2/ChatImageLightbox.vue";
@@ -431,7 +431,6 @@ onUnmounted(() => {
     }
   }
   clearLongPressTimer();
-  if (activeScrubCleanup) activeScrubCleanup();
 });
 
 const lightboxOpen = ref(false);
@@ -448,171 +447,28 @@ function onAvatarError() {
 }
 const avatarDisplaySrc = computed(() => avatarUrl(props.message?.sender || ""));
 
-const audioEl = ref(null);
-const waveformRef = ref(null);
-const playing = ref(false);
-const progress = ref(0);
-const currentSecs = ref(0);
-const playbackSpeed = ref(1);
-const isScrubbing = ref(false);
-const hoverProgress = ref(null);
-
-function durationFromMessage() {
-  const ms = Number(props.message?.durationMs || 0);
-  return ms > 0 ? Math.round(ms / 1000) : 0;
-}
-
-const totalSecs = ref(durationFromMessage());
-
-function syncPlaybackRate() {
-  if (audioEl.value) {
-    audioEl.value.playbackRate = playbackSpeed.value;
-  }
-}
-
-function cyclePlaybackSpeed() {
-  if (playbackSpeed.value === 1) playbackSpeed.value = 1.5;
-  else if (playbackSpeed.value === 1.5) playbackSpeed.value = 2;
-  else playbackSpeed.value = 1;
-
-  syncPlaybackRate();
-}
-
-watch(
-  () => props.blobUrl,
-  (url) => {
-    if (!url) return;
-    playing.value = false;
-    progress.value = 0;
-    currentSecs.value = 0;
-    totalSecs.value = durationFromMessage();
-  },
-);
-
-watch(
-  () => props.message?.durationMs,
-  () => {
-    const fromMessage = durationFromMessage();
-    if (fromMessage > 0) totalSecs.value = fromMessage;
-  },
-);
-
-function playbackDuration(el) {
-  const fromElement = finiteDurationSeconds(el?.duration);
-  if (fromElement !== null && fromElement > 0) return fromElement;
-  if (totalSecs.value > 0) return totalSecs.value;
-  return null;
-}
-
-function syncTotalDuration(el) {
-  const fromElement = finiteDurationSeconds(el?.duration);
-  if (fromElement !== null && fromElement > 0) {
-    totalSecs.value = fromElement;
-    return;
-  }
-  const fromMessage = durationFromMessage();
-  if (fromMessage > 0) totalSecs.value = fromMessage;
-}
-
-function togglePlay() {
-  const el = audioEl.value;
-  if (!el) return;
-  syncPlaybackRate();
-  if (el.paused) {
-    el.play();
-    playing.value = true;
-  } else {
-    el.pause();
-    playing.value = false;
-  }
-}
-
-function onTimeUpdate() {
-  const el = audioEl.value;
-  if (!el || isScrubbing.value) return;
-  currentSecs.value = finiteDurationSeconds(el.currentTime) ?? 0;
-  const duration = playbackDuration(el);
-  if (duration) progress.value = (el.currentTime / duration) * 100;
-  syncTotalDuration(el);
-}
-
-function onEnded() {
-  const el = audioEl.value;
-  if (el) {
-    const played = finiteDurationSeconds(el.currentTime);
-    if (played !== null && played > 0 && !playbackDuration(el)) {
-      totalSecs.value = played;
-    }
-  }
-  playing.value = false;
-  progress.value = 0;
-  currentSecs.value = 0;
-}
-
-function seekAtEvent(e) {
-  const el = audioEl.value;
-  const barEl = waveformRef.value;
-  const duration = playbackDuration(el);
-  if (!el || !barEl || !duration) return;
-  const rect = barEl.getBoundingClientRect();
-  const clientX = e.clientX ?? e.touches?.[0]?.clientX ?? rect.left;
-  const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-  el.currentTime = ratio * duration;
-  progress.value = ratio * 100;
-  currentSecs.value = Math.round(ratio * duration);
-}
-
-let activeScrubCleanup = null;
-
-function onWaveformPointerDown(e) {
-  if (activeScrubCleanup) activeScrubCleanup();
-  isScrubbing.value = true;
-  seekAtEvent(e);
-  const onPointerMove = (ev) => {
-    if (!isScrubbing.value) return;
-    seekAtEvent(ev);
-  };
-  const onPointerUp = () => {
-    isScrubbing.value = false;
-    window.removeEventListener("pointermove", onPointerMove);
-    window.removeEventListener("pointerup", onPointerUp);
-    window.removeEventListener("touchmove", onPointerMove);
-    window.removeEventListener("touchend", onPointerUp);
-    activeScrubCleanup = null;
-  };
-  activeScrubCleanup = () => {
-    isScrubbing.value = false;
-    window.removeEventListener("pointermove", onPointerMove);
-    window.removeEventListener("pointerup", onPointerUp);
-    window.removeEventListener("touchmove", onPointerMove);
-    window.removeEventListener("touchend", onPointerUp);
-    activeScrubCleanup = null;
-  };
-  window.addEventListener("pointermove", onPointerMove);
-  window.addEventListener("pointerup", onPointerUp);
-  window.addEventListener("touchmove", onPointerMove, { passive: false });
-  window.addEventListener("touchend", onPointerUp);
-}
-
-function onLoadedMetadata() {
-  syncTotalDuration(audioEl.value);
-  syncPlaybackRate();
-}
-
-function onDurationChange() {
-  syncTotalDuration(audioEl.value);
-  syncPlaybackRate();
-}
-
-const WAVE_BARS = 36;
-const waveformBars = computed(() => {
-  const seed = String(props.message?.id || props.message?.ts || 0);
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) & 0x7fffffff;
-  return Array.from({ length: WAVE_BARS }, () => {
-    h = (h * 1103515245 + 12345) & 0x7fffffff;
-    return 18 + (h % 75);
-  });
+const {
+  audioEl,
+  waveformRef,
+  playing,
+  progress,
+  currentSecs,
+  totalSecs,
+  playbackSpeed,
+  hoverProgress,
+  waveformBars,
+  togglePlay,
+  cyclePlaybackSpeed,
+  onTimeUpdate,
+  onEnded,
+  seekAtEvent,
+  onWaveformPointerDown,
+  onLoadedMetadata,
+  onDurationChange,
+} = useAudioPlayback({
+  src: () => props.blobUrl,
+  durationMs: () => props.message?.durationMs,
+  seed: () => props.message?.id || props.message?.ts,
 });
 
 const mediaMime = computed(() => props.message?.media?.mime || "application/octet-stream");
@@ -922,7 +778,7 @@ const linkifyText = computed(() => {
                 <Play v-if="!playing" class="chat-message-bubble__play" :stroke-width="1.8" />
                 <Pause v-else class="chat-message-bubble__pause" :stroke-width="1.8" />
               </button>
-              <div class="chat-message-bubble__voice-waveform" @click="seek">
+              <div class="chat-message-bubble__voice-waveform" @click="(e) => seekAtEvent(e, e.currentTarget)">
                 <div
                   v-for="(bar, idx) in waveformBars"
                   :key="idx"
