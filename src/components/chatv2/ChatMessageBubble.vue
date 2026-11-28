@@ -32,6 +32,7 @@ import ChatImageLightbox from "@/components/chatv2/ChatImageLightbox.vue";
 import ChatMessageInfoDialog from "@/components/chatv2/ChatMessageInfoDialog.vue";
 import ChatAudioPlayer from "@/components/chatv2/ChatAudioPlayer.vue";
 import ChatReactionPicker from "@/components/chatv2/ChatReactionPicker.vue";
+import ChatMediaAttachment from "@/components/chatv2/ChatMediaAttachment.vue";
 import MessageExpiryCountdown from "@/components/chatv2/MessageExpiryCountdown.vue";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
 import RelayEventLink from "@/components/RelayEventLink.vue";
@@ -714,86 +715,21 @@ const linkifyText = computed(() => {
 
         <!-- ── Media attachment ── -->
         <template v-else-if="isMediaMessage(message)">
-          <div class="chat-message-bubble__media-body">
-            <!-- In-bubble preview only when not shown outside (decrypting / non-visual) -->
-            <div
-              v-if="!showExternalMediaPreview && !previewUnavailable && isImage(mediaMime) && blobUrl"
-              class="chat-message-bubble__media-image"
-            >
-              <img
-                :src="blobUrl"
-                :alt="getFileLabel(message)"
-                class="chat-message-bubble__image-3"
-                @click="lightboxOpen = true"
-                @load="emit('image-load')"
-                @error="emit('media-error', message)"
-              />
-            </div>
-            <div
-              v-else-if="
-                !showExternalMediaPreview && !previewUnavailable && isVideo(mediaMime) && blobUrl
-              "
-              class="chat-message-bubble__media-video"
-            >
-              <video
-                :src="blobUrl"
-                controls
-                class="chat-message-bubble__video-2"
-                @error="emit('media-error', message)"
-              />
-            </div>
-            <div v-else-if="isAudio(mediaMime) && blobUrl">
-              <ChatAudioPlayer
-                variant="audio"
-                :src="blobUrl"
-                :message="message"
-                :duration-ms="Number(message.durationMs || 0)"
-                :is-media-busy="isMediaBusy"
-              />
-            </div>
-
-            <!-- File meta + download — one inline row: name · format · action -->
-            <div
-              class="chat-message-bubble__file-row"
-            >
-              <span class="chat-message-bubble__file-base">
-                {{ fileBaseName }}
-              </span>
-              <template v-if="fileExtension">
-                <span class="chat-message-bubble__file-sep" aria-hidden="true">·</span>
-                <span class="chat-message-bubble__file-ext">{{ fileExtension }}</span>
-              </template>
-              <template v-if="mediaPartsCount > 1">
-                <span class="chat-message-bubble__file-parts-sep" aria-hidden="true">·</span>
-                <span class="chat-message-bubble__file-parts">
-                  {{
-                    isMediaBusy && mediaProgress?.partsLoaded
-                      ? `${mediaProgress.partsLoaded}/${mediaPartsCount} parts`
-                      : `${mediaPartsCount} parts`
-                  }}
-                </span>
-              </template>
-              <span class="chat-message-bubble__file-action-sep" aria-hidden="true">·</span>
-              <button
-                v-if="!showMediaDownloadTile"
-                type="button"
-                @click="emit('download', message)"
-                class="chat-message-bubble__file-download"
-                :disabled="isMediaBusy"
-              >
-                <Download class="chat-message-bubble__download-3" :stroke-width="1.8" />
-                {{ downloadActionLabel }}
-              </button>
-              <button
-                v-if="hasFailed"
-                type="button"
-                @click="emit('retry', message)"
-                class="chat-message-bubble__button-retry"
-              >
-                Retry
-              </button>
-            </div>
-          </div>
+          <ChatMediaAttachment
+            :message="message"
+            :blob-url="blobUrl"
+            :preview-unavailable="previewUnavailable"
+            :is-media-busy="isMediaBusy"
+            :media-progress="mediaProgress"
+            :has-failed="hasFailed"
+            :show-media-download-tile="showMediaDownloadTile"
+            :show-external-media-preview="showExternalMediaPreview"
+            @download="emit('download', message)"
+            @retry="emit('retry', message)"
+            @image-load="emit('image-load')"
+            @media-error="emit('media-error', message)"
+            @open-lightbox="lightboxOpen = true"
+          />
         </template>
 
         <!-- Keyed on the row type rather than on valid coordinates: a location
