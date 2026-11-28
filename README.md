@@ -325,7 +325,7 @@ flowchart LR
 
 All encryption is [@noble](https://paulmillr.com/noble) crypto — nothing custom, nothing else:
 
-- `@noble/ciphers@2.3.0` — AES-GCM for messages, files, vault
+- `@noble/ciphers@2.4.0` — AES-GCM for messages, files, vault
 - `@noble/curves@2.4.0` — Ed25519 / X25519 for identity and key exchange
 - `@noble/hashes@2.4.0` — SHA-256/512, HKDF, HMAC, Argon2id for sign-in and key derivation
 
