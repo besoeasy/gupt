@@ -10,8 +10,6 @@ import {
   ImageOff,
   Mic,
   MapPin,
-  Pause,
-  Play,
   Reply,
   Pencil,
   Smile,
@@ -20,7 +18,6 @@ import {
 import {
   formatBytes,
   formatTime,
-  formatDuration,
   isImage,
   isVideo,
   isAudio,
@@ -30,11 +27,11 @@ import {
 import { formatSeenByTitle } from "@/lib/chatListUtils";
 import { formatAccuracy, formatCoords, osmMapUrl } from "@/lib/location";
 import { triggerHaptic, HAPTIC } from "@/lib/haptics";
-import { useAudioPlayback } from "@/composables/useAudioPlayback";
 import { messagePlainText, resolveMessageFormat } from "@/lib/messageFormat";
 import ChatMessageBody from "@/components/chatv2/ChatMessageBody.vue";
 import ChatImageLightbox from "@/components/chatv2/ChatImageLightbox.vue";
 import ChatMessageInfoDialog from "@/components/chatv2/ChatMessageInfoDialog.vue";
+import ChatAudioPlayer from "@/components/chatv2/ChatAudioPlayer.vue";
 import MessageExpiryCountdown from "@/components/chatv2/MessageExpiryCountdown.vue";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
 import RelayEventLink from "@/components/RelayEventLink.vue";
@@ -447,30 +444,6 @@ function onAvatarError() {
 }
 const avatarDisplaySrc = computed(() => avatarUrl(props.message?.sender || ""));
 
-const {
-  audioEl,
-  waveformRef,
-  playing,
-  progress,
-  currentSecs,
-  totalSecs,
-  playbackSpeed,
-  hoverProgress,
-  waveformBars,
-  togglePlay,
-  cyclePlaybackSpeed,
-  onTimeUpdate,
-  onEnded,
-  seekAtEvent,
-  onWaveformPointerDown,
-  onLoadedMetadata,
-  onDurationChange,
-} = useAudioPlayback({
-  src: () => props.blobUrl,
-  durationMs: () => props.message?.durationMs,
-  seed: () => props.message?.id || props.message?.ts,
-});
-
 const mediaMime = computed(() => props.message?.media?.mime || "application/octet-stream");
 
 const showExternalMediaPreview = computed(
@@ -754,56 +727,15 @@ const linkifyText = computed(() => {
 
         <!-- ── Voice note ── -->
         <template v-else-if="message.type === 'voice'">
-          <div
+          <ChatAudioPlayer
             v-if="blobUrl"
-            class="chat-message-bubble__voice"
-          >
-            <audio
-              ref="audioEl"
-              :src="blobUrl"
-              preload="metadata"
-              class="chat-message-bubble__audio"
-              @timeupdate="onTimeUpdate"
-              @ended="onEnded"
-              @loadedmetadata="onLoadedMetadata"
-              @durationchange="onDurationChange"
-            />
-            <div class="chat-message-bubble__voice-controls">
-              <button
-                type="button"
-                @click="togglePlay"
-                class="chat-message-bubble__voice-play"
-                :aria-label="playing ? 'Pause' : 'Play'"
-              >
-                <Play v-if="!playing" class="chat-message-bubble__play" :stroke-width="1.8" />
-                <Pause v-else class="chat-message-bubble__pause" :stroke-width="1.8" />
-              </button>
-              <div class="chat-message-bubble__voice-waveform" @click="(e) => seekAtEvent(e, e.currentTarget)">
-                <div
-                  v-for="(bar, idx) in waveformBars"
-                  :key="idx"
-                  class="chat-message-bubble__voice-bar"
-                  :class="
-                    (idx / waveformBars.length) * 100 <= progress ? 'chat-message-bubble__voice-bar--played' : 'chat-message-bubble__voice-bar--idle'
-                  "
-                  :style="{ height: bar + '%' }"
-                />
-              </div>
-              <button
-                type="button"
-                @click="emit('download', message)"
-                :disabled="isMediaBusy"
-                class="chat-message-bubble__button-save-voice"
-                aria-label="Save voice note to device"
-              >
-                <Download class="chat-message-bubble__download-2" :stroke-width="1.8" />
-              </button>
-            </div>
-            <div class="chat-message-bubble__voice-time">
-              <span>{{ formatDuration(currentSecs) }}</span>
-              <span>{{ formatDuration(totalSecs) }}</span>
-            </div>
-          </div>
+            variant="voice"
+            :src="blobUrl"
+            :message="message"
+            :duration-ms="Number(message.durationMs || 0)"
+            :is-media-busy="isMediaBusy"
+            @download="emit('download', message)"
+          />
 
           <div v-else class="chat-message-bubble__voice-fallback">
             <button
@@ -849,76 +781,13 @@ const linkifyText = computed(() => {
               />
             </div>
             <div v-else-if="isAudio(mediaMime) && blobUrl">
-              <audio
-                ref="audioEl"
+              <ChatAudioPlayer
+                variant="audio"
                 :src="blobUrl"
-                preload="metadata"
-                class="chat-message-bubble__audio-2"
-                @timeupdate="onTimeUpdate"
-                @ended="onEnded"
-                @loadedmetadata="onLoadedMetadata"
-                @durationchange="onDurationChange"
+                :message="message"
+                :duration-ms="Number(message.durationMs || 0)"
+                :is-media-busy="isMediaBusy"
               />
-              <div class="chat-message-bubble__audio">
-                <div class="chat-message-bubble__audio-controls">
-                  <button
-                    type="button"
-                    @click="togglePlay"
-                    class="chat-message-bubble__audio-play"
-                    :aria-label="playing ? 'Pause' : 'Play'"
-                  >
-                    <Play
-                      v-if="!playing"
-                      class="chat-message-bubble__play-2"
-                      :stroke-width="1.8"
-                    />
-                    <Pause v-else class="chat-message-bubble__pause-2" :stroke-width="1.8" />
-                  </button>
-
-                  <div
-                    ref="waveformRef"
-                    class="chat-message-bubble__audio-waveform"
-                    @pointerdown="onWaveformPointerDown"
-                    @mousemove="
-                      (e) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        hoverProgress = ((e.clientX - rect.left) / rect.width) * 100;
-                      }
-                    "
-                    @mouseleave="hoverProgress = null"
-                  >
-                    <div
-                      v-for="(bar, idx) in waveformBars"
-                      :key="idx"
-                      class="chat-message-bubble__audio-bar"
-                      :class="[
-                        (idx / waveformBars.length) * 100 <= progress
-                          ? 'chat-message-bubble__audio-bar--played'
-                          : hoverProgress !== null &&
-                              (idx / waveformBars.length) * 100 <= hoverProgress
-                            ? 'chat-message-bubble__audio-bar--hover'
-                            : 'chat-message-bubble__audio-bar--idle',
-                      ]"
-                      :style="{ height: bar + '%' }"
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    @click.stop="cyclePlaybackSpeed"
-                    class="chat-message-bubble__button-x"
-                    :title="`Playback speed: ${playbackSpeed}x`"
-                  >
-                    {{ playbackSpeed }}x
-                  </button>
-                </div>
-                <div
-                  class="chat-message-bubble__audio-time"
-                >
-                  <span>{{ formatDuration(currentSecs) }}</span>
-                  <span>{{ formatDuration(totalSecs) }}</span>
-                </div>
-              </div>
             </div>
 
             <!-- File meta + download — one inline row: name · format · action -->
