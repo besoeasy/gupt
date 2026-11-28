@@ -38,22 +38,25 @@ watch(
 const sizeClass = computed(
   () =>
     ({
-      sm: "robo-avatar__variant-1",
-      md: "robo-avatar__variant-2",
-      lg: "robo-avatar__variant-3",
-      xl: "robo-avatar__variant-4",
-      xxl: "robo-avatar__variant-5",
-      hero: "robo-avatar__variant-6",
-    })[props.size] ?? "robo-avatar__variant-3",
+      xs: "robo-avatar--sm",
+      sm: "robo-avatar--sm",
+      md: "robo-avatar--md",
+      lg: "robo-avatar--lg",
+      xl: "robo-avatar--xl",
+      xxl: "robo-avatar--xxl",
+      hero: "robo-avatar--hero",
+    })[props.size] ?? "robo-avatar--lg",
 );
 
 const roundedClass = computed(
   () =>
     ({
-      xl: "robo-avatar__variant-7",
-      "2xl": "robo-avatar__variant-8",
-      "3xl": "robo-avatar__variant-9",
-    })[props.rounded] ?? "robo-avatar__variant-8",
+      sm: "robo-avatar--round-sm",
+      md: "robo-avatar--round-md",
+      xl: "robo-avatar--round-md",
+      "2xl": "robo-avatar--round-md",
+      "3xl": "robo-avatar--round-lg",
+    })[props.rounded] ?? "robo-avatar--round-md",
 );
 </script>
 

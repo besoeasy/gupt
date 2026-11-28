@@ -2320,4 +2320,16 @@ const linkifyText = computed(() => {
     opacity: 1;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-message-bubble,
+  .chat-message-bubble *,
+  .chat-message-bubble::before,
+  .chat-message-bubble::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 </style>

@@ -659,6 +659,17 @@ function handleMediaVisibility(payload) {
 
 /** A visible countdown reached zero. Drop the message now instead of leaving
  *  an expired copy on screen until the ten-second sweep gets to it. */
+function isConsecutive(item, prev) {
+  if (!item || !prev) return false;
+  if (item.__dateSeparator || prev.__dateSeparator) return false;
+  if (item.type === "call-event" || item.type === "call-request") return false;
+  if (prev.type === "call-event" || prev.type === "call-request") return false;
+  if ((item.mine || item.sender === selfPubkey.value) !== (prev.mine || prev.sender === selfPubkey.value)) return false;
+  if ((item.sender || "") !== (prev.sender || "")) return false;
+  const dt = Number(item.ts || 0) - Number(prev.ts || 0);
+  return dt >= 0 && dt < 5 * 60 * 1000;
+}
+
 function handleMessageExpired(message) {
   if (isGroup.value || !message?.id) return;
   void messenger.expireMessagesNow(targetId.value, message.id, Number(message.expiresAt || 0));
@@ -1130,6 +1141,7 @@ onBeforeUnmount(() => {
               <ChatMessageBubble
                 :message="item"
                 :mine="item.mine || item.sender === selfPubkey"
+                :is-consecutive="isConsecutive(item, prevItem)"
                 :blob-url="mediaBlobUrls[item.id] || null"
                 :media-progress="mediaProgress[item.id] || null"
                 :has-failed="!!decryptFailed[item.id]"
