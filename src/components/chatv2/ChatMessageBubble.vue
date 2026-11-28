@@ -12,7 +12,6 @@ import {
   MapPin,
   Reply,
   Pencil,
-  Smile,
   Video,
 } from "@/icons";
 import {
@@ -32,6 +31,7 @@ import ChatMessageBody from "@/components/chatv2/ChatMessageBody.vue";
 import ChatImageLightbox from "@/components/chatv2/ChatImageLightbox.vue";
 import ChatMessageInfoDialog from "@/components/chatv2/ChatMessageInfoDialog.vue";
 import ChatAudioPlayer from "@/components/chatv2/ChatAudioPlayer.vue";
+import ChatReactionPicker from "@/components/chatv2/ChatReactionPicker.vue";
 import MessageExpiryCountdown from "@/components/chatv2/MessageExpiryCountdown.vue";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
 import RelayEventLink from "@/components/RelayEventLink.vue";
@@ -74,10 +74,7 @@ const emit = defineEmits([
   "expired",
 ]);
 
-const REACT_EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "🔥"];
-const showReactionPicker = ref(false);
 function react(emoji) {
-  showReactionPicker.value = false;
   emit("react", { message: props.message, emoji });
 }
 
@@ -98,7 +95,6 @@ function clearLongPressTimer() {
 }
 
 function openMessageInfo() {
-  showReactionPicker.value = false;
   showMessageInfo.value = true;
 }
 
@@ -547,41 +543,7 @@ const linkifyText = computed(() => {
         :class="mine ? 'chat-message-bubble__actions--mine' : 'chat-message-bubble__actions--peer'"
       >
         <!-- Reaction picker trigger -->
-        <div class="chat-message-bubble__reaction-trigger">
-          <button
-            type="button"
-            @click="showReactionPicker = !showReactionPicker"
-            class="chat-message-bubble__button-react"
-            title="React"
-          >
-            <Smile class="chat-message-bubble__smile" :stroke-width="1.8" />
-          </button>
-          <Transition
-            enter-active-class="chat-message-bubble__enter-active-class"
-            enter-from-class="chat-message-bubble__enter-from-class"
-            enter-to-class="chat-message-bubble__enter-to-class"
-            leave-active-class="chat-message-bubble__leave-active-class"
-            leave-from-class="chat-message-bubble__leave-from-class"
-            leave-to-class="chat-message-bubble__leave-to-class"
-          >
-            <div
-              v-if="showReactionPicker"
-              class="chat-message-bubble__reaction-picker"
-              :class="mine ? 'chat-message-bubble__reaction-picker--mine' : 'chat-message-bubble__reaction-picker--peer'"
-            >
-              <button
-                v-for="e in REACT_EMOJIS"
-                :key="e"
-                type="button"
-                @click="react(e)"
-                class="chat-message-bubble__emoji"
-                :title="e"
-              >
-                {{ e }}
-              </button>
-            </div>
-          </Transition>
-        </div>
+        <ChatReactionPicker :mine="mine" @react="react" />
         <!-- Edit (own text messages) -->
         <button
           v-if="mine && message.type === 'text'"
